@@ -1,5 +1,5 @@
 ---
-name: prompt-master
+name: prompt-maker
 version: 1.5.0
 description: Generates optimized prompts for any AI application/tool. Use when writing, fixing, improving, or adapting a prompt for LLM, image AI, video AI, coding agents, or any other AI tool.
 ---
