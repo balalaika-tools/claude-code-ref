@@ -73,6 +73,8 @@ git diff --stat HEAD~1
 ```
 ````
 
+> **Security**: Never use `$ARGUMENTS` directly inside a shell injection block. Treat it as untrusted input — construct commands with fixed arguments and pass `$ARGUMENTS` only as Claude-visible context, not as a shell string.
+
 ### File references
 
 `@path/to/file` inlines file contents (relative to project root):

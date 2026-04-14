@@ -37,6 +37,8 @@ Current version: !`git describe --tags --abbrev=0`
 
 Multi-line with `` ```! `` blocks.
 
+> **Security**: Never interpolate `$ARGUMENTS` into a shell injection block. Use it only as Claude-visible text context, not as part of the shell command string.
+
 ---
 
 ## 3. Auto-Invocation Control

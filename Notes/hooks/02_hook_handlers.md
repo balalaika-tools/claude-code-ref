@@ -76,12 +76,12 @@ Single-turn LLM evaluation returning YES/NO:
 {
   "type": "prompt",
   "prompt": "Is this command safe? $ARGUMENTS\nAnswer YES or NO.",
-  "model": "claude-haiku-4-5",
+  "model": "claude-haiku-4-5-20251001",
   "timeout": 30
 }
 ```
 
-YES → allow. NO → block. Use `claude-haiku-4-5` for speed.
+YES → allow. NO → block. Use `claude-haiku-4-5-20251001` for speed.
 
 ---
 
@@ -129,7 +129,7 @@ Use when a simple prompt isn't enough — the hook needs to *read files* to deci
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "prompt", "prompt": "Command: $CLAUDE_TOOL_INPUT_COMMAND\nIs this safe? YES or NO.", "model": "claude-haiku-4-5" }
+          { "type": "prompt", "prompt": "Command: $CLAUDE_TOOL_INPUT_COMMAND\nIs this safe? YES or NO.", "model": "claude-haiku-4-5-20251001" }
         ]
       }
     ]

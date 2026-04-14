@@ -233,7 +233,7 @@ jobs:
 |----------|------------------|-----|
 | Quick PR review | `claude-sonnet-4-6` (default) | Fast, cost-efficient |
 | Security audit | `claude-opus-4-6` | Deeper reasoning |
-| Issue triage | `claude-haiku-4-5` | Simple classification, cheapest |
+| Issue triage | `claude-haiku-4-5-20251001` | Simple classification, cheapest |
 | Implementation | `claude-opus-4-6` | Best code generation |
 
 Set via `claude_args: "--model claude-opus-4-6"`.

@@ -96,7 +96,20 @@ Use `$VAR` in env values to read from your shell environment at server start tim
 
 ---
 
-## 6. Applying Changes
+## 6. MCP vs. Hooks
+
+| | MCP (`.mcp.json`) | Hooks (`settings.json`) |
+|--|-------------------|------------------------|
+| Purpose | Persistent tool definitions (give Claude new abilities) | Lifecycle automation (react to Claude's actions) |
+| When it runs | Always available during the session | Fires on specific events (PreToolUse, PostToolUse, etc.) |
+| Can block actions | No | Yes (`PreToolUse` with non-zero exit) |
+| Example | Query a database, call a REST API | Auto-format after edits, block writes to secrets/ |
+
+Use MCP to **extend** what Claude can do. Use Hooks to **enforce or automate** around what it does.
+
+---
+
+## 7. Applying Changes
 
 Changes require a Claude Code restart. Check `/plugin` UI Errors tab if a server fails to start.
 

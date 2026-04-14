@@ -1,5 +1,5 @@
 ---
-name: notes
+name: note-maker
 description: "Scaffold and write structured technical study notes with shields.io badges, ASCII diagrams, numbered files, cross-linked READMEs, and multiple reading paths. Use this skill whenever the user wants to create a new knowledge base, study notes, technical reference docs, learning materials, or documentation repository on any topic — even if they just say 'notes on X' or 'write up what I learned about Y' or 'create a guide for Z'. Also use when the user wants to add a new section or file to an existing notes repo that follows this structure."
 ---
 
