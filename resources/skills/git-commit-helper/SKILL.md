@@ -163,19 +163,26 @@ Migration guide: Update client code to handle new response structure
 
 ## Confirmation before committing
 
-Once the commit message is constructed, always present the full command to the user and ask for approval before running it:
+Once the commit message is constructed, always present the full command to the user and ask for approval before running it.
 
+Use a heredoc for multi-line messages. CRITICAL heredoc rules:
+- Use `<<EOF` (NOT `<<'EOF'`) — single quotes break variable expansion and cause shell errors
+- The closing `EOF` must be at the **start of the line** with NO leading spaces or indentation
+
+```bash
+git commit -m "$(cat <<EOF
+type(scope): description
+
+Optional body explaining why.
+EOF
+)"
 ```
-Here is the proposed commit:
 
-git commit -m "type(scope): description
+Ask the user: "Would you like me to run this commit?"
 
-Optional body explaining why."
+Only execute after the user explicitly confirms.
 
-Would you like me to run this commit?
-```
-
-Only execute `git commit -m "..."` after the user explicitly confirms.
+**NEVER include a "Co-Authored-By" line in any commit message.**
 
 ## Interactive commit helper
 
