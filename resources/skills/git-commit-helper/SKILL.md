@@ -5,227 +5,108 @@ description: Generate descriptive commit messages by analyzing git diffs. Use wh
 
 # Git Commit Helper
 
-## Quick start
+## Step 1 — inspect what's staged
 
-Always stage all changes first, then analyze and generate commit message:
+Never run `git add .` blindly. Start by seeing what's already staged:
 
 ```bash
-# Stage all changes
-git add .
-
-# View staged changes
+git status
 git diff --staged
-
-# Generate commit message based on changes
-# (Claude will analyze the diff and suggest a message)
+git diff --staged --stat
 ```
 
-## Commit message format
+If nothing is staged, show the user what's unstaged and ask which files to include before proceeding.
+
+If a file has both staged and unstaged changes, make that explicit. The commit message must describe only the staged hunks, not the file's full working tree state.
+
+## Step 2 — derive the commit type and scope
+
+Read the diff and ask:
+
+- **What changed?** Code, tests, config, docs, infra?
+- **Why?** New behavior (feat), broken thing fixed (fix), same behavior different shape (refactor), test coverage (test), tooling/config (chore), docs only (docs)?
+- **Where?** The scope is the subsystem, module, or layer affected — keep it short (`api`, `auth`, `db`, `ui`, `ci`, `infra`). Omit scope if the change is truly cross-cutting.
+
+When multiple types apply, pick the one that describes the *primary* intent. A refactor that also fixes a latent bug is a `refactor`.
+
+## Step 3 — write the message
 
 Follow conventional commits format:
 
 ```
-<type>(<scope>): <description>
+type(scope): description
 
-[optional body]
-
-[optional footer]
+- bullet: one logical change per line
+- bullet: another change
 ```
 
-### Types
+**Summary line rules:**
+- Lowercase after the colon: `feat(auth): add JWT support` not `feat(auth): Add JWT support`
+- Imperative mood: "add", "fix", "remove" — not "added", "fixes", "removing"
+- No period at the end
+- ≤ 72 characters including the `type(scope): ` prefix
+- Describe *what* changes, save *why* for the body
 
-- **feat**: New feature
-- **fix**: Bug fix
-- **docs**: Documentation changes
-- **style**: Code style changes (formatting, missing semicolons)
-- **refactor**: Code refactoring
-- **test**: Adding or updating tests
-- **chore**: Maintenance tasks
+**Body rules:**
+- Use bullets for multi-change commits; prose for a single focused change
+- One bullet per logical change — never manually wrap a bullet to a second line
+- Explain WHY when the reason isn't obvious from the summary
 
-### Examples
-
-**Feature commit:**
+**Breaking changes:**
 ```
-feat(auth): add JWT authentication
+feat(api)!: restructure response format
 
-Implement JWT-based authentication system with:
-- Login endpoint with token generation
-- Token validation middleware
-- Refresh token support
+BREAKING CHANGE: all responses now follow JSON:API spec
 ```
 
-**Bug fix:**
-```
-fix(api): handle null values in user profile
+### Types reference
 
-Prevent crashes when user profile fields are null.
-Add null checks before accessing nested properties.
-```
+| Type | When |
+|------|------|
+| `feat` | New capability visible to users or callers |
+| `fix` | Corrects unintended behavior |
+| `refactor` | Same behavior, different shape |
+| `test` | Adds or updates tests only |
+| `perf` | Improves performance without changing behavior |
+| `build` | Build system or dependency packaging changes |
+| `ci` | CI pipeline or automation changes |
+| `chore` | Tooling, deps, config, CI |
+| `docs` | Documentation only |
+| `style` | Formatting, whitespace — no logic change |
+| `revert` | Reverts a previous commit |
 
-**Refactor:**
-```
-refactor(database): simplify query builder
+## Step 4 — present and confirm
 
-Extract common query patterns into reusable functions.
-Reduce code duplication in database layer.
-```
+Show the full command and ask before running it. For a summary-only commit, use `git commit -m "type(scope): description"`. Use a heredoc only when the commit message includes a body.
 
-## Analyzing changes
+### Heredoc rules
 
-Review what's being committed:
+**Rule 1:** The closing `EOF` must be flush to the left margin — zero indentation. One indented space causes zsh to hang with `dquote cmdsubst heredoc>`.
 
+**Rule 2:** `)"` goes on its own line immediately after `EOF`, also flush-left.
+
+**WRONG:**
 ```bash
-# Show files changed
-git status
+git commit -m "$(cat <<EOF
+  type(scope): description
 
-# Show detailed changes
-git diff --staged
-
-# Show statistics
-git diff --staged --stat
-
-# Show changes for specific file
-git diff --staged path/to/file
+  - bullet one
+  EOF
+)"
 ```
 
-## Commit message guidelines
-
-**DO:**
-- Use imperative mood ("add feature" not "added feature")
-- Keep first line under 50 characters
-- Capitalize first letter
-- No period at end of summary
-- Explain WHY not just WHAT in body
-
-**DON'T:**
-- Use vague messages like "update" or "fix stuff"
-- Include technical implementation details in summary
-- Write paragraphs in summary line
-- Use past tense
-
-## Multi-file commits
-
-When committing multiple related changes:
-
-```
-refactor(core): restructure authentication module
-
-- Move auth logic from controllers to service layer
-- Extract validation into separate validators
-- Update tests to use new structure
-- Add integration tests for auth flow
-
-Breaking change: Auth service now requires config object
-```
-
-## Scope examples
-
-**Frontend:**
-- `feat(ui): add loading spinner to dashboard`
-- `fix(form): validate email format`
-
-**Backend:**
-- `feat(api): add user profile endpoint`
-- `fix(db): resolve connection pool leak`
-
-**Infrastructure:**
-- `chore(ci): update Node version to 20`
-- `feat(docker): add multi-stage build`
-
-## Breaking changes
-
-Indicate breaking changes clearly:
-
-```
-feat(api)!: restructure API response format
-
-BREAKING CHANGE: All API responses now follow JSON:API spec
-
-Previous format:
-{ "data": {...}, "status": "ok" }
-
-New format:
-{ "data": {...}, "meta": {...} }
-
-Migration guide: Update client code to handle new response structure
-```
-
-## Template workflow
-
-1. **Stage all changes**: `git add .`
-2. **Review changes**: `git diff --staged`
-3. **Identify type**: Is it feat, fix, refactor, etc.?
-4. **Determine scope**: What part of the codebase?
-5. **Write summary**: Brief, imperative description
-6. **Add body**: Explain why and what impact
-7. **Note breaking changes**: If applicable
-8. **Showcase the message**: Display the full commit command and ask the user for confirmation before executing
-
-## Confirmation before committing
-
-Once the commit message is constructed, always present the full command to the user and ask for approval before running it.
-
-Use a heredoc for multi-line messages. CRITICAL heredoc rules:
-- Use `<<EOF` (NOT `<<'EOF'`) — single quotes break variable expansion and cause shell errors
-- The closing `EOF` must be at the **start of the line** with NO leading spaces or indentation
-
+**CORRECT:**
 ```bash
 git commit -m "$(cat <<EOF
 type(scope): description
 
-Optional body explaining why.
+- bullet one
 EOF
 )"
 ```
 
-Ask the user: "Would you like me to run this commit?"
+Ask: "Would you like me to run this commit?"
 
-Only execute after the user explicitly confirms.
+Only execute after explicit user confirmation.
 
 **NEVER include a "Co-Authored-By" line in any commit message.**
-
-## Interactive commit helper
-
-Use `git add -p` for selective staging:
-
-```bash
-# Stage changes interactively
-git add -p
-
-# Review what's staged
-git diff --staged
-
-# Commit with message
-git commit -m "type(scope): description"
-```
-
-## Amending commits
-
-Fix the last commit message:
-
-```bash
-# Amend commit message only
-git commit --amend
-
-# Amend and add more changes
-git add forgotten-file.js
-git commit --amend --no-edit
-```
-
-## Best practices
-
-1. **Atomic commits** - One logical change per commit
-2. **Test before commit** - Ensure code works
-3. **Reference issues** - Include issue numbers if applicable
-4. **Keep it focused** - Don't mix unrelated changes
-5. **Write for humans** - Future you will read this
-
-## Commit message checklist
-
-- [ ] Type is appropriate (feat/fix/docs/etc.)
-- [ ] Scope is specific and clear
-- [ ] Summary is under 50 characters
-- [ ] Summary uses imperative mood
-- [ ] Body explains WHY not just WHAT
-- [ ] Breaking changes are clearly marked
-- [ ] Related issue numbers are included
