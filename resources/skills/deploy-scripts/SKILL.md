@@ -1,7 +1,6 @@
 ---
 name: deploy-scripts
-description: Conventions and patterns for writing deploy/destroy shell scripts that wrap Terraform stacks. Use when creating or modifying scripts in scripts/.
-user-invocable: false
+description: Conventions and patterns for writing shell scripts that wrap Terraform stacks (deploy-*.sh, destroy-*.sh, build-and-push.sh, and the top-level deploy.sh / destroy.sh orchestrators). Use whenever creating a new per-stack script, adding scripts for a newly added Terraform stack, modifying or reviewing any script in `scripts/`, wiring up CI-aware Terraform workflows, or debugging confirmation prompts / idempotent destroys. Apply even when the user just says things like "add a script for the new stack", "the destroy script is broken", or "how should I structure this deploy?".
 ---
 
 # Deploy & Destroy Script Conventions
@@ -30,7 +29,7 @@ All scripts follow a strict, consistent structure so they work identically local
 set -euo pipefail
 ```
 
-Always `set -euo pipefail`. Never use `#!/bin/bash` — use `#!/usr/bin/env bash` for portability.
+Use `#!/usr/bin/env bash` (not `#!/bin/bash`) so the script picks up whatever `bash` is on `PATH` — macOS ships an ancient `/bin/bash` (3.2) that lacks features we rely on, and CI images vary. `set -euo pipefail` makes the script fail fast on errors, unset vars, and broken pipes — Terraform workflows are destructive enough that silently continuing past a failure is worse than exiting.
 
 ### 2. Path Resolution
 
@@ -39,13 +38,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TF_DIR="$REPO_ROOT/Terraform/environments/prod/<stack>"
 BACKEND_CONFIG="$REPO_ROOT/Terraform/backend-config/prod/<stack>.backend.hcl"
+TFVARS="$TF_DIR/prod.tfvars"
+TF_PLAN="$TF_DIR/tfplan"
 ```
 
-Always resolve paths relative to the script's own location. Never rely on `$PWD` or assume where the caller is.
+Resolve paths relative to `${BASH_SOURCE[0]}` so the script works regardless of where the caller invokes it from — CI runners, other scripts, and humans all call these from different working directories. Relying on `$PWD` silently breaks in each of those cases.
 
 ### 3. Helper Functions
 
-Paste these verbatim in every script — no shared sourcing:
+Paste these verbatim in every script — do not extract them to a shared `lib.sh`:
 
 ```bash
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -54,6 +55,8 @@ print_success() { printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$1"; }
 print_warning() { printf "\033[0;33m[WARNING]\033[0m %s\n" "$1"; }
 print_error()   { printf "\033[0;31m[ERROR]\033[0m   %s\n" "$1"; }
 ```
+
+Why no shared sourcing: each script needs to be runnable standalone (a human grabbing one out of a repo, CI invoking just one stage, copy-pasted into a runbook). Sourcing a sibling file adds a failure mode (“file not found / wrong path”) for a handful of trivial printf lines. The duplication is intentional — it buys auditability and portability.
 
 ### 4. Pre-flight Checks
 
@@ -81,40 +84,43 @@ cd "$TF_DIR"
 
 # Step 1 — Init
 print_info "Initializing Terraform (<stack>)..."
-terraform init -backend-config="$BACKEND_CONFIG"
+terraform init -input=false -backend-config="$BACKEND_CONFIG"
 
 print_info "Validating..."
 terraform validate
 
 print_info "Formatting check..."
-if ! terraform fmt -check -recursive "$REPO_ROOT/Terraform/modules/<stack>" >/dev/null 2>&1; then
+FMT_PATHS=("$TF_DIR" "$REPO_ROOT/Terraform/modules/<stack>")
+if ! terraform fmt -check -recursive "${FMT_PATHS[@]}" >/dev/null 2>&1; then
+  if [[ "${CI:-}" == "true" ]]; then
+    print_error "Terraform formatting issues found; run terraform fmt locally"
+    exit 1
+  fi
   print_warning "Formatting issues found, auto-fixing..."
-  terraform fmt -recursive "$REPO_ROOT/Terraform/modules/<stack>"
+  terraform fmt -recursive "${FMT_PATHS[@]}"
 fi
 
 # Step 2 — Plan
-terraform plan -var-file=prod.tfvars -out=tfplan
+trap 'rm -f "$TF_PLAN"' EXIT
+terraform plan -input=false -var-file="$TFVARS" -out="$TF_PLAN"
 
 # Step 3 — Apply (CI-aware)
 if [[ "${CI:-}" == "true" ]]; then
   print_info "CI detected — auto-approving..."
-  terraform apply tfplan
+  terraform apply -input=false "$TF_PLAN"
 else
   print_info "Review the plan above."
-  read -p "Apply? (yes/no): " -r
+  read -r -p "Apply? (yes/no): "
   if [[ "$REPLY" == "yes" ]]; then
-    terraform apply tfplan
+    terraform apply -input=false "$TF_PLAN"
   else
     print_info "Cancelled"
-    rm -f tfplan
     exit 0
   fi
 fi
-
-rm -f tfplan
 ```
 
-Always clean up `tfplan` on both the happy path and cancellation.
+Use a trap so `tfplan` is cleaned up on success, cancellation, and failed applies. In CI, do not auto-format files; fail with a clear message so the pipeline does not mutate the working tree.
 
 ### 6. Confirmation Gate (destroy scripts only)
 
@@ -126,7 +132,7 @@ if [[ "${CI:-}" != "true" && "${SKIP_CONFIRM:-}" != "true" ]]; then
   print_warning "  - Resource A"
   print_warning "  - Resource B"
   echo ""
-  read -p "Type 'DESTROY' to confirm: " -r
+  read -r -p "Type 'DESTROY' to confirm: "
   echo ""
   if [[ "$REPLY" != "DESTROY" ]]; then
     print_info "Cancelled"
@@ -135,7 +141,7 @@ if [[ "${CI:-}" != "true" && "${SKIP_CONFIRM:-}" != "true" ]]; then
 fi
 ```
 
-Use `DESTROY` (all caps) as the confirmation token for standard stacks. Use `DESTROY-BACKEND` only for the S3/state bucket (extra friction because it is irreversible).
+Use `DESTROY` (all caps) as the confirmation token for standard stacks. Use `DESTROY-BACKEND` only for the S3/state bucket (extra friction because losing the state bucket is catastrophic — Terraform loses track of every resource it manages). The all-caps token also defeats muscle memory: typing `yes` by reflex won't pass.
 
 ### 7. Destroy Workflow (destroy scripts only)
 
@@ -149,7 +155,7 @@ fi
 cd "$TF_DIR"
 
 print_info "Initializing Terraform (<stack>)..."
-terraform init -backend-config="$BACKEND_CONFIG" >/dev/null
+terraform init -input=false -backend-config="$BACKEND_CONFIG" >/dev/null
 
 # Guard: skip if no state exists (idempotent destroy)
 if ! terraform state list >/dev/null 2>&1 || [[ -z "$(terraform state list 2>/dev/null)" ]]; then
@@ -158,11 +164,11 @@ if ! terraform state list >/dev/null 2>&1 || [[ -z "$(terraform state list 2>/de
 fi
 
 print_info "Destroying <stack> stack..."
-terraform destroy -auto-approve -var-file="$TFVARS"
+terraform destroy -auto-approve -input=false -var-file="$TFVARS"
 print_success "<Stack> stack destroyed"
 ```
 
-Destroy scripts are always idempotent: if the directory or state is missing, exit 0.
+Destroy scripts are always idempotent: if the directory or state is missing, exit 0. Idempotency matters because `destroy.sh` orchestrates all stacks in sequence — if one has already been torn down, the orchestrator must continue cleanly instead of halting the rest of the teardown.
 
 ### 8. Summary Banner (deploy scripts)
 
@@ -183,7 +189,7 @@ print_info "Some output: $SOME_OUTPUT"
 
 | Variable | Effect |
 |---|---|
-| `CI=true` | Bypasses interactive `read` prompts; Terraform runs with `-auto-approve` |
+| `CI=true` | Bypasses interactive `read` prompts; deploy scripts apply saved plans non-interactively, destroy scripts use `-auto-approve` |
 | `SKIP_CONFIRM=true` | Bypasses the `DESTROY` confirmation in destroy scripts (for `destroy.sh` orchestration) |
 
 Never hard-code `-auto-approve` in deploy scripts — always gate it on `$CI`.
@@ -260,7 +266,7 @@ print_info()    { printf "\033[0;34m[INFO]\033[0m    %s\n" "$1"; }
 if [[ "${CI:-}" != "true" && "${SKIP_CONFIRM:-}" != "true" ]]; then
   echo ""
   print_warning "This will destroy ALL stacks."
-  read -p "Type 'DESTROY' to confirm: " -r
+  read -r -p "Type 'DESTROY' to confirm: "
   echo ""
   if [[ "$REPLY" != "DESTROY" ]]; then
     print_info "Cancelled"
@@ -268,13 +274,15 @@ if [[ "${CI:-}" != "true" && "${SKIP_CONFIRM:-}" != "true" ]]; then
   fi
 fi
 
-export SKIP_CONFIRM=true
+export SKIP_CONFIRM=true   # child scripts inherit this, so they skip their own prompts
 
 # Reverse dependency order
-SKIP_CONFIRM=true "$SCRIPT_DIR/destroy-<stack-N>.sh"
-# ... (add sleep between stacks if ENI/dependency cleanup is needed)
-SKIP_CONFIRM=true "$SCRIPT_DIR/destroy-<stack-1>.sh"
+"$SCRIPT_DIR/destroy-<stack-N>.sh"
+# ... (add `sleep 30` between stacks if ENI/dependency cleanup is needed — e.g. between app and ec2)
+"$SCRIPT_DIR/destroy-<stack-1>.sh"
 ```
+
+The single top-level `DESTROY` prompt plus an `export`-based opt-out is cleaner than per-call `SKIP_CONFIRM=true` prefixes: one place to reason about confirmation, and child scripts remain unchanged whether invoked standalone or by the orchestrator.
 
 ## Adding a New Stack Script Pair
 
