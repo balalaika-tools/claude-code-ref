@@ -77,15 +77,29 @@ BREAKING CHANGE: all responses now follow JSON:API spec
 
 ## Step 4 — present and confirm
 
-Show the full command and ask before running it. For a summary-only commit, use `git commit -m "type(scope): description"`. Use a heredoc only when the commit message includes a body.
+Show the full command and ask before running it.
 
-### Heredoc rules
+### Preferred: use `-m` twice (no heredoc)
 
-**Rule 1:** The closing `EOF` must be flush to the left margin — zero indentation. One indented space causes zsh to hang with `dquote cmdsubst heredoc>`.
+For commits with a body, **always prefer the double `-m` form** over heredoc. It is immune to heredoc indentation bugs:
 
-**Rule 2:** `)"` goes on its own line immediately after `EOF`, also flush-left.
+```bash
+git commit -m "type(scope): description" \
+  -m "- bullet one
+- bullet two"
+```
 
-**WRONG:**
+For a summary-only commit: `git commit -m "type(scope): description"`
+
+### Heredoc — use only as a last resort
+
+If heredoc is absolutely necessary, follow these rules or the shell will hang at `dquote cmdsubst heredoc>`:
+
+**Rule 1:** The closing `EOF` must be at column 0 — zero indentation, no spaces before or after it.
+
+**Rule 2:** `)"` goes on its own line immediately after `EOF`, also at column 0.
+
+**WRONG — shell hangs because `EOF` is indented:**
 ```bash
 git commit -m "$(cat <<EOF
   type(scope): description
