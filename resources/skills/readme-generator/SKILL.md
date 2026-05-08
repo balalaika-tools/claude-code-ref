@@ -34,16 +34,23 @@ Use this exact section order. Keep the total README under ~150 lines; push depth
 
 Choose one approach:
 - **Icon + title**: If a logo/icon exists in the repo (common in `assets/`, `static/`, `.github/`), use it as an `<img>` tag before the H1.
-- **ASCII art title**: Otherwise, generate tasteful ASCII block-letter art for the project name. Use a simple block style — capital letters made of `#` characters, for example:
+- **ASCII art title**: Otherwise, generate tasteful ASCII block-letter art for the project name. Use wide, bold block letters — each letter should be full-width and dense, not narrow or cramped. Target this style:
 
 ```
-██████╗ ███████╗██████╗  ██████╗ 
-██╔══██╗██╔════╝██╔══██╗██╔═══██╗
-██████╔╝█████╗  ██████╔╝██║   ██║
-██╔══██╗██╔══╝  ██╔═══╝ ██║   ██║
-██║  ██║███████╗██║      ╚██████╔╝
-╚═╝  ╚═╝╚══════╝╚═╝       ╚═════╝ 
+███╗   ███╗███████╗██████╗ ██╗ █████╗ ███████╗ ██████╗ █████╗ ██╗     ███████╗
+████╗ ████║██╔════╝██╔══██╗██║██╔══██╗██╔════╝██╔════╝██╔══██╗██║     ██╔════╝
+██╔████╔██║█████╗  ██║  ██║██║███████║███████╗██║     ███████║██║     █████╗
+██║╚██╔╝██║██╔══╝  ██║  ██║██║██╔══██║╚════██║██║     ██╔══██║██║     ██╔══╝
+██║ ╚═╝ ██║███████╗██████╔╝██║██║  ██║███████║╚██████╗██║  ██║███████╗███████╗
+╚═╝     ╚═╝╚══════╝╚═════╝ ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝
+                          F R O N T E N D
 ```
+
+Key style rules:
+- Letters must be **6 rows tall** with clean `╗`/`╔`/`╝`/`╚` corners — no malformed or uneven glyphs
+- Letters should be **wide and full**, not narrow (e.g. `███████╗` not `██╗`)
+- Subtitle line: **ALL CAPS**, one space between each letter (e.g. `F R O N T E N D` not `Frontend` or `F r o n t e n d`), indented to center under the title
+- The subtitle should be the project's category, tagline, or type (e.g. `A P I`, `C L I   T O O L`, `I N F R A S T R U C T U R E`)
 
 Follow immediately with the H1 title (if using ASCII art, H1 can be omitted or kept small).
 
