@@ -194,6 +194,29 @@ resource "aws_sqs_queue" "events" {
 
 Reserve `count` for a simple 0-or-1 toggle (`count = var.enabled ? 1 : 0`) — never for collections.
 
+### AWS Security Groups and Managed ENIs
+
+When writing or reviewing AWS Terraform, treat security groups attached to managed ENI producers as lifecycle-sensitive. AWS cannot delete a security group while any ENI still references it, so destroys can appear to hang with `aws_security_group.<name>: Still destroying...`.
+
+Common ENI producers include VPC Lambda functions, ECS/Fargate tasks, load balancers, VPC interface endpoints, EC2 instances, RDS, EFS mount targets, and ElastiCache. Use these guardrails:
+
+- Add `timeouts { delete = "30m" }` to security groups used by managed ENIs.
+- Manage inter-SG references as standalone `aws_security_group_rule` resources so Terraform can remove rules before deleting groups.
+- For VPC Lambda, set `replace_security_groups_on_destroy = true` on `aws_lambda_function`.
+- For VPC Lambda, keep `AWSLambdaVPCAccessExecutionRole` attached until the Lambda security group is deleted; Lambda may need that permission to clean up Hyperplane ENIs after function deletion.
+- For ECS/Fargate, scale services to zero and wait for tasks to stop before deleting task security groups.
+- For shared network stacks, remember that Terraform cannot infer dependencies from other state files; destroy all SG consumers before the stack that owns shared security groups.
+
+When debugging a stuck security group destroy, inspect the blocking ENIs before changing state:
+
+```sh
+aws ec2 describe-network-interfaces \
+  --region <region> \
+  --filters "Name=group-id,Values=<sg-id>" \
+  --query 'NetworkInterfaces[].{Id:NetworkInterfaceId,Status:Status,Type:InterfaceType,Attachment:Attachment.Status,Description:Description}' \
+  --output table
+```
+
 ### Tagging
 
 Tagging happens at two levels, and the split matters because it drives cost allocation, IAM tag-based policies, and audit tooling:
@@ -213,6 +236,10 @@ resource "aws_lambda_function" "handler" {
 
 Omit `tags` entirely on resources that do not support it (policy attachments, route associations, security group rules, etc.) — adding an empty block produces a noisy no-op diff on some provider versions.
 
+### Container Image Tags
+
+Always use git SHA tags for ECR images. Never use `latest` or branch names — mutable tags silently change what gets deployed on the next task launch. Declare `image_tag` variables with no default so CI is forced to supply an explicit value. For environments with strict supply-chain requirements, pin by image digest (`@sha256:…`) instead. See [`references/docker-image-tagging.md`](references/docker-image-tagging.md) for the full pattern and the digest pinning alternative.
+
 ### Sensitive Values
 
 Never hard-code secrets in configuration. Terraform stores secret values in state and plan files regardless of `sensitive = true` — that flag only redacts values from CLI output. Treat state as sensitive data: exclude it from version control and restrict IAM access.
@@ -231,6 +258,8 @@ variable "db_password" {
 Otherwise, pass secrets via environment variables (e.g. `TF_VAR_db_password`) or uncommitted `.tfvars` files, and retrieve them at runtime from an external secret manager (e.g. AWS Secrets Manager, SSM Parameter Store) using a data source.
 
 Prefer ephemeral variables, ephemeral resources, and provider write-only arguments only where the receiving resource/provider explicitly supports them. If a value is passed into a normal resource argument, Terraform can still persist it in state.
+
+**SSM Parameter Store secrets:** Terraform must not create or manage the secret values. Instead, accept an `ssm_parameter_prefix` variable (e.g. `/ai-exception/prod`), inject it as `SSM_PARAMETER_PREFIX` into the ECS task or Lambda environment, and grant IAM `ssm:GetParameter` scoped to `{prefix}/*`. The application fetches the actual values at runtime. See [`references/ssm-secrets-pattern.md`](references/ssm-secrets-pattern.md) for the full pattern including IAM policy, app-side provider selection, and the naming convention for parameters.
 
 ### Quality Gates and Validation
 
