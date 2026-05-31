@@ -17,11 +17,11 @@ claude-code/
 │
 │ ── CUSTOMIZATION ───────────────────────────────────────────
 ├── commands/
-│   └── 01_custom_commands.md       Slash commands from .claude/commands/
+│   └── 01_custom_commands.md       Flat skill-compatible slash commands
 │
 ├── skills/
 │   ├── 01_skills_overview.md       SKILL.md format, frontmatter, invocation
-│   └── 02_skills_advanced.md       Supporting files, shell injection, auto-invoke, forking
+│   └── 02_skills_advanced.md       Supporting files, dynamic context, auto-invoke, forking
 │
 ├── rules/
 │   └── 01_claude_md.md             CLAUDE.md, .claude/rules/, hierarchy, imports
@@ -29,7 +29,7 @@ claude-code/
 │ ── AUTOMATION ──────────────────────────────────────────────
 ├── hooks/
 │   ├── 01_hooks_overview.md        Lifecycle events, config structure, common patterns
-│   └── 02_hook_handlers.md         command/http/prompt/agent handlers, blocking
+│   └── 02_hook_handlers.md         command/http/mcp_tool/prompt/agent handlers, blocking
 │
 │ ── AGENTS ──────────────────────────────────────────────────
 ├── agents/
@@ -45,14 +45,15 @@ claude-code/
 │   └── 01_mcp_json.md              .mcp.json format, server definitions, credentials
 │
 ├── settings/
-│   └── 01_settings_json.md         All scopes, permissions, env, hooks, MCP control
+│   ├── 01_settings_json.md         Scope precedence, permissions, env, hooks, MCP approval
+│   └── 02_claude_directory.md      .claude/ layout, file roles, git hygiene
 │
 │ ── PLUGINS ─────────────────────────────────────────────────
 └── plugins/
     ├── 01_plugin_fundamentals.md   What plugins bundle, directory layout, plugin.json
-    ├── 03_install_and_scopes.md    claude plugin install, three scopes, uninstalling
+    ├── 03_install_and_scopes.md    plugin install, scopes, uninstalling
     ├── 04_marketplaces.md          Official/third-party marketplaces, hosting, sharing
-    └── 05_managing_plugins.md      /plugin UI, enable/disable, auto-updates, gotchas
+    └── 05_managing_plugins.md      /plugin UI, enable/disable, updates, gotchas
 ```
 
 ---
@@ -65,7 +66,7 @@ claude-code/
 
 | Guide | Description |
 |-------|-------------|
-| [Custom Commands](commands/01_custom_commands.md) | `.claude/commands/*.md`, `$ARGUMENTS`, shell injection, frontmatter |
+| [Custom Commands](commands/01_custom_commands.md) | Flat skill-compatible command files, arguments, dynamic context, frontmatter |
 
 ### Skills — [full index](skills/README.md)
 
@@ -74,7 +75,7 @@ claude-code/
 | Guide | Description |
 |-------|-------------|
 | [Skills Overview](skills/01_skills_overview.md) | SKILL.md format, all frontmatter fields, invocation syntax |
-| [Advanced Skills](skills/02_skills_advanced.md) | Supporting files, shell injection, auto-invocation, context forking |
+| [Advanced Skills](skills/02_skills_advanced.md) | Supporting files, dynamic context, auto-invocation, context forking |
 
 ### Rules — [full index](rules/README.md)
 
@@ -91,7 +92,7 @@ claude-code/
 | Guide | Description |
 |-------|-------------|
 | [Hooks Overview](hooks/01_hooks_overview.md) | Lifecycle events, config structure, matchers, common patterns |
-| [Hook Handlers](hooks/02_hook_handlers.md) | command/http/prompt/agent types, exit codes, blocking behavior |
+| [Hook Handlers](hooks/02_hook_handlers.md) | command/http/mcp_tool/prompt/agent handlers, JSON decisions, blocking behavior |
 
 ### Agents — [full index](agents/README.md)
 
@@ -125,7 +126,8 @@ claude-code/
 
 | Guide | Description |
 |-------|-------------|
-| [settings.json](settings/01_settings_json.md) | Four scopes, permissions patterns, env vars, hooks wiring, MCP control |
+| [settings.json](settings/01_settings_json.md) | Scope precedence, permissions patterns, env vars, hooks wiring, MCP approval |
+| [`.claude/` Directory](settings/02_claude_directory.md) | What belongs in `.claude/`, what does not, and how to configure it safely |
 
 ### Plugins — [full index](plugins/README.md)
 
@@ -134,9 +136,9 @@ claude-code/
 | Guide | Description |
 |-------|-------------|
 | [Plugin Fundamentals](plugins/01_plugin_fundamentals.md) | What plugins bundle, directory layout, plugin.json manifest |
-| [Install & Scopes](plugins/03_install_and_scopes.md) | `claude plugin install`, three scopes, what each writes, uninstalling |
+| [Install & Scopes](plugins/03_install_and_scopes.md) | `/plugin install`, shell install, scopes, uninstalling |
 | [Marketplaces](plugins/04_marketplaces.md) | Official marketplace, third-party hosting, sharing with teammates |
-| [Managing Plugins](plugins/05_managing_plugins.md) | `/plugin` UI, enable/disable, auto-updates, key gotchas |
+| [Managing Plugins](plugins/05_managing_plugins.md) | `/plugin` UI, enable/disable, updates, key gotchas |
 
 ---
 
@@ -148,10 +150,11 @@ claude-code/
 ### New to Claude Code
 
 1. [CLAUDE.md](rules/01_claude_md.md) — teach Claude about your project
-2. [Custom Commands](commands/01_custom_commands.md) — quick personal shortcuts
-3. [Skills Overview](skills/01_skills_overview.md) — reusable workflows
-4. [settings.json](settings/01_settings_json.md) — control what Claude can do
-5. [Hooks Overview](hooks/01_hooks_overview.md) — automate around Claude's actions
+2. [`.claude/` Directory](settings/02_claude_directory.md) — understand project configuration layout
+3. [Custom Commands](commands/01_custom_commands.md) — quick flat skill-compatible shortcuts
+4. [Skills Overview](skills/01_skills_overview.md) — reusable workflows
+5. [settings.json](settings/01_settings_json.md) — control what Claude can do
+6. [Hooks Overview](hooks/01_hooks_overview.md) — automate around Claude's actions
 
 ### Setting up GitHub integration
 
@@ -162,9 +165,10 @@ claude-code/
 ### Building automation
 
 1. [settings.json](settings/01_settings_json.md) — scopes and permissions
-2. [Hooks Overview](hooks/01_hooks_overview.md) — event model
-3. [Hook Handlers](hooks/02_hook_handlers.md) — all four handler types
-4. [.mcp.json](mcp/01_mcp_json.md) — external tool integrations
+2. [`.claude/` Directory](settings/02_claude_directory.md) — shared vs local config files
+3. [Hooks Overview](hooks/01_hooks_overview.md) — event model
+4. [Hook Handlers](hooks/02_hook_handlers.md) — handler types and decisions
+5. [.mcp.json](mcp/01_mcp_json.md) — external tool integrations
 
 ### Building and sharing plugins
 
@@ -175,4 +179,4 @@ claude-code/
 
 ---
 
-*Last updated: April 2026*
+*Last updated: May 2026*

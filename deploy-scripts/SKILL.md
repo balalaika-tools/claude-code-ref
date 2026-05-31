@@ -451,7 +451,10 @@ should_skip() {
   [[ ",$skip_list," == *",$stack,"* ]]
 }
 
-for cmd in terraform aws; do
+# The orchestrator's pre-flight checks the UNION of tools every child script
+# needs — include docker/git here when any stack it runs builds images, so the
+# run fails fast at the top instead of three stacks deep.
+for cmd in terraform aws docker git; do
   if ! command -v "$cmd" &>/dev/null; then print_error "$cmd is not installed"; exit 1; fi
 done
 if ! aws sts get-caller-identity &>/dev/null; then
@@ -514,6 +517,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+STATE_BUCKET="${STATE_BUCKET:-<project>-tfstate}"
+
 print_info()    { printf "\033[0;34m[INFO]\033[0m    %s\n" "$1"; }
 print_success() { printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$1"; }
 print_warning() { printf "\033[0;33m[WARNING]\033[0m %s\n" "$1"; }
@@ -532,7 +537,7 @@ print_warning "  1. <stack-N>"
 print_warning "  ..."
 print_warning "  N. s3 (data bucket)"
 echo ""
-print_warning "NOT destroyed: state bucket (prevent_destroy = true)"
+print_warning "NOT destroyed: state bucket s3://$STATE_BUCKET (prevent_destroy = true)"
 echo ""
 
 if [[ "${CI:-}" != "true" ]]; then
@@ -552,7 +557,14 @@ echo ""
 print_success "════════════════════════════════════════"
 print_success "  All stacks destroyed."
 print_success "════════════════════════════════════════"
+echo ""
+# Restate what survived teardown — now, when the user is deciding what to clean
+# up by hand. The upfront gate warned it would be kept; the closing summary is
+# the actionable reminder, with the concrete bucket name to delete manually.
+print_warning "State bucket s3://$STATE_BUCKET still exists (delete manually if you want it gone)."
 ```
+
+**Always restate surviving resources in the closing summary, not just the upfront gate.** Anything a destroy intentionally leaves behind — the Terraform state bucket (`prevent_destroy`), retained data buckets, snapshots, log groups with retention — must be echoed *after* teardown completes, naming the concrete resource (e.g. the actual bucket name), because that is the moment the operator decides what to remove by hand. A warning that scrolled past 10 minutes and several `DESTROY` confirmations ago is not a reminder.
 
 ---
 
@@ -591,6 +603,22 @@ import_if_exists() {
 | `IMAGE_TAG` | build scripts | Docker image tag; defaults to short content hash |
 | `<SERVICE>_IMAGE_TAG` | build scripts | Per-service override when multiple images are deployed |
 | `TF_VAR_*` | deploy scripts | Inject sensitive Terraform variables without a tfvars file |
+
+---
+
+## Quality Gates
+
+Every script declares `set -euo pipefail`, so latent quoting and unset-variable
+bugs surface as hard failures at the worst possible time — mid-deploy. Lint
+before committing:
+
+- Run `shellcheck scripts/*.sh` and resolve findings (or annotate intentional
+  ones with `# shellcheck disable=SCxxxx` plus a reason). It catches unquoted
+  expansions, masked exit codes in pipelines, and `read` misuse that
+  `pipefail` would otherwise only reveal at runtime.
+- Run `chmod +x` on new scripts (see step 5 below) — a non-executable script
+  invoked by an orchestrator fails with a confusing permission error.
+- Optionally wire both into a pre-commit hook so they run automatically.
 
 ---
 

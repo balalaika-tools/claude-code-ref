@@ -4,61 +4,76 @@
 
 ## 1. What Is CLAUDE.md?
 
-A Markdown file Claude reads at the start of every session. Persistent memory for project conventions, build commands, and workflow rules.
+`CLAUDE.md` is a Markdown memory file Claude Code loads into the conversation as project guidance. Use it for stable facts Claude should know every session: build commands, project conventions, architecture boundaries, and team workflow rules.
 
-> CLAUDE.md is read by Claude (the model). For behavioral configuration (permissions, hooks), use `settings.json`.
+> `CLAUDE.md` guides the model; it is not an enforcement mechanism. Use `settings.json`, permissions, and hooks for behavior the harness must enforce.
 
 ---
 
 ## 2. File Locations
 
+Claude Code walks upward from the current working directory and loads relevant memory files additively.
+
 | File | Scope | Committed? |
 |------|-------|-----------|
 | `~/.claude/CLAUDE.md` | All projects | No |
 | `./CLAUDE.md` | This project, all team members | Yes |
-| `./CLAUDE.local.md` | This project, you only | No (gitignore it) |
-| `./.claude/rules/*.md` | This project, organized by topic | Yes |
-| `<subdir>/CLAUDE.md` | Loaded when working in that subdir | Yes |
+| `./CLAUDE.local.md` | This project, you only | No |
+| `./.claude/rules/*.md` | This project, organized by topic | Usually yes |
+| `<subdir>/CLAUDE.md` | Loaded when work enters that subtree | Yes |
 
-> **Case-sensitive**: Must be `CLAUDE.md` (uppercase). `claude.md` won't be loaded.
+> **Case-sensitive**: Use `CLAUDE.md`. Do not rely on `claude.md`.
 
-All files are loaded additively — there's no override between them. Conflicting instructions in different files cause unpredictable behavior.
+If your repository already has `AGENTS.md`, create a short `CLAUDE.md` that imports it:
+
+```markdown
+@AGENTS.md
+
+## Claude Code
+- Use plan mode for changes under `src/billing/`.
+```
 
 ---
 
 ## 3. What to Include
 
-Claude follows ~150-200 instructions consistently. Keep it focused.
+Keep memory short, stable, and specific.
 
 ```markdown
 # Build & Test
 - Build: `npm run build`
-- Test: `npm run test:unit`
+- Unit tests: `npm run test:unit`
 - Lint: `npm run lint`
 
 # Code Style
-- ES modules (import/export), not CommonJS
-- Destructure params when >2 arguments
-- All async functions need explicit return types
+- Use ES modules.
+- Public async functions need explicit return types.
+- Prefer existing helpers in `src/lib/` before adding utilities.
 
 # Git
-- Branch naming: feat/, fix/, chore/
-- Conventional commits format
-- Never force-push to main
+- Branch naming: `feat/`, `fix/`, `chore/`
+- Conventional commits
+- Never force-push to `main`
 
 # Architecture
-- DB access only through repos in src/repos/
+- DB access only through `src/repos/`
 - No business logic in controllers
-- All env vars via src/config.ts, never process.env directly
+- Env vars go through `src/config.ts`, never `process.env` directly
 ```
 
-**Don't include**: things Claude can see by reading code (language version, entry points), standard conventions (camelCase in TS), long tutorials, frequently changing data.
+Avoid:
+
+- Facts Claude can discover quickly from code
+- Long tutorials or copied documentation
+- Frequently changing data
+- Vague preferences such as "write clean code"
+- Instructions that conflict with settings, hooks, or other memory files
 
 ---
 
 ## 4. Import Syntax
 
-Reference other files to keep CLAUDE.md short:
+Use `@path` imports to keep CLAUDE.md focused:
 
 ```markdown
 See @README.md for architecture overview.
@@ -66,13 +81,13 @@ See @package.json for scripts.
 @docs/api-conventions.md
 ```
 
-Paths are relative to the CLAUDE.md file.
+Paths are relative to the memory file. External imports may require approval the first time Claude Code encounters them.
 
 ---
 
-## 5. `.claude/rules/` Directory
+## 5. `.claude/rules/`
 
-Organize rules into topic files. Claude loads all `*.md` files here automatically:
+Use `.claude/rules/` when one CLAUDE.md would become cluttered:
 
 ```
 .claude/rules/
@@ -81,33 +96,37 @@ Organize rules into topic files. Claude loads all `*.md` files here automaticall
 └── api.md
 ```
 
+Rules can be broad or path-specific. Path-specific rules should state their trigger clearly and avoid duplicating root guidance.
+
 ---
 
 ## 6. CLAUDE.local.md
 
-Personal notes that don't belong in the shared CLAUDE.md. Add to `.gitignore`:
+Use local memory for personal or machine-specific notes. Add it to `.gitignore`.
 
 ```markdown
 # Local Dev Notes
-- DB is at localhost:5434 (non-standard port)
-- Use `npm run dev:local` — my .env overrides
-- Integration tests are flaky locally; run in CI
+- DB runs on localhost:5434 on this machine.
+- Use `npm run dev:local`; my `.env` overrides defaults.
+- Integration tests need Docker Desktop running.
 ```
+
+Do not put secrets in any memory file. Use environment variables or local settings for secret references.
 
 ---
 
 ## 7. Monorepos
 
-Place `CLAUDE.md` in subdirectories. Claude loads them when working in that directory:
+Place broad guidance at the root and package-specific guidance in package directories:
 
 ```
 monorepo/
-├── CLAUDE.md                 ← always loaded
-├── packages/api/CLAUDE.md    ← loaded in packages/api/
-└── packages/web/CLAUDE.md    ← loaded in packages/web/
+├── CLAUDE.md                 ← repo-wide conventions
+├── packages/api/CLAUDE.md    ← API-specific rules
+└── packages/web/CLAUDE.md    ← web-specific rules
 ```
 
-Root CLAUDE.md: cross-package conventions only. Package-specific rules in the package's own file.
+Root CLAUDE.md should cover cross-package conventions only. Package files should cover commands, architecture, and caveats unique to that package.
 
 ---
 

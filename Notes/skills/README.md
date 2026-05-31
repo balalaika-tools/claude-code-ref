@@ -11,14 +11,14 @@
 | File | Topic | Description |
 |------|-------|-------------|
 | [01_skills_overview.md](01_skills_overview.md) | Overview | What skills are, file locations, SKILL.md format, basic frontmatter, invocation |
-| [02_skills_advanced.md](02_skills_advanced.md) | Advanced | Supporting files, shell injection, auto-invocation, context forking, skill hooks |
+| [02_skills_advanced.md](02_skills_advanced.md) | Advanced | Supporting files, dynamic context, auto-invocation, context forking, skill hooks |
 
 ---
 
 ## Reading Order
 
 1. **Skills Overview** — mental model, basic SKILL.md, how to invoke
-2. **Advanced Skills** — power features: supporting files, shell injection, auto-invocation, subagent context
+2. **Advanced Skills** — power features: supporting files, dynamic context, auto-invocation, subagent context
 
 ---
 

@@ -6,7 +6,7 @@ Before reading this: **[GitHub Actions](02_github_actions.md)**
 
 ## 1. @claude Mention Handler
 
-The foundational workflow — respond to `@claude` in any PR or issue comment.
+The foundational workflow: respond to `@claude` in issues, PR comments, and reviews.
 
 ```yaml
 # .github/workflows/claude.yml
@@ -34,7 +34,6 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
-      id-token: write
       actions: read
     steps:
       - uses: actions/checkout@v4
@@ -46,11 +45,13 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
+Add `id-token: write` when using OIDC auth for Anthropic federation, Bedrock, Vertex, or Foundry.
+
 ---
 
 ## 2. Automated PR Review
 
-Runs on every PR open and push. Posts review comments automatically.
+Runs on every PR open and push. Keeps permissions read-only except for PR comments.
 
 ```yaml
 # .github/workflows/claude-review.yml
@@ -75,15 +76,17 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Review this pull request for:
-            - Logic errors and edge cases
-            - Missing test coverage
-            - Security vulnerabilities
-            - Code style consistency
+            Review this pull request for correctness.
 
-            Post your findings as inline review comments. Be concise — flag
-            issues with severity (critical/medium/low) and suggested fixes.
+            Prioritize:
+            - Logic errors and edge cases
+            - Security or data exposure risks
+            - Missing tests for changed behavior
+            - Maintainability issues that materially affect this PR
+
+            Post concise inline comments for concrete findings only.
           claude_args: |
+            --model sonnet
             --max-turns 5
             --allowedTools "Read,Grep,Glob,Bash(git diff *),mcp__github_inline_comment__create_inline_comment"
 ```
@@ -125,15 +128,16 @@ jobs:
             Perform a security-focused review of the changed files.
 
             Check for:
-            - Injection vulnerabilities (SQL, command, XSS)
-            - Authentication/authorization flaws
+            - Injection vulnerabilities
+            - Authentication or authorization flaws
             - Hardcoded secrets or credentials
-            - Insecure data handling or logging
+            - Unsafe logging or handling of sensitive data
             - Missing input validation
 
-            Post critical findings as inline comments. Summarize in a PR comment.
+            Post critical or high-confidence findings as inline comments.
+            Summarize residual risk in one PR comment.
           claude_args: |
-            --model claude-opus-4-6
+            --model opus
             --max-turns 8
             --allowedTools "Read,Grep,Glob,Bash(git diff *),mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment *)"
 ```
@@ -142,7 +146,7 @@ jobs:
 
 ## 4. Issue Triage
 
-Automatically labels and categorizes new issues.
+Labels and categorizes new issues. This workflow uses limited permissions and does not edit code.
 
 ```yaml
 # .github/workflows/triage.yml
@@ -157,6 +161,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -164,24 +169,23 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Triage this new issue (#${{ github.event.issue.number }}):
+            Triage issue #${{ github.event.issue.number }}.
 
-            1. Classify as: bug, feature-request, question, documentation, or duplicate
-            2. Assign priority: critical, high, medium, or low
-            3. Apply appropriate labels using `gh issue edit`
-            4. Post a brief comment acknowledging the issue and asking for
-               any missing information (steps to reproduce for bugs,
-               use case for features)
+            1. Classify as bug, feature-request, question, documentation, or duplicate.
+            2. Assign priority: critical, high, medium, or low.
+            3. Apply existing labels only.
+            4. Post a short comment asking for missing reproduction steps or use-case details when needed.
           claude_args: |
+            --model haiku
             --max-turns 5
-            --allowedTools "Bash(gh issue *),Bash(gh label *)"
+            --allowedTools "Bash(gh issue *),Bash(gh label list)"
 ```
 
 ---
 
 ## 5. Scheduled Dependency Audit
 
-Runs weekly, opens issues for outdated or vulnerable packages.
+Runs weekly and opens issues only for actionable problems.
 
 ```yaml
 # .github/workflows/weekly-audit.yml
@@ -189,8 +193,8 @@ name: Weekly Audit
 
 on:
   schedule:
-    - cron: "0 9 * * 1"  # Monday 9am UTC
-  workflow_dispatch:      # allow manual trigger
+    - cron: "0 9 * * 1"  # Monday 09:00 UTC
+  workflow_dispatch:
 
 jobs:
   audit:
@@ -203,9 +207,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
-      - run: npm install
+      - run: npm ci
 
       - uses: anthropics/claude-code-action@v1
         with:
@@ -213,54 +217,47 @@ jobs:
           prompt: |
             Perform a weekly maintenance audit:
 
-            1. Run `npm audit` and summarize vulnerabilities by severity
-            2. Check for outdated packages with `npm outdated`
-            3. Identify any TODO/FIXME/HACK comments in src/
-            4. If critical vulnerabilities exist, open a GitHub issue with
-               remediation steps
+            1. Run `npm audit` and summarize vulnerabilities by severity.
+            2. Check outdated packages with `npm outdated`.
+            3. Identify TODO/FIXME/HACK comments in src/.
+            4. Open a GitHub issue only for actionable critical or high-risk items.
 
-            Be factual. Only open an issue if there's something actionable.
+            Be factual and avoid noisy issue creation.
           claude_args: |
+            --model sonnet
             --max-turns 10
             --allowedTools "Read,Grep,Glob,Bash(npm audit),Bash(npm outdated),Bash(gh issue *)"
 ```
 
 ---
 
-## 6. Model Selection Guide
+## 6. Model Selection
 
-| Use case | Recommended model | Why |
-|----------|------------------|-----|
-| Quick PR review | `claude-sonnet-4-6` (default) | Fast, cost-efficient |
-| Security audit | `claude-opus-4-6` | Deeper reasoning |
-| Issue triage | `claude-haiku-4-5-20251001` | Simple classification, cheapest |
-| Implementation | `claude-opus-4-6` | Best code generation |
+| Use case | Model alias | Why |
+|----------|-------------|-----|
+| Quick PR review | `sonnet` | Strong default for coding tasks |
+| Security audit | `opus` | Deeper reasoning for subtle risks |
+| Issue triage | `haiku` | Fast and cheap for classification |
+| Implementation | `sonnet` or `opus` | Use `opus` for complex design or high-risk changes |
 
-Set via `claude_args: "--model claude-opus-4-6"`.
+Set via:
 
----
+```yaml
+claude_args: "--model opus"
+```
 
-## 7. Cost Reference
-
-Approximate costs using Sonnet (2025 pricing):
-
-| Workflow | Typical cost |
-|----------|-------------|
-| PR review (400-line diff) | ~$0.04 |
-| Issue triage | ~$0.01 |
-| Security audit | ~$0.08–0.15 |
-| Weekly maintenance | ~$0.10–0.20 |
-
-20 PR reviews/day ≈ ~$24/month. Use `--max-turns` to cap runaway sessions.
+Prefer aliases in examples. Pin exact model IDs only when rollout control matters.
 
 ---
 
-## 8. Tips
+## 7. Tips
 
-- **Concurrency control**: Add `concurrency: group: ${{ github.workflow }}-${{ github.event.pull_request.number }}` to cancel redundant runs when a PR is force-pushed.
-- **Timeout**: Set `timeout-minutes: 10` on the job to prevent stuck runs from burning API budget.
-- **CLAUDE.md**: The action reads your repo's `CLAUDE.md` — use it to enforce review standards and coding conventions without repeating them in every workflow prompt.
-- **Secrets**: Never hardcode the API key. Always use `${{ secrets.ANTHROPIC_API_KEY }}`.
+- **Concurrency**: cancel redundant reviews on force-pushes with a workflow-level `concurrency` group.
+- **Timeouts**: set `timeout-minutes` so broken workflows do not burn budget.
+- **Least privilege**: keep read-only reviews read-only; grant write permissions only for workflows that commit or edit issues.
+- **CLAUDE.md**: the action reads repository guidance, so put review standards there instead of repeating them in every prompt.
+- **Secrets**: never hardcode API keys, tokens, or cloud credentials. Avoid `show_full_output` except in trusted debugging workflows.
+- **Untrusted users**: be extremely cautious with `allowed_non_write_users` or `allowed_bots: "*"`, especially on public repositories.
 
 ---
 

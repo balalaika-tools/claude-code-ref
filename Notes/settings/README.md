@@ -10,13 +10,15 @@
 
 | File | Topic | Description |
 |------|-------|-------------|
-| [01_settings_json.md](01_settings_json.md) | settings.json | All four scopes, full field reference, permissions, env, hooks, MCP control |
+| [01_settings_json.md](01_settings_json.md) | settings.json | Scope precedence, permissions, env, hooks, model defaults, MCP approval |
+| [02_claude_directory.md](02_claude_directory.md) | `.claude/` directory | Project layout, what each file controls, git hygiene, configuration checklist |
 
 ---
 
 ## Reading Order
 
 1. **settings.json** — everything about the settings system
+2. **`.claude/` directory** — how project config is organized on disk
 
 ---
 

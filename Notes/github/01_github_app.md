@@ -4,7 +4,7 @@
 
 ## 1. What Is the GitHub App?
 
-The Claude GitHub App integrates Claude directly into your repository workflow. Once installed, Claude acts as a virtual teammate — responding to `@claude` mentions in PRs and issues, creating PRs, fixing CI errors, and implementing changes from review comments.
+The Claude GitHub App plus `anthropics/claude-code-action@v1` lets Claude participate in repository workflows: responding to `@claude` mentions, creating branches and PRs, fixing CI failures, reviewing code, and addressing issue or review feedback.
 
 ---
 
@@ -25,13 +25,15 @@ This walks through setup interactively.
    - **Settings → Secrets and variables → Actions → New repository secret**
    - Name: `ANTHROPIC_API_KEY`
 
-**Required GitHub permissions the app needs:**
+**Common GitHub permissions the app/workflow needs:**
 
 | Permission | Level | Why |
 |------------|-------|-----|
 | Contents | Read & Write | Read code, create commits |
 | Issues | Read & Write | Respond to issues, add labels |
 | Pull Requests | Read & Write | Create PRs, post review comments |
+
+Use narrower workflow permissions for read-only automation.
 
 ---
 
@@ -56,7 +58,7 @@ After installation, Claude responds to `@claude` in:
 @claude explain why this approach might cause performance issues
 ```
 
-Claude reads the full PR diff, repo context, and your `CLAUDE.md` when responding.
+Claude reads relevant PR/issue context, repository files available to the workflow, and your `CLAUDE.md` when responding.
 
 > Use `@claude` (not `/claude`) to trigger responses in GitHub comments.
 
@@ -91,7 +93,7 @@ Your repository's `CLAUDE.md` is read by Claude when responding to GitHub events
 - Security changes must include a threat model note
 ```
 
-Claude applies these rules when reviewing PRs or implementing changes via `@claude`.
+Claude applies these rules when reviewing PRs or implementing changes via GitHub workflows. Put stable team standards here; put permissions and hard enforcement in workflow YAML, `settings.json`, and hooks.
 
 ---
 

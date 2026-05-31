@@ -12,23 +12,36 @@ uses: anthropics/claude-code-action@v1
 
 **Source:** [github.com/anthropics/claude-code-action](https://github.com/anthropics/claude-code-action)
 
-Runs Claude Code in a GitHub Actions workflow. Supports direct API, AWS Bedrock, and Google Vertex AI.
+Runs Claude Code inside a GitHub Actions workflow. It can respond to `@claude` mentions, issue assignments/labels, or explicit automation prompts. It supports direct Anthropic API auth, Claude Code OAuth, Anthropic workload identity federation, AWS Bedrock, Google Vertex AI, and Microsoft Foundry.
 
 ---
 
-## 2. Inputs
+## 2. Core Inputs
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `anthropic_api_key` | Yes* | Anthropic API key |
-| `prompt` | No | Instructions for Claude (overrides trigger phrase detection) |
-| `claude_args` | No | Extra CLI flags: `--model`, `--max-turns`, `--allowedTools` |
-| `github_token` | No | Defaults to `${{ github.token }}` |
-| `trigger_phrase` | No | Custom trigger (default: `@claude`) |
-| `use_bedrock` | No | Use AWS Bedrock instead of direct API |
-| `use_vertex` | No | Use Google Vertex AI |
+| `prompt` | No | Explicit instructions. If omitted, the action can respond to trigger events |
+| `claude_args` | No | Extra Claude CLI flags such as `--model`, `--max-turns`, `--allowedTools` |
+| `settings` | No | Claude Code settings JSON string or path |
+| `github_token` | No | Token with repo/PR permissions. Optional if using the Claude GitHub App token flow |
+| `trigger_phrase` | No | Mention phrase; default `@claude` |
+| `assignee_trigger` | No | Username assignment that triggers the action |
+| `label_trigger` | No | Label that triggers the action; default `claude` |
+| `plugins` | No | Newline-separated plugins to install |
+| `plugin_marketplaces` | No | Newline-separated marketplace Git URLs |
 
-*Not required when using Bedrock or Vertex.
+Auth-related inputs:
+
+| Input | Use |
+|-------|-----|
+| `anthropic_api_key` | Direct Anthropic API |
+| `claude_code_oauth_token` | Claude Code OAuth token |
+| `anthropic_federation_rule_id` + org/workspace/service-account fields | Anthropic workload identity federation |
+| `use_bedrock` | AWS Bedrock |
+| `use_vertex` | Google Vertex AI |
+| `use_foundry` | Microsoft Foundry |
+
+Security-sensitive inputs such as `allowed_non_write_users`, `allowed_bots`, and `show_full_output` should be used only with narrow permissions and trusted workflows.
 
 ---
 
@@ -42,7 +55,7 @@ Runs Claude Code in a GitHub Actions workflow. Supports direct API, AWS Bedrock,
     anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Add `ANTHROPIC_API_KEY` to **Settings → Secrets and variables → Actions**.
+Add `ANTHROPIC_API_KEY` to **Settings -> Secrets and variables -> Actions**.
 
 ### AWS Bedrock (OIDC)
 
@@ -50,12 +63,12 @@ Add `ANTHROPIC_API_KEY` to **Settings → Secrets and variables → Actions**.
 - uses: aws-actions/configure-aws-credentials@v4
   with:
     role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-    aws-region: us-east-1
+    aws-region: us-west-2
 
 - uses: anthropics/claude-code-action@v1
   with:
     use_bedrock: "true"
-    claude_args: "--model us.anthropic.claude-sonnet-4-6"
+    claude_args: "--model us.anthropic.claude-sonnet-4-6 --max-turns 10"
 ```
 
 ### Google Vertex AI (OIDC)
@@ -69,22 +82,24 @@ Add `ANTHROPIC_API_KEY` to **Settings → Secrets and variables → Actions**.
 - uses: anthropics/claude-code-action@v1
   with:
     use_vertex: "true"
-    claude_args: "--model claude-sonnet-4-5@20250929"
+    claude_args: "--model sonnet --max-turns 10"
 ```
+
+For cloud providers, pin provider-specific model IDs during enterprise rollouts if you need deterministic behavior.
 
 ---
 
 ## 4. Permissions
 
-Most workflows need these:
+Typical implementation workflow:
 
 ```yaml
 permissions:
-  contents: write       # read/write files, create commits
-  pull-requests: write  # post PR comments and reviews
-  issues: write         # respond to issues
-  id-token: write       # required for OIDC (Bedrock/Vertex)
-  actions: read         # read workflow context
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write   # needed for OIDC auth
+  actions: read
 ```
 
 Minimal read-only review:
@@ -95,16 +110,17 @@ permissions:
   pull-requests: write
 ```
 
+Use the least privilege that still lets Claude complete the task. Public repositories require extra care: untrusted comments can become prompt input.
+
 ---
 
-## 5. `claude_args` Options
+## 5. `claude_args`
 
-Pass any Claude Code CLI flag:
+Pass Claude Code CLI flags:
 
 ```yaml
-claude_args: "--model claude-opus-4-6"
-claude_args: "--max-turns 5"
-claude_args: "--allowedTools Read,Grep,Glob,Bash(git *)"
+claude_args: "--model sonnet --max-turns 5"
+claude_args: "--allowedTools Read,Grep,Glob,Bash(git diff *)"
 claude_args: "--disallowedTools Bash(rm *)"
 ```
 
@@ -112,12 +128,12 @@ Multi-line:
 
 ```yaml
 claude_args: |
-  --model claude-opus-4-6
+  --model opus
   --max-turns 10
-  --allowedTools "Read,Grep,Glob,Bash(git *)"
+  --allowedTools "Read,Grep,Glob,Bash(git diff *),Bash(git log *)"
 ```
 
-### Common tool allowlists
+Common allowlists:
 
 ```yaml
 # Read-only review
@@ -126,36 +142,34 @@ claude_args: |
 # PR commenting
 --allowedTools "Read,Grep,Bash(gh pr comment *),mcp__github_inline_comment__create_inline_comment"
 
-# Implementation (read + write)
---allowedTools "Read,Write,Edit,Grep,Glob,Bash(git *),Bash(npm run *)"
+# Implementation
+--allowedTools "Read,Write,Edit,Grep,Glob,Bash(git *),Bash(npm test *)"
 ```
+
+Use aliases (`sonnet`, `opus`, `haiku`) in general recipes. Pin full IDs only for controlled provider rollouts.
 
 ---
 
 ## 6. Mode Detection
 
-The action auto-detects whether to run in interactive or automated mode:
+- **`prompt` set** -> automation mode using the prompt directly
+- **`prompt` omitted** -> event-driven mode; the action looks for configured triggers such as `@claude`, assignment, or label
 
-- **`prompt` set** → automated mode, uses the prompt directly
-- **`prompt` not set** → detects trigger phrase (`@claude`) in the event payload and responds to it
-
-No need to configure `mode` explicitly (that was the old beta API).
+No `mode` input is needed for v1 workflows.
 
 ---
 
 ## 7. Event Triggers
 
-Common events to combine with the action:
-
 | Event | YAML trigger | Use case |
 |-------|-------------|----------|
+| Issue comment | `issue_comment: types: [created]` | `@claude` in issues or PR conversations |
+| PR review comment | `pull_request_review_comment: types: [created]` | Inline PR comments |
+| PR review submitted | `pull_request_review: types: [submitted]` | Review body mentions |
+| Issue opened/assigned/labeled | `issues: types: [opened, assigned, labeled]` | Triage or implementation |
 | PR opened/updated | `pull_request: types: [opened, synchronize]` | Automated review |
-| Issue comment | `issue_comment: types: [created]` | @claude in comments |
-| PR review comment | `pull_request_review_comment: types: [created]` | @claude in PR reviews |
-| Issue opened | `issues: types: [opened]` | Auto-triage |
-| PR review submitted | `pull_request_review: types: [submitted]` | @claude in review body |
-| Scheduled | `schedule: - cron: "0 0 * * 0"` | Weekly maintenance |
-| Path-filtered PR | `pull_request: paths: [src/auth/**]` | Security-critical files |
+| Scheduled | `schedule: - cron: "0 9 * * 1"` | Maintenance |
+| Manual | `workflow_dispatch:` | On-demand automation |
 
 ---
 

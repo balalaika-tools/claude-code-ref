@@ -1,6 +1,6 @@
 # GitHub Integration
 
-> Connect Claude Code to GitHub — respond to @claude mentions, automate PR reviews, triage issues, and run Claude in CI/CD pipelines.
+> Connect Claude Code to GitHub — respond to @claude mentions, automate PR reviews, triage issues, and run Claude in CI/CD workflows.
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-GitHub-191919.svg?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF.svg?logo=githubactions&logoColor=white)](https://github.com/features/actions)
@@ -28,5 +28,5 @@
 ## Prerequisites
 
 - GitHub repository with Actions enabled
-- Anthropic API key (from [console.anthropic.com](https://console.anthropic.com))
+- Anthropic API key or supported cloud/OIDC authentication
 - [Back to root](../README.md)

@@ -8,38 +8,43 @@ Before reading this: **[Install & Scopes](03_install_and_scopes.md)**
 
 ```bash
 claude plugin list
-claude plugin list --scope project
+claude plugin list --json
+claude plugin details formatter@my-team-tools
 ```
+
+The `/plugin` UI is usually the easiest way to inspect components, errors, and scope.
 
 ---
 
 ## 2. Enable / Disable
 
-Toggle without uninstalling:
-
-```bash
-claude plugin disable git-tools
-claude plugin enable git-tools
+```text
+/plugin disable formatter@my-team-tools
+/plugin enable formatter@my-team-tools
 ```
 
-Or toggle in `/plugin` → **Installed** tab.
+Or use `/plugin` -> **Installed**.
+
+Disabling leaves the plugin installed but prevents its components from loading.
 
 ---
 
 ## 3. Updating
 
 ```bash
-claude plugin update git-tools
-claude plugin update --all
+claude plugin update formatter@my-team-tools
+claude plugin update formatter@my-team-tools --scope project
 ```
 
-Claude Code checks for updates at startup and shows them in the Installed tab. Updates are manual unless you opt in:
+Marketplace auto-update is configured per marketplace. Official Anthropic marketplaces auto-update by default; third-party and local development marketplaces usually do not.
 
-```json
-{ "plugins": { "git-tools": { "version": "latest", "autoUpdate": true } } }
+If plugins update during a session, run:
+
+```text
+/reload-plugins
 ```
 
-> ⚠️ Be cautious with `autoUpdate` for plugins with hooks — unexpected behavior changes can affect all projects.
+Versioning caveat: if a plugin sets `version` in `plugin.json`, users receive updates only when that version changes. For fast-moving internal plugins, omitting `version` can make the git commit SHA drive updates.
 
 ---
 
@@ -47,12 +52,14 @@ Claude Code checks for updates at startup and shows them in the Installed tab. U
 
 | Task | Command |
 |------|---------|
-| Install | `claude plugin install <name>@<marketplace>` |
-| Load from local dir | `claude --plugin-dir ./path` |
+| Install | `/plugin install <name>@<marketplace>` |
+| Shell install | `claude plugin install <name>@<marketplace>` |
+| Load local dir | `claude --plugin-dir ./path` |
 | List | `claude plugin list` |
-| Disable / Enable | `claude plugin disable/enable <name>` |
-| Update one / all | `claude plugin update <name>` / `--all` |
-| Uninstall | `claude plugin uninstall <name>` |
+| Details | `claude plugin details <name>@<marketplace>` |
+| Disable / Enable | `/plugin disable <name>@<marketplace>` / `/plugin enable ...` |
+| Update | `claude plugin update <name>@<marketplace>` |
+| Uninstall | `/plugin uninstall <name>@<marketplace>` |
 | Reload mid-session | `/reload-plugins` |
 | Plugin manager UI | `/plugin` |
 | Add marketplace | `/plugin marketplace add owner/repo` |
@@ -61,15 +68,17 @@ Claude Code checks for updates at startup and shows them in the Installed tab. U
 
 ## 5. Key Things to Remember
 
-1. **Plugin code lives in `~/.claude/plugins/`** — not in your project. Committing `.claude/settings.json` shares the config reference, not the source.
+1. **Plugins are trusted code.** Review source, components, hooks, MCP servers, and marketplace provenance.
 
-2. **Local scope only applies in the install directory.**
+2. **Installed marketplace plugins live in a local cache.** Do not write plugin logic that reaches outside the plugin directory.
 
-3. **`/reload-plugins` only needed mid-session.** Restart always reloads from disk.
+3. **Project scope shares the reference, not the cached source.** Teammates still install/cache locally after trusting the repo.
 
-4. **Scope order: `local > project > user`.**
+4. **Plugin skills are namespaced.** Invoke with `/plugin-name:skill-name`.
 
-5. **Check the Errors tab** when a skill or hook stops working.
+5. **Use `/reload-plugins` after mid-session changes.** Restarting also reloads plugins.
+
+6. **Check the Errors tab** when a skill, hook, MCP server, or LSP server does not appear.
 
 ---
 

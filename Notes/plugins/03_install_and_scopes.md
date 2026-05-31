@@ -6,29 +6,41 @@ Before reading this: **[Plugin Fundamentals](01_plugin_fundamentals.md)**
 
 ## 1. Installing
 
-```bash
-claude plugin install <name>@<marketplace>
-claude plugin install git-tools@anthropic
-claude plugin install git-tools@anthropic --scope project
+Inside Claude Code:
+
+```text
+/plugin install github@claude-plugins-official
+/plugin install formatter@my-team-tools
 ```
 
-Downloads plugin source to `~/.claude/plugins/<name>/` and registers at the selected scope.
+From the shell:
+
+```bash
+claude plugin install formatter@my-team-tools
+claude plugin install formatter@my-team-tools --scope project
+```
+
+The official Anthropic marketplace is `claude-plugins-official`. If it is missing or stale:
+
+```text
+/plugin marketplace update claude-plugins-official
+/plugin marketplace add anthropics/claude-plugins-official
+```
+
+Marketplace plugins are copied into the local plugin cache, not used in-place from the source repo.
 
 ---
 
-## 2. Three Scopes
+## 2. Scopes
 
 | Scope | Config file | Committed? | Applies to |
 |-------|------------|-----------|-----------|
-| User (default) | `~/.claude/settings.json` | No | All projects |
-| Project | `.claude/settings.json` | Yes | This project, all teammates |
-| Local | `.claude/settings.local.json` | No | This project, you only |
+| User (default) | `~/.claude/settings.json` | No | You, all projects |
+| Project | `.claude/settings.json` | Yes | Everyone who trusts this repo |
+| Local | `.claude/settings.local.json` | No | You, this repo only |
+| Managed | Managed settings | Admin-controlled | Organization policy |
 
-**Override order**: `local > project > user` (most specific wins).
-
-> Project scope is the right choice for team-wide enforcement — teammates get the plugin automatically.
-
-> Local scope **only applies in the directory where installed**. `/projects/api` local doesn't load in `/projects/frontend`.
+Project scope shares the plugin reference, not the plugin source. Teammates still install/cache the plugin locally after trusting the project.
 
 ---
 
@@ -40,34 +52,41 @@ Load a plugin for the current session without installing:
 claude --plugin-dir ./my-plugin
 ```
 
-Nothing written to config. To pick up edits mid-session:
+Nothing is written to settings. To pick up plugin changes mid-session:
 
-```
+```text
 /reload-plugins
 ```
 
-`/reload-plugins` is only needed during an active session — restarting always reloads from disk.
+For iterative development, `claude plugin init my-tool` can scaffold a plugin inside your skills directory so Claude Code loads it automatically as a skills-directory plugin.
 
 ---
 
 ## 4. Uninstalling
 
-```bash
-claude plugin uninstall git-tools
-claude plugin uninstall git-tools --scope project
+```text
+/plugin uninstall formatter@my-team-tools
 ```
+
+```bash
+claude plugin uninstall formatter@my-team-tools
+claude plugin uninstall formatter@my-team-tools --scope project
+```
+
+Use `--keep-data` when you want to preserve the plugin's persistent data directory.
 
 ---
 
 ## 5. Summary
 
-| Action | File modified |
-|--------|--------------|
-| `install --scope user` | `~/.claude/settings.json` |
-| `install --scope project` | `.claude/settings.json` |
-| `install --scope local` | `.claude/settings.local.json` |
-| `--plugin-dir` | Nothing (session-only) |
-| `uninstall` | Removes from relevant file |
+| Action | Result |
+|--------|--------|
+| `install --scope user` | Adds to user settings |
+| `install --scope project` | Adds to project settings |
+| `install --scope local` | Adds to local project settings |
+| `--plugin-dir` | Session-only load |
+| `uninstall` | Removes plugin reference from the chosen scope |
+| `/reload-plugins` | Reloads active plugin components without restarting |
 
 ---
 

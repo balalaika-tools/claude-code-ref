@@ -6,18 +6,20 @@ Before reading this, understand skills: **[Skills Overview](../skills/01_skills_
 
 ## 1. What Is a Subagent?
 
-A specialized Claude instance with its own system prompt, tool restrictions, and **isolated conversation history**. When Claude decides a task matches a subagent's description, it delegates. The subagent works in isolation and returns a summary — its tool calls don't consume main context.
+A subagent is a specialized Claude Code instance with its own prompt, tools, model settings, and isolated context. Claude can delegate to a subagent, the subagent performs the work, and a summary returns to the main conversation.
 
 ```
 Main conversation
-  │
-  │ delegates "security audit of auth module"
-  ▼
-security-reviewer subagent (isolated)
-  → reads 50 files, greps patterns, produces findings
-  → returns summary to main conversation
-  (50 Read calls stay invisible to main context)
+  |
+  | delegates "audit auth module"
+  v
+security-reviewer subagent
+  -> reads files, searches patterns, runs approved tools
+  -> returns findings
+  (verbose tool output stays in the subagent context)
 ```
+
+Use subagents for exploration, audits, large searches, or parallel work where the main thread should stay focused.
 
 ---
 
@@ -25,54 +27,77 @@ security-reviewer subagent (isolated)
 
 | Scope | Path |
 |-------|------|
+| User | `~/.claude/agents/<agent-name>.md` |
 | Project | `.claude/agents/<agent-name>.md` |
-| Personal | `~/.claude/agents/<agent-name>.md` |
+| Managed | Managed settings directory |
+| Plugin | `<plugin-root>/agents/<agent-name>.md` |
 
-Filename = agent name.
+Managed agents take precedence over project and user agents; project agents take precedence over user agents. Plugin agents are referenced with plugin namespaces when needed.
 
 ---
 
 ## 3. Format
 
-Markdown with YAML frontmatter + system prompt:
+Markdown with YAML frontmatter plus a system prompt:
 
 ```markdown
 ---
 name: security-reviewer
-description: Reviews code for security vulnerabilities including injection, auth flaws, and secrets.
+description: Review code for security vulnerabilities, including injection, auth flaws, unsafe logging, and secrets.
 tools: Read, Grep, Glob
-model: claude-opus-4-6
+model: opus
+effort: high
 ---
 
-You are a senior application security engineer. For each finding provide:
+You are a senior application security engineer.
+
+For each finding, include:
 - File path and line number
 - Severity: Critical / High / Medium / Low
-- Description and suggested fix
+- Why it matters
+- A concrete fix
 
-Be specific. Reference actual code. Don't report theoretical issues.
+Report only issues grounded in the code you inspected.
 ```
+
+Common fields:
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | Yes | Must match filename |
-| `description` | Yes | Claude uses this to decide when to delegate — be specific |
-| `tools` | No | Comma-separated tool list. Omit = all tools. |
-| `model` | No | Model override |
+| `name` | Yes | Unique lowercase/hyphen identifier; the filename does not have to match |
+| `description` | Yes | Claude uses this to decide when to delegate |
+| `tools` | No | Allowed tool list. Omit to inherit the default tool set |
+| `disallowedTools` | No | Tools unavailable to this subagent |
+| `model` | No | Model or alias override |
+| `effort` | No | Reasoning effort when supported |
+| `permissionMode` | No | Permission mode for the subagent |
+| `maxTurns` | No | Turn limit for the subagent |
+| `skills` | No | Skills to preload for this subagent |
+| `mcpServers` | No | MCP servers made available |
+| `hooks` | No | Agent-scoped hooks |
+| `background` | No | Hints whether the agent may run in the background |
+
+Keep the prompt operational: role, boundaries, output format, and what not to do.
 
 ---
 
 ## 4. Writing Good Descriptions
 
-The description determines when Claude delegates:
+The description is the routing contract:
 
-```markdown
-# Too vague — Claude won't know when to use it
+```yaml
+# Too vague
 description: Helps with code review
 
-# Good — clear trigger condition
-description: Use when reviewing code for security vulnerabilities,
-auditing auth/authorization, or checking for secrets in source.
+# Better
+description: Use for security-focused code review, auth/authorization audits, secret detection, and unsafe data handling checks.
 ```
+
+Good descriptions say:
+
+- Which tasks belong to the subagent
+- Which tasks do not
+- What artifact the subagent should return
 
 ---
 
@@ -80,13 +105,14 @@ auditing auth/authorization, or checking for secrets in source.
 
 | | Subagents | Skills |
 |--|-----------|--------|
-| Context | Isolated | Main conversation (unless `context: fork`) |
+| Primary purpose | Specialized worker persona | Reusable workflow or reference |
+| Context | Isolated | Main context, unless `context: fork` |
 | File | `.claude/agents/<name>.md` | `.claude/skills/<name>/SKILL.md` |
-| Supporting files | No | Yes |
-| Invocation | Claude delegates automatically | User or Claude invokes |
-| Good for | Long exploration, audits | Repeatable workflows, code gen |
+| Supporting files | No dedicated skill directory | Yes |
+| Invocation | Claude delegates, user can `@agent-name` | User or Claude invokes with `/skill-name` |
+| Best for | Research, audits, parallel work | Procedures, templates, repeated tasks |
 
-Skills with `context: fork` bridge the gap — skill workflow with subagent isolation.
+Skills with `context: fork` bridge the two: a repeatable workflow that runs in subagent isolation.
 
 ---
 
@@ -96,7 +122,19 @@ Skills with `context: fork` bridge the gap — skill workflow with subagent isol
 /agents
 ```
 
-Walks through name, description, tools, model, and system prompt. Writes the file to `.claude/agents/`.
+Use the manager to create, edit, and inspect agents. Direct file edits may require restarting Claude Code, while edits through `/agents` are loaded automatically.
+
+You can also mention an agent explicitly:
+
+```text
+@agent-security-reviewer review the auth changes
+```
+
+Or start a whole session with an agent prompt:
+
+```bash
+claude --agent security-reviewer
+```
 
 ---
 
@@ -105,19 +143,22 @@ Walks through name, description, tools, model, and system prompt. Writes the fil
 ```markdown
 ---
 name: test-writer
-description: Write unit and integration tests for a given file or module.
-tools: Read, Grep, Glob, Write
-model: claude-sonnet-4-6
+description: Write or improve unit and integration tests for a specific file, module, or bug fix.
+tools: Read, Grep, Glob, Write, Edit, Bash(npm test *)
+model: sonnet
+effort: medium
 ---
 
-You are a test engineer. When given a source file, produce tests covering:
-- Happy path for all exports
-- Edge cases: empty input, null, boundary values
-- Error cases: what throws vs returns errors
-- Mock at boundaries (external I/O), not internally
+You are a test engineer.
 
-Location: mirror source path under `__tests__/`.
-Aim for >80% branch coverage without testing implementation details.
+When given a source file or module:
+- Identify public behavior before writing tests
+- Cover happy paths, boundary values, and error cases
+- Mock at external I/O boundaries, not internal helpers
+- Mirror the source path under the project's existing test layout
+- Run the narrowest relevant test command when possible
+
+Avoid tests that assert private implementation details.
 ```
 
 ---

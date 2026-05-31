@@ -6,44 +6,65 @@ Before reading this: **[Install & Scopes](03_install_and_scopes.md)**
 
 ## 1. What Is a Marketplace?
 
-A git repo that indexes available plugins via a `marketplace.json` file. Claude Code fetches this index for discovery and installation.
+A marketplace is a catalog of plugins. Adding a marketplace makes plugins discoverable; installing a plugin copies that plugin into your local cache and enables it at a chosen scope.
 
 ---
 
 ## 2. Official Anthropic Marketplace
 
-Built-in, no configuration needed:
+Built in:
 
-```bash
-claude plugin install some-plugin@anthropic
+```text
+/plugin install github@claude-plugins-official
 ```
 
-Also browsable in `/plugin` → **Discover** tab.
+Also browsable in `/plugin` -> **Discover**.
+
+If the catalog is missing or stale:
+
+```text
+/plugin marketplace update claude-plugins-official
+/plugin marketplace add anthropics/claude-plugins-official
+```
 
 ---
 
-## 3. Third-Party Marketplaces
+## 3. Community and Third-Party Marketplaces
 
-Add:
-```
-/plugin marketplace add myorg/claude-plugins
+Add the community marketplace:
+
+```text
+/plugin marketplace add anthropics/claude-plugins-community
 ```
 
 Install from it:
-```bash
-claude plugin install db-utils@myorg
+
+```text
+/plugin install <plugin-name>@claude-community
+```
+
+Add your own:
+
+```text
+/plugin marketplace add myorg/claude-plugins
+/plugin marketplace add https://gitlab.com/company/plugins.git
+/plugin marketplace add ./my-marketplace
+/plugin marketplace add https://example.com/marketplace.json
 ```
 
 Remove:
-```
+
+```text
 /plugin marketplace remove myorg
 ```
+
+Removing a marketplace uninstalls plugins installed from it.
 
 ---
 
 ## 4. Hosting Your Own
 
-Any git repo with `.claude-plugin/marketplace.json`:
+A marketplace repo contains `.claude-plugin/marketplace.json`:
 
 ```json
 {
@@ -61,17 +82,17 @@ Any git repo with `.claude-plugin/marketplace.json`:
 }
 ```
 
-Each entry's `name` must match the plugin's own `plugin.json` name. The `repository` field points to the actual plugin repo.
+Each entry's `name` should match the plugin's manifest name. The source can be a git repo, subdirectory, local path, URL, or other supported marketplace source.
 
-Teammates add it with `/plugin marketplace add myorg/my-org-plugins`.
+Teams can add marketplaces through project settings with `extraKnownMarketplaces` so collaborators are prompted to install trusted team marketplaces after trusting the repo.
 
 ---
 
-## 5. Submitting to Official Marketplace
+## 5. Submitting Plugins
 
-1. Ensure valid `plugin.json` with name, version, description, author, homepage, license
-2. Open a PR against `anthropics/claude-plugins` adding your plugin to the marketplace.json
-3. Anthropic reviews before merging
+The official marketplace is curated by Anthropic. Community plugin submission goes through the community marketplace flow, where entries are pinned to specific commit SHAs after validation.
+
+For internal tools, a private organization marketplace is usually simpler and gives you control over review, versioning, and rollout.
 
 ---
 
@@ -79,10 +100,12 @@ Teammates add it with `/plugin marketplace add myorg/my-org-plugins`.
 
 | Tab | What it shows |
 |-----|---------------|
-| **Discover** | All plugins from configured marketplaces |
-| **Installed** | Installed plugins (any scope) |
-| **Marketplaces** | Configured sources, add/remove |
+| **Discover** | Plugins from configured marketplaces |
+| **Installed** | Enabled, disabled, and errored plugins by scope |
+| **Marketplaces** | Configured catalogs, update/remove, auto-update |
 | **Errors** | Plugin load failures |
+
+Plugin detail views show components, estimated context cost, and what will be installed. Review these before enabling a plugin.
 
 ---
 

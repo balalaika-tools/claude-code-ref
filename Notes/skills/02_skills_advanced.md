@@ -6,7 +6,7 @@ Before reading this: **[Skills Overview](01_skills_overview.md)**
 
 ## 1. Supporting Files
 
-A skill directory can contain files alongside `SKILL.md`. Reference them with `${CLAUDE_SKILL_DIR}`:
+A skill directory can contain files alongside `SKILL.md`. Keep `SKILL.md` short and let Claude read supporting files only when needed.
 
 ```
 .claude/skills/db-migrate/
@@ -18,114 +18,132 @@ A skill directory can contain files alongside `SKILL.md`. Reference them with `$
 ```
 
 ```markdown
-Pre-flight checklist: read ${CLAUDE_SKILL_DIR}/checklist.md
-Use templates at ${CLAUDE_SKILL_DIR}/templates/
+Before writing a migration, read ${CLAUDE_SKILL_DIR}/checklist.md.
+Use the SQL templates in ${CLAUDE_SKILL_DIR}/templates/.
 ```
+
+Good supporting files:
+
+- Checklists and rubrics
+- Templates
+- Example outputs
+- Scripts Claude can run
+- Long reference material that should not always load
 
 ---
 
-## 2. Shell Command Injection
+## 2. Dynamic Context
 
-Same syntax as commands — `` !`command` `` executes at invocation time:
+Same syntax as command files: `` !`command` `` runs before the skill content is sent to Claude.
 
 ```markdown
-Recent commits since last tag:
+Recent commits since the last tag:
 !`git log $(git describe --tags --abbrev=0)..HEAD --oneline`
 
-Current version: !`git describe --tags --abbrev=0`
+Current version:
+!`git describe --tags --abbrev=0`
 ```
 
-Multi-line with `` ```! `` blocks.
+Multi-line blocks use `` ```! `` fences.
 
-> **Security**: Never interpolate `$ARGUMENTS` into a shell injection block. Use it only as Claude-visible text context, not as part of the shell command string.
+> **Security**: Never interpolate `$ARGUMENTS`, `$0`, or named arguments into dynamic shell commands. Use fixed commands and make user input visible to Claude as text instead.
 
 ---
 
 ## 3. Auto-Invocation Control
 
-Claude reads all skill descriptions at session start. When a task matches, it auto-loads the skill.
+Claude sees skill names and descriptions, then loads full skill content only when a skill is invoked.
 
-| `disable-model-invocation` | `user-invocable` | You invoke | Claude auto-invokes |
-|---------------------------|-----------------|------------|---------------------|
-| `false` (default) | `true` (default) | Yes | Yes |
-| `true` | `true` | Yes | **No** |
-| `false` | `false` | **No** | Yes |
-| `true` | `false` | **No** | **No** |
+| Setting | Effect |
+|---------|--------|
+| Default | User and Claude can invoke |
+| `disable-model-invocation: true` | Manual only; useful for side effects like deploys |
+| `user-invocable: false` | Claude-only; useful for background knowledge |
+| `skillOverrides` in settings | Hide, collapse, or disable skills without editing `SKILL.md` |
 
-Write descriptions as clear trigger conditions:
+Write descriptions as trigger conditions:
 
-```markdown
-# Bad — too vague
-description: Helps with code
+```yaml
+# Too vague
+description: Helps with code.
 
-# Good — specific trigger
-description: Use when writing or reviewing database migrations to ensure
-safety, rollback coverage, and index correctness.
+# Better
+description: Review database migrations for locking risk, rollback safety, index correctness, and data-loss hazards.
 ```
+
+Descriptions and `when_to_use` text are truncated in the skill listing, so put the must-know trigger first.
 
 ---
 
 ## 4. Path Scoping
 
-Restrict activation to matching files:
+Restrict automatic activation to matching files:
 
 ```yaml
-paths: "src/**/*.tsx,src/**/*.ts"
+paths:
+  - "src/**/*.tsx"
+  - "src/**/*.ts"
 ```
 
-A React skill won't load during Python work in the same monorepo.
+A React skill should not activate while Claude is working only in a Python package. Path scoping limits automatic activation; the user can still invoke the skill manually unless `user-invocable: false`.
 
 ---
 
 ## 5. Context Forking
 
-`context: fork` runs the skill in an isolated subagent. Tool calls stay out of the main context window:
+`context: fork` runs the skill in a subagent context. This is useful when the workflow needs broad exploration but the main conversation should receive only the result.
 
 ```markdown
 ---
-name: deep-audit
-description: Comprehensive security audit of the codebase.
+description: Perform a comprehensive security audit of authentication and authorization code.
 context: fork
 agent: general-purpose
-model: claude-opus-4-6
+model: opus
 effort: max
 ---
 
-Perform a full security audit. Check for hardcoded secrets, injection risks,
-missing auth checks, and dependency vulnerabilities.
-Return a structured report with severity levels and file:line references.
+Audit the requested area for:
+- Hardcoded secrets
+- Injection risks
+- Missing auth or authorization checks
+- Unsafe logging of sensitive data
+- Dependency or configuration hazards
+
+Return concrete findings with severity and file:line references.
 ```
 
-Use for long-running exploration (audits, large refactors) where hundreds of tool calls would clutter the main conversation.
+Use forks for audits, large codebase searches, or long research tasks. Keep normal generation and small reviews inline so Claude retains working context.
 
 ---
 
 ## 6. Skill-Scoped Hooks
 
-Skills can declare lifecycle hooks in frontmatter:
+Skills can declare hooks in frontmatter. They use the same hook event model as `settings.json`, but `once: true` is honored only for hooks declared in skill frontmatter.
 
 ```yaml
 hooks:
   Stop:
-    - type: command
-      command: "npx jest --testPathPattern=$ARGUMENTS --no-coverage"
-      once: true
+    - hooks:
+        - type: command
+          command: "npm test -- --runInBand"
+          once: true
 ```
 
-`once: true` means the hook fires only once per skill invocation.
+Use skill-scoped hooks for checks tightly coupled to a workflow. Use project settings hooks for team-wide policy or formatting.
 
 ---
 
-## 7. Monorepo Discovery
+## 7. Discovery and Reloading
 
-Claude auto-discovers skills in subdirectory `.claude/skills/` directories. Package-specific skills only load when working in that package:
+Claude Code discovers skills from:
 
-```
-monorepo/
-├── .claude/skills/          ← always loaded
-├── packages/api/.claude/skills/   ← loaded in packages/api/
-└── packages/web/.claude/skills/   ← loaded in packages/web/
-```
+- Personal skills in `~/.claude/skills/`
+- Project skills in `.claude/skills/` from the starting directory and parent directories
+- Nested `.claude/skills/` directories when working in subdirectories
+- `.claude/skills/` inside directories added with `/add-dir` or `--add-dir`
+- Enabled plugins
+
+Skill file edits are watched during a session, but a newly created top-level skills directory may require restart. Use `/reload-skills` to rescan skills and command files, and `/reload-plugins` when the skill lives inside a plugin and plugin components changed.
 
 ---
 

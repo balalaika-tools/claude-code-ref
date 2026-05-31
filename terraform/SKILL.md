@@ -24,13 +24,13 @@ A **stack** is one logical grouping of resources (networking, compute, storage, 
 
 ### Versioning
 
-For **root modules** (environment stack entry points), constrain Terraform and provider versions deliberately and commit `.terraform.lock.hcl` so CI and teammates use the same provider builds. Use a pessimistic constraint (`~>`) for root providers unless the existing stack has a documented reason to be looser. The exact behavior depends on specificity: `~> 1.14.0` allows only patch upgrades (1.14.x), while `~> 6.0` allows all minor upgrades within major version 6. Both prevent accidental major upgrades.
+For **root modules** (environment stack entry points), constrain Terraform and provider versions deliberately and commit `.terraform.lock.hcl` so CI and teammates use the same provider builds. Use a pessimistic constraint (`~>`) for root providers unless the existing stack has a documented reason to be looser. The exact behavior depends on specificity: `~> 1.15.0` allows only patch upgrades (1.15.x), while `~> 6.0` allows all minor upgrades within major version 6. Both prevent accidental major upgrades.
 
-For new stacks, prefer the current stable Terraform minor and current AWS provider major after checking release notes. As of April 2026, Terraform v1.14.x is the current stable release line and the AWS provider is on v6.x. Older stacks can stay pinned to their current minor until a planned upgrade.
+For new stacks, prefer the current stable Terraform minor and current AWS provider major after checking release notes. As of May 2026, Terraform v1.15.x is the current stable release line (latest 1.15.3); v1.14.x is still within HashiCorp's two-year active-support window, so existing 1.14 stacks need not rush to upgrade. The AWS provider is on v6.x (latest 6.47.x) — there is no v7 yet, so `~> 6.0` remains the right root constraint. Older stacks can stay pinned to their current minor until a planned upgrade.
 
 ```hcl
 terraform {
-  required_version = "~> 1.14.0" # allow any 1.14.x
+  required_version = "~> 1.15.0" # allow any 1.15.x
   required_providers {
     aws    = { source = "hashicorp/aws",    version = "~> 6.0" }
     random = { source = "hashicorp/random", version = "~> 3.7" }
@@ -104,10 +104,10 @@ Each aliased provider needs its own `default_tags` — tags do not inherit acros
 
 ### Backend
 
-Use a remote S3 backend for state storage. Store partial backend configuration in `backend-config/{env}/{stack}.backend.hcl` and initialize with:
+Use a remote S3 backend for state storage. Store partial backend configuration in `backend-config/{env}/{stack}.backend.hcl` and initialize from inside the stack directory (`environments/{env}/{stack}/`, three levels below the `Terraform/` root) with:
 
 ```
-terraform init -backend-config=../../backend-config/{env}/{stack}.backend.hcl
+terraform init -backend-config=../../../backend-config/{env}/{stack}.backend.hcl
 ```
 
 An example backend config:
@@ -277,7 +277,7 @@ Organize your configuration into logical files for clarity. The Terraform style 
 - `backend.tf` – backend configuration.
 - `main.tf` – resource and data source definitions.
 - `providers.tf` – provider blocks and configuration.
-- `terraform.tf` – global terraform block specifying required versions.
+- `versions.tf` – global terraform block (`required_version` + `required_providers`). This repo uses `versions.tf`; match it for consistency. (The current HashiCorp style guide names this file `terraform.tf` — either is acceptable, but do not mix both in one tree.)
 - `variables.tf` – all variable declarations (alphabetical order).
 - `outputs.tf` – all outputs (alphabetical order).
 - `locals.tf` – local values.
@@ -297,8 +297,8 @@ Modules are small, single-purpose, and composed in the environment's `main.tf` �
 
 ## Adding a New Stack
 
-1. **Create a module:** Add `Terraform/modules/{stack}/` with `main.tf`, `variables.tf`, `outputs.tf` and `README.md`. Pin module versions when sourcing external modules.
-2. **Create an environment entry:** Add `Terraform/environments/{env}/{stack}/` with `main.tf`, `backend.tf`, `variables.tf`, `outputs.tf` and `{env}.tfvars`. The `backend.tf` should contain the backend type block; pass environment-specific backend values with `terraform init -backend-config=...`.
+1. **Create a module:** Add `Terraform/modules/{stack}/` with `main.tf`, `variables.tf`, `outputs.tf`, `versions.tf` (a `terraform` block declaring only the minimum `required_providers` versions — no `provider` blocks) and `README.md`. Pin external module versions to immutable tags.
+2. **Create an environment entry:** Add `Terraform/environments/{env}/{stack}/` with `main.tf`, `backend.tf`, `providers.tf`, `versions.tf`, `variables.tf`, `outputs.tf` and `{env}.tfvars`. The `backend.tf` holds the backend type block only; pass environment-specific backend values with `terraform init -backend-config=...`.
 3. **Add backend config:** Add `Terraform/backend-config/{env}/{stack}.backend.hcl` with bucket name, key and region. Ensure state bucket and IAM roles exist before initialization.
 4. **Follow naming, variable and provider conventions:** Use default tags, input validation, version pinning and quality gates described above.
 

@@ -4,43 +4,53 @@
 
 ## 1. What Is a Plugin?
 
-A distributable bundle that extends Claude Code. It packages one or more of:
+A plugin is a trusted, distributable directory of Claude Code components. It can bundle:
 
 | Component | What it does |
 |-----------|-------------|
-| **Skills** | Named prompts via `/plugin-name:skill-name` |
-| **Agents** | Specialized subagents |
-| **Hooks** | Shell commands on lifecycle events |
-| **MCP Servers** | External tools via Model Context Protocol |
+| **Skills** | Prompt workflows invoked as `/plugin:skill` |
+| **Commands** | Flat skill-compatible command files; use `skills/` for new work |
+| **Agents** | Custom subagents |
+| **Hooks** | Lifecycle automation and enforcement |
+| **MCP Servers** | External tools and data sources |
+| **LSP Servers** | Code intelligence such as definitions and references |
+| **Output styles / themes / monitors** | UI and background behavior |
+| **bin/** | Executables added to the Bash tool's `PATH` while enabled |
+
+Plugins can run code on your machine. Treat them like developer tooling you install from npm, Homebrew, or a CI action.
 
 ---
 
 ## 2. When to Use a Plugin
 
-**Standalone `.claude/` config** — project-specific, not shared externally, just a CLAUDE.md or hook.
+**Standalone `.claude/` config** is best for one repository: CLAUDE.md, project skills, project hooks, or project settings.
 
-**Plugin** — shared across projects/teams, combines multiple components, version-managed, marketplace-discoverable.
+**Plugin** is best when the same capability should be reused across projects or distributed to a team/community with versioning and marketplace discovery.
 
 ---
 
 ## 3. Directory Structure
 
-```
-my-plugin/                        ← plugin root
+```text
+my-plugin/
 ├── .claude-plugin/
-│   └── plugin.json               ← manifest (required)
+│   └── plugin.json               ← manifest (optional but recommended)
 ├── skills/
 │   └── review/
 │       └── SKILL.md
 ├── agents/
-│   └── tester/
-│       └── AGENT.md
+│   └── tester.md
 ├── hooks/
-│   └── pre-commit.sh
-└── .mcp.json
+│   └── hooks.json
+├── .mcp.json
+├── .lsp.json
+├── monitors/
+│   └── monitors.json
+└── bin/
+    └── my-tool
 ```
 
-> ⚠️ **Common mistake**: Putting `skills/`, `agents/` inside `.claude-plugin/` instead of at the plugin root. Only `plugin.json` goes in `.claude-plugin/`.
+> **Common mistake**: Putting `skills/`, `agents/`, `commands/`, or `hooks/` inside `.claude-plugin/`. Only plugin metadata belongs there; components live at the plugin root.
 
 ---
 
@@ -49,22 +59,29 @@ my-plugin/                        ← plugin root
 ```json
 {
   "name": "my-plugin",
+  "displayName": "My Plugin",
   "version": "1.0.0",
   "description": "A short description of what this plugin does."
 }
 ```
 
+If a manifest exists, `name` is the only required field. The manifest is still worth adding because it documents identity, metadata, and non-default component paths.
+
 | Field | Required | Notes |
 |-------|----------|-------|
-| `name` | Yes | Lowercase, hyphens. Used in invocation: `/my-plugin:skill-name` |
-| `version` | Yes | Semver. Used for marketplace update checks |
-| `description` | Yes | Shown in `/plugin` UI and marketplace |
-| `author` | No | Your name |
-| `homepage` | No | Links to repo in UI |
+| `name` | Yes, if manifest exists | Kebab-case identifier used for namespacing |
+| `displayName` | No | Human-readable name in UI |
+| `version` | No | Semver. If omitted, git commit SHA can be used for updates |
+| `description` | No | Shown in plugin UI and marketplaces |
+| `author` | No | Author object or metadata |
+| `homepage` | No | Docs or repo URL |
+| `repository` | No | Source URL |
 | `license` | No | License identifier |
-| `keywords` | No | Improves marketplace search |
+| `keywords` | No | Discovery tags |
+| `dependencies` | No | Other plugins this plugin requires |
+| `userConfig` | No | Values prompted at enable time |
 
-Not all components are required. A plugin with only skills and no hooks is valid.
+Not all components are required. A plugin with only one skill is valid.
 
 ---
 
