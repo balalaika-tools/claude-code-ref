@@ -21,6 +21,23 @@ credentials.
 - Never include passwords, API keys, tokens, signing keys, credential-bearing
   DSNs, or private keys.
 
+## Secret vs. Non-Secret Is Not About Volatility
+
+The only test for whether a value belongs in YAML/`Settings` vs. `secrets.py`
+is whether it is credential-bearing. A value that changes often, differs per
+environment, or needs frequent local overriding is still a plain `Settings`
+field — do not move it into secrets on that basis. Database host, port, name,
+user, and pool size all vary and still belong in YAML.
+
+Non-secret `Settings` fields are already environment-variable overridable
+without any special handling: the source order in `settings-py.md` places
+process env vars above `.env` and above YAML, so `APP_PORT=9090` overrides
+`app_port` from YAML at runtime with no code change. YAML is only the
+committed default, not the exclusive source. Only promote a value to
+`secrets.py` when it is itself a credential (password, token, signing key, or
+a DSN with credentials embedded) — never because it needs to be
+env-configurable, since that is already true for every `Settings` field.
+
 ## Operational Values
 
 Put these in YAML:
