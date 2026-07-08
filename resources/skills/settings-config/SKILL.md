@@ -62,6 +62,9 @@ For a small field addition, read only the affected reference files.
   providers, and modes.
 - Use `SecretStr` for passwords, tokens, API keys, signing keys, and DSNs that
   contain credentials.
+- When `Settings` fields use env-var aliases and YAML uses snake_case field
+  names, set `populate_by_name=True`; otherwise aliased fields may ignore YAML
+  keys and silently fall back to Python defaults.
 - Avoid direct `os.getenv()` calls outside configuration bootstrap code.
 - Validate settings and secrets during FastAPI startup before accepting traffic.
 

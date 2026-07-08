@@ -17,6 +17,9 @@ credentials.
 - Preserve existing names such as `dev.yaml` or `prod.yaml` in established
   repos.
 - Use snake_case YAML keys matching the `Settings` field names.
+- If the matching `Settings` fields use env-var aliases, ensure the settings
+  model has `populate_by_name=True`; otherwise these snake_case YAML keys may
+  not populate aliased fields.
 - Include every operational setting that varies by environment.
 - Never include passwords, API keys, tokens, signing keys, credential-bearing
   DSNs, or private keys.

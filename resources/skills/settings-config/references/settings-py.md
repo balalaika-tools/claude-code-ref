@@ -25,6 +25,10 @@ the project tree.
 
 - Use snake_case Python field names.
 - Use SCREAMING_SNAKE_CASE aliases for env vars.
+- Set `populate_by_name=True` whenever fields have env-var aliases but
+  `config/*.yaml` uses snake_case field names. Without it, YAML values for
+  aliased fields can be ignored as extras and the app may silently use Python
+  defaults.
 - Include concise `description=` text on fields.
 - Use `Literal[...]` for constrained strings.
 - Use native `int`, `float`, `bool`, `str`, `list[str]`, etc. for regular
