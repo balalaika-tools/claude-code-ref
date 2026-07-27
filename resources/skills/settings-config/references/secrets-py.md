@@ -148,6 +148,25 @@ async def load_secrets(settings: Settings | None = None) -> Secrets:
     return _cached_secrets
 ```
 
+## Nested Field Grouping
+
+Same rule as `settings.py`: default to a flat `Secrets`/`EnvSecrets` model.
+Secret counts are usually small (a handful of API keys and DSNs), so nested
+grouping is rarely justified here — reach for it only when a project
+genuinely accumulates many secrets across several integrations (e.g. a
+distinct API key per LLM provider, per third-party service).
+
+If you do group, use the same mechanics as `settings.py`: plain `BaseModel`
+subgroups nested under the single root, `env_nested_delimiter="__"`, and
+dropped per-field `alias=` in favor of the delimiter matching
+SCREAMING_SNAKE_CASE env var names. In the remote-provider shape, also
+update `to_secrets()` to pass the nested groups through; that mapping does
+not happen automatically.
+
+Do not create separate independent `BaseSettings`/`BaseModel` secret classes
+per integration. That duplicates `model_config` and loses the single point
+of validation-at-startup that one root class gives you.
+
 ## Provider Notes
 
 - AWS SSM: use `AwsSsmSecretsProvider`; keep prefix and region in `Settings`;

@@ -72,6 +72,96 @@ but normal runtime discovery should work without it.
 - In the YAML pattern, keep only intentionally environment-specific,
   rarely-changing, non-secret baselines in `config/*.yaml`.
 
+## Nested Field Grouping
+
+Default to a single flat `Settings` class. Only introduce nested groups once
+the field count is large enough (several dozen+) that flat namespacing hurts
+readability. This is a namespacing change, not a functional split: keep one
+`Settings(BaseSettings)` root and one cached `get_settings()`, and group
+related fields into plain `BaseModel` subgroups nested under it.
+
+Do not create multiple independent `BaseSettings` classes to categorize
+config (e.g. a separate `DatabaseSettings(BaseSettings)` and
+`LLMSettings(BaseSettings)`). Each `BaseSettings` subclass re-runs the full
+source-resolution stack (env vars, `.env`, YAML discovery,
+`settings_customise_sources`) independently, which duplicates `model_config`
+and drifts out of sync over time. A nested `BaseModel` group under the single
+root avoids this: it is still resolved by the root's one source order.
+
+Keep environment-selection fields (`environment_name`, `log_level`) at the
+top level, ungrouped. In the YAML pattern, `_env_name()` reads
+`ENVIRONMENT_NAME` directly from `env_settings`/`dotenv_settings` before
+`Settings` is constructed, so it must stay a flat, unaliased top-level key.
+
+Before adopting nested groups, account for these mechanics:
+
+- Set `env_nested_delimiter="__"` in `model_config`. Env vars become
+  `SERVER__APP_PORT`, `MODEL__PRIMARY_MODEL_ID` instead of flat `APP_PORT`,
+  `PRIMARY_MODEL_ID`. This changes every deployment env var and
+  `.env.example` entry for grouped fields; treat it as a breaking change, not
+  a transparent refactor.
+- Per-field `alias=` on nested model fields does not compose cleanly with
+  `env_nested_delimiter`. On grouped fields, drop the individual `alias=`
+  and let the delimiter plus the SCREAMING_SNAKE_CASE-matching field name
+  resolve the env var instead. Keep `case_sensitive=True` so the nested path
+  matches exactly.
+- In the YAML pattern, nested YAML maps onto nested models directly
+  (`server: {app_port: ...}` onto `ServerSettings`), but alias/
+  `populate_by_name` precedence gets harder to verify with nesting. Test the
+  YAML load path explicitly for every grouped field, not just the flat ones.
+
+### Nested Grouping Scaffold
+
+```python
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ServerSettings(BaseModel):
+    """HTTP server bind config."""
+
+    app_title: str = Field(default="AI Service", description="FastAPI application title.")
+    app_host: str = Field(default="0.0.0.0", description="Server bind host.")
+    app_port: int = Field(default=8080, description="Server bind port.")
+
+
+class ModelSettings(BaseModel):
+    """LLM provider config."""
+
+    model_provider: Literal[
+        "openai", "bedrock", "bedrock_converse", "azure-openai"
+    ] = Field(default="openai", description="Primary LLM provider.")
+    primary_model_id: str = Field(description="Primary model used by the main agent.")
+    request_timeout_seconds: float = Field(
+        default=30.0, description="Default outbound request timeout."
+    )
+
+
+class Settings(BaseSettings):
+    """Non-secret settings. Secrets belong in core/secrets.py."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
+        env_nested_delimiter="__",
+    )
+
+    environment_name: EnvironmentName = Field(default="local", alias="ENVIRONMENT_NAME")
+    log_level: LogLevel = Field(default="INFO", alias="LOG_LEVEL")
+
+    server: ServerSettings = Field(default_factory=ServerSettings)
+    model: ModelSettings = Field(default_factory=ModelSettings)
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()  # type: ignore[call-arg]
+```
+
+Usage: `settings.server.app_port`, `settings.model.primary_model_id`.
+
 ## Env Vars + Pydantic Defaults Scaffold
 
 Use this scaffold when the selected pattern is env vars + Pydantic field
