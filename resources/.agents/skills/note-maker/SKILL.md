@@ -101,12 +101,13 @@ Don't mix styles within a single file.
 
 ### Writing quality
 
-Each note file should feel like it was written by a senior engineer explaining things to a competent colleague:
+Each note file should feel like it was written by a senior engineer explaining things to a competent colleague. The prose itself is governed by `references/how-we-write-notes.md` — audience calibration, the detail-vs-simplicity balance, always stating the *why*, the completeness checklist (failure modes, limits/edge cases, trade-offs vs. alternatives, security/cost implications, a minimal runnable example, when *not* to use it), currency, and tone. Apply that standard while drafting — don't wait for an audit pass to catch what it was missing.
+
+What's specific to authoring:
 
 - **Production-grade code examples** — real imports, realistic variable names, error handling where it matters. Not `foo`/`bar` toy code.
 - **Inline comments that explain "why"** — not what the code does, but why this approach was chosen.
-- **Real-world failure modes** — what breaks in production, common mistakes, and how to avoid them.
-- **Progressive complexity** — start with the mental model, build to practical usage, end with advanced patterns or edge cases.
+- **Progressive complexity across the file** — start with the mental model, build to practical usage, end with advanced patterns or edge cases.
 - **High code-to-text ratio** — show, don't just tell. A code block with a two-line explanation beats a paragraph with no code.
 
 ### Formatting conventions
@@ -163,7 +164,7 @@ If the topic is current, niche, or fast-moving and native knowledge isn't enough
 
 After the user confirms structure, if there are **3+ independent files**, launch one subagent per file in parallel (all Agent tool calls in a single message). Each subagent writes its own `.md` file to disk following this skill's conventions, then returns a short confirmation — not the file contents.
 
-Prompt each subagent with: the topic, target file path, audience, adjacent files for cross-linking, and a pointer to this SKILL.md. If the user wants current information, tell the subagent to use web search for its topic; otherwise it writes from native knowledge.
+Prompt each subagent with: the topic, target file path, audience, adjacent files for cross-linking, and a pointer to this SKILL.md plus `../../rules/how-we-write-notes.md`. Per that doc's currency rule, any time-sensitive claim (versions, pricing, deprecated APIs, "current best practice," product names) must be verified with web search before it goes in the file — regardless of whether the user explicitly asked for "current" information. Material that isn't time-sensitive can still be written from native knowledge.
 
 The main agent handles: launching the scout (if needed), proposing structure, writing root and directory READMEs, launching file subagents, and verifying cross-references at the end.
 
@@ -177,3 +178,4 @@ The main agent handles: launching the scout (if needed), proposing structure, wr
 - Don't create flat structures. If you have 15+ files, organize into directories.
 - Don't skip the ASCII tree diagram in the root README.
 - Don't forget cross-references. Every file should link to its "next" and mention prerequisites.
+- Don't ship a file without checking it against the completeness checklist in `../../rules/how-we-write-notes.md` (failure modes, limits/edge cases, trade-offs vs. alternatives, security/cost implications, a minimal runnable example, when not to use it) — skip only the items that genuinely don't apply to the topic.
