@@ -27,9 +27,9 @@ resource "aws_ecr_repository" "worker" {
 }
 ```
 
-Keep ECR in its own stack when its lifecycle is independent from the service.
-The service stack receives or discovers the repository URL; do not reference an
-`aws_ecr_repository` resource owned by another state:
+ECR belongs to the platform tier: repositories and images outlive the services
+that push to them. The application stack receives or discovers the repository
+URL; do not reference an `aws_ecr_repository` resource owned by another state:
 
 ```hcl
 variable "worker_image_repository_url" {

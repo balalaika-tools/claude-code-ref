@@ -5,6 +5,15 @@ Use separate roots when the implementation or lifecycle is materially
 different. Do not copy an entire root into `dev`, `staging`, and `prod` merely
 to change capacity.
 
+The separate-roots rule applies mainly **within the platform tier**, where a
+database or cache can legitimately be a different product per environment.
+Application stacks should not fork by environment: a service that runs on ECS in
+staging and something else in production is two services, and the difference
+belongs behind the platform contract in
+[`platform-application-split.md`](platform-application-split.md) rather than in
+two app roots. Capacity, concurrency, and retention differences stay typed input
+values.
+
 ## Contents
 
 - [Value Differences: One Root](#value-differences-one-root)
@@ -20,12 +29,12 @@ Keep the root under `Terraform/stacks/{stack}/` and define typed configuration:
 variable "database" {
   description = "Environment-specific database capacity and availability"
   type = object({
-    instance_class          = string
-    allocated_storage_gib   = number
+    instance_class            = string
+    allocated_storage_gib     = number
     max_allocated_storage_gib = number
-    multi_az                = bool
-    backup_retention_days   = number
-    deletion_protection     = bool
+    multi_az                  = bool
+    backup_retention_days     = number
+    deletion_protection       = bool
   })
 
   validation {
@@ -41,7 +50,7 @@ variable "database" {
 Use cheaper staging values:
 
 ```hcl
-# Terraform/environments/staging/database.tfvars
+# Terraform/environments/staging/platform-data.tfvars
 database = {
   instance_class            = "db.t4g.medium"
   allocated_storage_gib     = 50
@@ -55,7 +64,7 @@ database = {
 Use resilient production values:
 
 ```hcl
-# Terraform/environments/prod/database.tfvars
+# Terraform/environments/prod/platform-data.tfvars
 database = {
   instance_class            = "db.r7g.large"
   allocated_storage_gib     = 200
@@ -94,8 +103,8 @@ Use separate roots when environments use different products or graphs, for
 example:
 
 ```text
-Terraform/stacks/database-rds/
-Terraform/stacks/database-aurora/
+Terraform/stacks/platform-data-rds/
+Terraform/stacks/platform-data-aurora/
 ```
 
 Keep their externally consumed outputs compatible:
@@ -114,8 +123,8 @@ Make the environment-to-root mapping explicit in each standalone deployment
 wrapper:
 
 ```text
-staging: logical stack "database" -> root "database-rds"
-prod:    logical stack "database" -> root "database-aurora"
+staging: logical stack "platform-data" -> root "platform-data-rds"
+prod:    logical stack "platform-data" -> root "platform-data-aurora"
 ```
 
 Give both roots distinct backend keys. Never point two different roots at the

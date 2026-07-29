@@ -1,6 +1,6 @@
 ---
 name: deploy-scripts
-description: Conventions and patterns for writing shell scripts that wrap Terraform stacks (deploy-*.sh, destroy-*.sh, build-*.sh, and the top-level deploy.sh / destroy.sh orchestrators). Use whenever creating a new per-stack script, adding scripts for a newly added Terraform stack, modifying or reviewing any script in `scripts/`, wiring up CI-aware Terraform workflows, or debugging confirmation prompts / idempotent destroys. Apply even when the user just says things like "add a script for the new stack", "the destroy script is broken", or "how should I structure this deploy?".
+description: Conventions and patterns for writing shell scripts that wrap Terraform stacks (deploy-platform-*.sh, deploy-app-*.sh, destroy-*.sh, build-*.sh, and the deploy.sh / deploy-platform.sh / destroy.sh orchestrators). Use whenever creating a new per-stack script, adding scripts for a newly added Terraform stack, modifying or reviewing any script in `scripts/`, wiring up CI workflows and their deployment roles for platform-tier applies or per-service releases, choosing between a monorepo and a split application/infrastructure repository layout or wiring the artifact handoff between two repositories, or debugging confirmation prompts / idempotent destroys. Apply even when the user just says things like "add a script for the new stack", "add a release workflow for this service", "the destroy script is broken", "should the app code live in its own repo", or "how should I structure this deploy?".
 ---
 
 # Deploy & Destroy Script Conventions
@@ -8,9 +8,21 @@ description: Conventions and patterns for writing shell scripts that wrap Terraf
 Each logical Terraform stack gets two dedicated scripts:
 `deploy-<stack>.sh` and `destroy-<stack>.sh`. A pair of orchestration scripts —
 `deploy.sh` and `destroy.sh` — run stacks in dependency order. Stacks with
-container images also get a `build-<service>.sh`.
+Lambda or container artifacts also get a `build-<service>.sh`.
 
-Every script supports two callers with one code path: a human running it locally, and CI (GitHub Actions) running it unattended. `${CI:-}` is the only branch between them — see [Deploy Workflow](#deploy-workflow) and [CI Integration](#ci-integration-github-actions). Locally you see the plan and approve it; in CI the plan is generated and applied without a prompt, gated instead by whatever branch/environment protection rules the workflow itself enforces.
+Stacks are tiered, and the tier decides which workflow runs the script.
+`deploy-platform-<name>.sh` applies shared infrastructure that changes weekly to
+monthly. `deploy-app-<service>.sh` applies one independently releasable service
+and is the whole of a normal release. The boundary is defined in the sibling
+`terraform-aws` skill's `references/platform-application-split.md`.
+
+The approval gate is **plan on pull request, apply on merge behind an environment
+protection rule** — see [`references/ci-workflows.md`](references/ci-workflows.md).
+`${CI:-}` remains the only branch between a human running a script and CI running
+it unattended: locally you review the plan and approve it at the terminal, and in
+CI the script does not prompt ([Deploy Workflow](#deploy-workflow)). What it is
+not is the authorization. That comes from which workflow may run an apply, with a
+role scoped to that one stack.
 
 These scripts wrap the conventions in the sibling `terraform-aws` skill — this doc
 covers the shell layer (environment/root selection, local metadata isolation,
@@ -20,10 +32,48 @@ values and backend files; this skill creates the scripts that select it safely.
 For a genuine topology difference, the logical stack maps to one of a small,
 reviewed set of compatible roots.
 
+## Repository Topology
+
+Resolve this before writing any script or workflow, because it decides where the
+build lives and how the artifact version reaches Terraform. Two supported modes:
+
+| Mode | Layout | An application release is |
+|---|---|---|
+| **Monorepo** (default) | `Terraform/`, `scripts/`, and application source in one repository | one job: `build-<service>.sh` then `deploy-app-<service>.sh` |
+| **Split repo** | an application repository owns source and its build; an infrastructure repository owns `Terraform/` and `scripts/` | two pipelines with an explicit artifact handoff |
+
+Detect the mode from the repository rather than asking first:
+
+- `Terraform/` **and** application source (`apps/`, `lambdas/`) → monorepo.
+- `Terraform/` with `stacks/app-*` but **no** application source → the
+  infrastructure repository of a split.
+- Application source, **no** `Terraform/`, and a workflow that publishes to ECR or
+  an artifact bucket → the application repository of a split. The
+  `app-service-releases` skill covers that side.
+- Genuinely ambiguous — a new repository, or `Terraform/` beside one stray
+  application directory — ask once, then record the answer in that repository's
+  `CLAUDE.md` so it is resolved permanently.
+
+One rule holds in both modes: **the build travels with the source; the apply
+travels with the Terraform.** `build-<service>.sh` belongs beside the source it
+reads, because it stamps the artifact with the source commit. `deploy-app-*.sh`
+and `destroy-app-*.sh` belong beside `Terraform/`.
+
+Everything else in this skill is mode-independent — the script spine, the helper
+functions, the plan/apply gate, the destroy pattern, `TF_DATA_DIR` isolation.
+Only the artifact handoff and the CI wiring differ:
+[`references/split-repo-releases.md`](references/split-repo-releases.md).
+
 Read the focused references when applicable:
 
-- Lambda/Docker artifact builds and pre-deploy S3 uploads:
+- CI workflows and deployment roles:
+  [`references/ci-workflows.md`](references/ci-workflows.md)
+- Two-repository releases and the artifact handoff:
+  [`references/split-repo-releases.md`](references/split-repo-releases.md)
+- Lambda (uv) and Docker artifact builds:
   [`references/build-scripts.md`](references/build-scripts.md)
+- AMI builds for the EC2/ASG release path:
+  [`references/ami-builds.md`](references/ami-builds.md)
 - Full `deploy.sh` / `destroy.sh` / `_stacks.sh` listings:
   [`references/orchestrators.md`](references/orchestrators.md)
 - ECS drain and stuck-ENI destroy diagnostics:
@@ -35,16 +85,21 @@ Read the focused references when applicable:
 
 | Pattern | Purpose |
 |---|---|
-| `deploy-<stack>.sh` | Deploy a stack via Terraform |
+| `deploy-platform-<name>.sh` | Deploy a platform-tier stack (VPC, cluster, database, ALB, ECR) |
+| `deploy-app-<service>.sh` | Deploy one application stack — a single service's release |
+| `deploy-<stack>.sh` | Deploy a stack via Terraform; the tier-neutral form, for a repository below the split threshold |
 | `create-<stack>.sh` | Bootstrap-only stack (local backend, import logic — e.g. S3 state bucket) |
-| `destroy-<stack>.sh` | Tear down a specific stack |
-| `build-<service>.sh` | Build a Lambda zip/layer or Docker image and push to ECR |
-| `deploy.sh` | Orchestrator — all stacks in dependency order |
+| `destroy-<stack>.sh` | Tear down a specific stack; `destroy-platform-<name>.sh` / `destroy-app-<service>.sh` follow the deploy name |
+| `build-<service>.sh` | Build an immutable artifact — Lambda ZIP, Docker image, or AMI — and publish it |
+| `deploy-platform.sh` | Orchestrator — platform tier only, in dependency order |
+| `deploy.sh` | Orchestrator — every stack, for bring-up and disaster recovery |
 | `destroy.sh` | Orchestrator — all stacks in reverse order |
 
-Use `deploy-` for standard remote-backend stacks. Reserve `create-` only for bootstrap stacks that use a local backend.
+The filename carries the tier, so no separate naming concept is needed. Use
+`deploy-` for standard remote-backend stacks and reserve `create-` for bootstrap
+stacks on a local backend.
 
-A stack that owns both an ECR repo and the service that pushes to it (ECS, Lambda) splits into two stacks: `ecr` and the service. ECR repos are created once and almost never destroyed; the service stack churns on every deploy. Giving them separate lifecycles means a normal deploy never needs `-target` — see [ECR as its own Stack](#ecr-as-its-own-stack).
+A stack that owns both an ECR repo and the service that pushes to it (ECS, Lambda) splits into two stacks: `platform-ecr` and the app stack. ECR repos are created once and almost never destroyed; the app stack churns on every deploy. Giving them separate lifecycles means a normal deploy never needs `-target` — see [ECR as a Platform Stack](#ecr-as-a-platform-stack).
 
 ---
 
@@ -98,16 +153,16 @@ logical stack/output contract:
 
 ```bash
 case "$ENV" in
-  staging) ROOT_STACK="database-rds" ;;
-  prod)    ROOT_STACK="database-aurora" ;;
-  *) print_error "No database root is configured for ENV=$ENV"; exit 1 ;;
+  staging) ROOT_STACK="platform-data-rds" ;;
+  prod)    ROOT_STACK="platform-data-aurora" ;;
+  *) print_error "No platform-data root is configured for ENV=$ENV"; exit 1 ;;
 esac
 ```
 
-Do not accept an unrestricted `ROOT_STACK` or `DATABASE_ROOT_STACK` override:
-the mapping is part of the reviewed deployment policy. Keep backend and tfvars
-names under the logical `database` stack, but ensure the selected roots never
-share a backend state object. If an environment changes implementations later,
+Do not accept an unrestricted `ROOT_STACK` override: the mapping is part of the
+reviewed deployment policy. Keep backend and tfvars names under the logical
+`platform-data` stack, but ensure the selected roots never share a backend state
+object. If an environment changes implementations later,
 perform an explicit state/consumer cutover; never let both roots manage the same
 SSM parameter, DNS record, or other discovery object concurrently.
 
@@ -177,12 +232,26 @@ if ! terraform fmt -check -recursive "$REPO_ROOT/Terraform" >/dev/null 2>&1; the
 fi
 
 print_info "Planning..."
-terraform plan -input=false -lock-timeout=5m \
-  -var-file="$VAR_FILE" -out="$PLAN_FILE"
+PLAN_ARGS=(-input=false -lock-timeout=5m -var-file="$VAR_FILE" -out="$PLAN_FILE")
 # Add -var-file="$ARTIFACT_VARS" if the stack consumes build artifacts
+PLAN_CODE=0
+if [[ "$DETAILED_EXITCODE" == "true" ]]; then
+  set +e
+  terraform plan "${PLAN_ARGS[@]}" -detailed-exitcode
+  PLAN_CODE=$?
+  set -e
+  [[ "$PLAN_CODE" == "1" ]] && exit 1
+else
+  terraform plan "${PLAN_ARGS[@]}"
+fi
+
+if [[ "$PLAN_ONLY" == "true" ]]; then
+  print_info "Plan-only run — not applying"
+  exit "$PLAN_CODE"
+fi
 
 if [[ "${CI:-}" == "true" ]]; then
-  print_info "CI detected — auto-approving..."
+  print_info "CI detected — applying the saved plan without a prompt"
   terraform apply -input=false "$PLAN_FILE"
 else
   print_info "Review the plan above."
@@ -196,24 +265,53 @@ else
 fi
 ```
 
-Use `-input=false` on every `init`/`plan`/`apply` call so a missing value fails
-loudly instead of hanging in CI. Use a bounded lock timeout. Apply the exact
-saved plan; do not run a second implicit plan. `CI=true` may skip the terminal
-prompt only when the workflow has an external approval policy. For stronger
-production controls, separate plan and apply jobs and protect the plan artifact
-as sensitive data.
+Parse the two flags at the top of the script, beside the `ENV` resolution:
 
-### ECR as its own Stack
+```bash
+PLAN_ONLY=false
+DETAILED_EXITCODE=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --plan-only)         PLAN_ONLY=true ;;
+    --detailed-exitcode) DETAILED_EXITCODE=true ;;
+    *) print_error "Unknown argument: $1"; exit 1 ;;
+  esac
+  shift
+done
+```
 
-`-target` is Terraform's documented escape hatch for exceptional recovery, and it prints a warning every time it's used — it is not a pattern to build a routine deploy path around. Instead of targeting the ECR resources inside a combined stack, give ECR its own stack with its own lifecycle. `deploy-ecr.sh` is then an ordinary stack script — no targeting, no partial applies, every stack applies its whole plan.
+- `--plan-only` is what the pull-request workflow calls. The script initializes,
+  validates, plans, prints, and exits without applying — so a PR job can hold a
+  read-only role and still fail on a broken configuration.
+- `--detailed-exitcode` propagates Terraform's exit code: 0 for no changes, 2 for
+  changes, 1 for an error. Drift detection needs the distinction; a 1 must not be
+  reported as drift. Wrap it in `set +e`/`set -e`, because a 2 would otherwise
+  abort the script under `set -e`.
+- Use `-input=false` everywhere so a missing value fails loudly instead of hanging.
+  Use a bounded lock timeout. Apply the exact saved plan; never run a second
+  implicit plan at apply time.
+- `CI=true` skips the terminal prompt. It is not the approval — the workflow's
+  environment protection is. See
+  [`references/ci-workflows.md`](references/ci-workflows.md).
 
-The service stack reads the repository through `data "aws_ecr_repository"` or
-another intentional published value rather than owning it. Avoid
-`terraform_remote_state` unless the service deployment role may read the entire
-ECR state snapshot.
+### ECR as a Platform Stack
 
-The ordering — `ecr`, then the build script, then the service — is wired in
-`deploy.sh`; see [`references/orchestrators.md`](references/orchestrators.md).
+`-target` is Terraform's documented escape hatch for exceptional recovery, and it prints a warning every time it's used — it is not a pattern to build a routine deploy path around. Instead of targeting the ECR resources inside a combined stack, give ECR its own stack with its own lifecycle. `deploy-platform-ecr.sh` is then an ordinary stack script — no targeting, no partial applies, every stack applies its whole plan.
+
+ECR is one instance of platform-tier ownership rather than a special case:
+repositories and images outlive the services that push to them, exactly like the
+VPC, the cluster, and the database. The tier rule is in the sibling
+`terraform-aws` skill's `references/platform-application-split.md`.
+
+The app stack reads the repository through `data "aws_ecr_repository"` or a
+platform-published SSM parameter rather than owning it. Avoid
+`terraform_remote_state` unless that service's deployment role may read the
+entire platform state snapshot — which defeats the point of a scoped role.
+
+The ordering — `platform-ecr`, then the build script, then the app stack — is
+wired in `deploy.sh` for bring-up; see
+[`references/orchestrators.md`](references/orchestrators.md). In a release, the
+build script and the one app stack run in the same job and ECR already exists.
 
 ### Summary Banner (deploy scripts)
 
@@ -257,6 +355,7 @@ trap 'rm -f "$DESTROY_PLAN_FILE"' EXIT
 print_warning "This will destroy the <STACK> stack ($ENV). Plan:"
 terraform plan -destroy -input=false -lock-timeout=5m \
   -var-file="$VAR_FILE" -out="$DESTROY_PLAN_FILE"
+# Add -var-file="$ARTIFACT_VARS" when the stack declares artifact variables.
 
 if [[ "${CI:-}" != "true" && "${SKIP_CONFIRM:-}" != "true" ]]; then
   echo ""
@@ -278,6 +377,13 @@ stack. Generate and save the real destroy plan, then apply that exact plan after
 confirmation. Use `DESTROY` for standard stacks and a specific token for
 irreversible data loss.
 
+**A destroy plan still has to satisfy every required variable.** An app stack's
+artifact variables have no default, so `-input=false` fails on a missing value
+even though a destroy never uses the artifact. Pass the artifact tfvars file to
+the destroy plan as well. When no artifact was ever published for that
+environment, supply a syntactically valid placeholder with `-var` on that single
+invocation — never by adding a default or writing it into a committed file.
+
 Destroy scripts are always idempotent: missing directory or empty state → exit 0. The `destroy.sh` orchestrator runs stacks in sequence — a previously-torn-down stack must not halt the rest.
 
 **Stacks that run workloads in a VPC need more than this.** ECS services must be
@@ -290,10 +396,21 @@ and the ENI diagnostic that replaces the final bare `terraform apply` — are in
 
 ## Orchestrators
 
+**`deploy.sh` is day-one environment bring-up and disaster recovery. It is not
+your CD path.** Nothing in a normal release runs it: a release applies exactly one
+app stack, from that service's own workflow, with that service's own role. Reach
+for `deploy.sh` when standing up a new environment or rebuilding one from nothing.
+
+`deploy-platform.sh` is the realistic recurring orchestrator — it applies the
+platform tier in dependency order and stops there. It is what `infra-apply.yml`
+runs on merge, and it never touches an app stack.
+
 `deploy.sh` and `destroy.sh` are the one place scripts share state: a single
 ordered stack list in `scripts/_stacks.sh`, so destroy order is always the exact
 reverse of deploy order — not two hand-maintained lists that can silently drift
-apart. Adding a stack is one edit, in one place.
+apart. Adding a stack is one edit, in one place. The list holds platform stacks in
+dependency order followed by app stacks in any order; `deploy-platform.sh` runs
+the platform section only.
 
 The rules that matter from outside those two files:
 
@@ -317,19 +434,44 @@ the `FAILED_STACK` trap: [`references/orchestrators.md`](references/orchestrator
 
 ## Build Scripts
 
-`build-<service>.sh` produces an artifact and hands its version to Terraform
-through a generated `.tfvars` file that the deploy script passes as a second
-`-var-file`. Two rules regardless of artifact type:
+`build-<service>.sh` produces an **immutable artifact** and hands its version to
+Terraform through a generated `.tfvars` file that the deploy script passes as a
+second `-var-file`. Three artifact kinds, one contract:
 
-- **Version explicitly.** Docker images are tagged with the Git SHA against an
-  immutable ECR repository — never `latest` or a branch name. Lambda zips carry
-  a `base64sha256` because the AWS API needs it to detect a real change.
+| Artifact | Version handed to Terraform |
+|---|---|
+| Docker image | Git SHA tag against an immutable ECR repository, or the resolved digest |
+| Lambda ZIP | S3 object version plus the ZIP's `base64sha256` |
+| AMI | the `ami-` ID |
+
+Two rules regardless of kind:
+
+- **Version explicitly.** Never `latest`, never a branch name, never "whatever is
+  newest" resolved at plan time. The variable is required and has no default, so a
+  release that skipped its build fails at plan instead of silently redeploying the
+  previous artifact.
 - **The build runs before `terraform init`,** and its tfvars file must exist on
   every exit path, including the "artifact already published, nothing to do"
   short-circuit.
 
-Full Lambda zip/layer and Docker/ECR listings, plus pre-deploy S3 asset uploads:
-[`references/build-scripts.md`](references/build-scripts.md). For the
+Python Lambda source lives at `lambdas/<service>/`, at the root of whichever
+repository owns the source and outside the Terraform directory. Use the function's
+committed `pyproject.toml` and `uv.lock` with uv; a generated requirements file is
+an ignored build artifact, never a second dependency source of truth.
+
+**Where the build script lives follows the source, not the Terraform.** In a
+monorepo it sits in `scripts/` beside the deploy scripts, and the deploy script
+calls it inline. In a split repository it lives in the application repository, and
+the artifact version reaches Terraform through a committed
+`Terraform/environments/{env}/{stack}.artifacts.tfvars` file instead of a path on
+one runner's disk — [`references/split-repo-releases.md`](references/split-repo-releases.md).
+Resolve any `<repo-root>` in a build script against the repository holding the
+source, so the git SHA that tags the artifact identifies the code inside it.
+
+Full Lambda ZIP/uv and Docker/ECR listings:
+[`references/build-scripts.md`](references/build-scripts.md). The EC2/ASG path —
+Packer or EC2 Image Builder, the AMI ID handoff, and waiting out the instance
+refresh — is in [`references/ami-builds.md`](references/ami-builds.md). For the
 tag-versus-digest decision, read `references/docker-image-tagging.md` in the
 sibling `terraform-aws` skill.
 
@@ -349,27 +491,33 @@ Set it up once per project: [`references/bootstrap-stack.md`](references/bootstr
 
 ## CI Integration (GitHub Actions)
 
-The scripts don't change between local and CI use — only the env vars set around them do. A workflow calling the orchestrator:
+The scripts do not change between local and CI use — only the env vars and flags
+set around them do. Four workflows, each with its own role:
 
-```yaml
-# .github/workflows/deploy.yml
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}   # dev / staging / prod — gates via GitHub environment protection rules
-    env:
-      CI: "true"
-      ENV: ${{ inputs.environment }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.DEPLOY_ROLE_ARN }}   # OIDC — no long-lived AWS keys in the repo
-          aws-region: ${{ vars.AWS_REGION }}
-      - run: ./scripts/deploy.sh
-```
+| Workflow | Trigger | Runs | Role |
+|---|---|---|---|
+| `infra-plan.yml` | PR touching `Terraform/**` | `deploy-platform-<name>.sh --plan-only` | `TerraformPlanRole` — read plus the state lock |
+| `infra-apply.yml` | merge to main, or dispatch | `deploy-platform.sh` | `TerraformPlatformApplyRole` — broad, only from a protected job |
+| `release-<service>.yml` → `_app-release.yml` | push to `apps/<service>/**` | `build-<service>.sh` then `deploy-app-<service>.sh` | `AppDeployRole-<service>-<env>` — that stack only |
+| `drift-detect.yml` | schedule | `--plan-only --detailed-exitcode` | `TerraformPlanRole` |
 
-`CI=true` is what makes `deploy.sh`/`deploy-<stack>.sh` skip the interactive `read -p "Apply?"` and apply the plan unattended ([Deploy Workflow](#deploy-workflow)) — the approval gate moves from a terminal prompt to whatever branch protection / required-reviewers rule guards the workflow run itself (e.g. a GitHub Environment with required reviewers on `prod`). Locally, with `CI` unset, every script stops and shows the plan before applying. Same scripts, same code path — only the environment decides which gate applies.
+Two consequences worth stating plainly. A code push can no longer reach a role
+that modifies databases or networking — the release role holds ECS/Lambda/ECR
+permissions for one service and write access to one state prefix. And no workflow
+runs `deploy.sh`; bring-up is a deliberate, manual operation.
+
+Complete YAML for all four, the reusable `_app-release.yml` with its per-service
+caller, the rejected alternatives, and every trust and permission policy:
+[`references/ci-workflows.md`](references/ci-workflows.md).
+
+That table describes the monorepo. In a split repository the release row becomes
+two workflows in two repositories: the application repository publishes the
+artifact under a publish-only role, then opens a pull request carrying the version;
+the infrastructure repository's caller triggers on that file and applies the stack.
+The other three workflows are unchanged, and `infra-plan.yml` plans the release
+pull request for free because its `Terraform/**` filter already matches. Both
+trust policies, the bring-up sequencing, and the promotion and rollback paths:
+[`references/split-repo-releases.md`](references/split-repo-releases.md).
 
 ---
 
@@ -378,13 +526,19 @@ jobs:
 | Variable | Used by | Effect |
 |---|---|---|
 | `ENV` | all | Required target environment; validate against the environments the repository supports |
-| `CI=true` | all | Auto-approve deploys, skip interactive prompts |
+| `CI=true` | all | Skip interactive prompts and apply the saved plan; not the approval gate |
 | `SKIP_CONFIRM=true` | destroy scripts | Skip `DESTROY` confirmation (set by `destroy.sh` orchestrator) |
-| `SKIP_STACKS` | `deploy.sh` | Comma-separated stack names to skip |
+| `SKIP_STACKS` | `deploy.sh` | Comma-separated stack names to skip. **Bring-up only** — a release applies one stack, so it has nothing to skip |
+| `SERVICE` | app release workflow | The service whose stack and artifact this run releases; set by the reusable workflow from a literal in the caller |
 | `IMAGE_TAG` | build scripts | Docker image tag; defaults to the current git SHA |
 | `<SERVICE>_IMAGE_TAG` | build scripts | Per-service override when multiple images are deployed |
+| `AMI_ID` | build/deploy scripts | Pre-built AMI for the EC2/ASG path, when an earlier job produced it |
+| `LAMBDA_OBJECT_VERSION` | build/deploy scripts | S3 object version of a published Lambda ZIP, when the publish and apply are separate steps |
+| `TF_PLAN_ARTIFACT` | CI plan/apply jobs | Path of the saved plan handed from a plan job to a protected apply job; treat as sensitive, short retention |
 | `AWS_REGION` | build/destroy scripts | Explicit region; falls back to parsing tfvars/ECR URL locally only |
 | `TF_VAR_*` | deploy scripts | Inject values without a tfvars file; secrets still enter state unless every consumer is ephemeral/write-only |
+| `INFRA_REPO` | split-repo handoff | `<org>/<repo>` the application repository opens its release pull request against |
+| `ENVIRONMENT` | split-repo handoff | Target environment for the artifact file the application repository publishes; `ENV` stays the name the Terraform wrappers read |
 
 ---
 
@@ -406,22 +560,55 @@ before committing:
 
 ## Adding a New Stack
 
-1. Copy the nearest similar deploy script → `deploy-<stack>.sh`; update
-   `LOGICAL_STACK`, `ROOT_STACK`, `VAR_FILE`, `BACKEND_CONFIG`, and summary
-   outputs.
-2. Copy the nearest similar destroy script → `destroy-<stack>.sh`; update paths.
-   **If the stack runs in a VPC, read
-   [`references/destroy-troubleshooting.md`](references/destroy-troubleshooting.md)**
-   and add the ECS drain loop and ENI diagnostics.
-3. If the stack manages container images or Lambda artifacts: create an `ecr`
-   stack (once, if the project doesn't have one yet) plus `build-<service>.sh`
-   — **read [`references/build-scripts.md`](references/build-scripts.md)**. The
-   service stack reads the repo URL from the `ecr` stack rather than owning it.
-4. Add the stack to `_stacks.sh` in the correct position — **format and
-   surrounding code in
-   [`references/orchestrators.md`](references/orchestrators.md)**. If an
-   environment selects a different root implementation, add an explicit
+Both tiers, every time: copy the nearest similar deploy script and update
+`LOGICAL_STACK`, `ROOT_STACK`, `VAR_FILE`, `BACKEND_CONFIG`, and the summary
+outputs; copy the nearest destroy script and update its paths; add the stack to
+`_stacks.sh` (**format in
+[`references/orchestrators.md`](references/orchestrators.md)**); then
+`chmod +x` and `shellcheck` both new scripts.
+
+**If the stack runs workloads in a VPC, read
+[`references/destroy-troubleshooting.md`](references/destroy-troubleshooting.md)**
+and add the ECS drain loop and ENI diagnostics to the destroy script. In practice
+that is always an app stack.
+
+### Adding a platform stack
+
+1. Name it `deploy-platform-<name>.sh` / `destroy-platform-<name>.sh`.
+2. Place it in the **ordered** section of `_stacks.sh`, ahead of every app stack,
+   and add it to `deploy-platform.sh`'s run.
+3. If an environment selects a different root implementation, add an explicit
    `case "$ENV"` mapping in the per-stack wrappers and keep the logical output
    contract stable.
-5. `chmod +x scripts/deploy-<stack>.sh scripts/destroy-<stack>.sh`
-6. `shellcheck scripts/deploy-<stack>.sh scripts/destroy-<stack>.sh`
+4. Confirm the stack publishes what app stacks need as SSM parameters. A platform
+   stack whose values are only Terraform outputs cannot be consumed by an app
+   stack that may not read its state.
+5. No release workflow. It is applied by `infra-apply.yml` on merge or dispatch.
+
+### Adding an application stack
+
+0. Resolve the [repository topology](#repository-topology) first — it decides
+   whether steps 2 and 4 happen in this repository or another one.
+1. Name it `deploy-app-<service>.sh` / `destroy-app-<service>.sh`.
+2. Add `build-<service>.sh` for its artifact — **read
+   [`references/build-scripts.md`](references/build-scripts.md)**, or
+   [`references/ami-builds.md`](references/ami-builds.md) for an EC2/ASG service.
+   The app stack reads its ECR repository URL from the platform tier rather than
+   owning it; create `platform-ecr` once if the project has no ECR stack yet. In a
+   split repository the build script belongs to the application repository, and
+   this repository consumes a committed
+   `Terraform/environments/{env}/app-<service>.artifacts.tfvars` instead.
+3. Append it to the **unordered app section** of `_stacks.sh`. App stacks do not
+   depend on each other, so position within that section carries no meaning.
+4. Add its release caller workflow and its per-environment deployment role —
+   **read [`references/ci-workflows.md`](references/ci-workflows.md)**. The caller
+   is about ten lines: its `paths:` filter, its service name, its stack name. In a
+   split repository the filter matches the artifact file rather than application
+   source — **one environment's file, not a wildcard**, because the push trigger
+   carries no environment and the job applies whatever `ENV` resolves to — and the
+   role's trust policy pins this repository:
+   [`references/split-repo-releases.md`](references/split-repo-releases.md).
+5. Support `--plan-only` so the pull-request workflow can plan it with a read-only
+   role.
+6. Pass the artifact tfvars file to the **destroy** plan too, or its no-default
+   artifact variables make `terraform plan -destroy -input=false` fail.

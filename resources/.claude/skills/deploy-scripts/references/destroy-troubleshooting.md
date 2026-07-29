@@ -4,6 +4,12 @@ Add these to `destroy-<stack>.sh` for any stack that runs workloads in a VPC.
 They sit around the standard destroy workflow in `SKILL.md`: drain before the
 destroy plan is applied, diagnose after it fails.
 
+Both patterns belong to the **application tier**: ECS services, their task
+security groups, and VPC Lambda ENIs live in app stacks. A platform-tier destroy
+script does not need the drain loop, but it will hang on leftover ENIs if an app
+stack is still up. Destroy app stacks before the platform stacks they depend on —
+which is what reverse stack-list order gives you.
+
 ## Contents
 
 - [ECS Drain-Before-Destroy](#ecs-drain-before-destroy)

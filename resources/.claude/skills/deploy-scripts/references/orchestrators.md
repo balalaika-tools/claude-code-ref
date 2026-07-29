@@ -1,4 +1,10 @@
-# Orchestrators: `deploy.sh`, `destroy.sh`, `_stacks.sh`
+# Orchestrators: `deploy.sh`, `deploy-platform.sh`, `destroy.sh`, `_stacks.sh`
+
+`deploy.sh` is **environment bring-up and disaster recovery, not the CD path.**
+No release runs it. `deploy-platform.sh` applies the platform tier and is what
+the infrastructure workflow runs on merge. A service release applies exactly one
+app stack through its own script — see
+[`ci-workflows.md`](ci-workflows.md).
 
 `deploy.sh` and `destroy.sh` are the one place scripts share state: a single
 ordered stack list, so destroy order is always the exact reverse of deploy order
@@ -13,36 +19,73 @@ still source nothing.
 
 - [The Shared Stack List](#the-shared-stack-list)
 - [deploy.sh](#deploysh)
+- [deploy-platform.sh](#deploy-platformsh)
 - [destroy.sh](#destroysh)
 - [Restate Surviving Resources](#restate-surviving-resources)
 
 ## The Shared Stack List
 
+The list has two sections. Platform stacks are **ordered** — each one depends on
+the ones above it. App stacks are **unordered siblings**: they depend on the
+platform tier and never on each other, so their relative position carries no
+meaning.
+
 ```bash
 # scripts/_stacks.sh — single source of truth for stack order.
 # deploy.sh iterates it forwards; destroy.sh iterates it backwards.
-# Sourced only by the two orchestrators — per-stack scripts stay standalone.
-STACKS=(
-  "s3:create-s3.sh:destroy-s3.sh"
-  "ecr:deploy-ecr.sh:destroy-ecr.sh"
-  "network:deploy-network.sh:destroy-network.sh"
-  # "<stack>:deploy-<stack>.sh:destroy-<stack>.sh"
+# Sourced only by the orchestrators — per-stack scripts stay standalone.
+
+# Platform tier — dependency order matters. Applied by deploy-platform.sh.
+PLATFORM_STACKS=(
+  "state:create-state.sh:destroy-state.sh"
+  "platform-network:deploy-platform-network.sh:destroy-platform-network.sh"
+  "platform-data:deploy-platform-data.sh:destroy-platform-data.sh"
+  "platform-ecr:deploy-platform-ecr.sh:destroy-platform-ecr.sh"
 )
+
+# Application tier — order is arbitrary; one entry per releasable service.
+APP_STACKS=(
+  "app-api:deploy-app-api.sh:destroy-app-api.sh"
+  "app-worker:deploy-app-worker.sh:destroy-app-worker.sh"
+  # "app-<service>:deploy-app-<service>.sh:destroy-app-<service>.sh"
+)
+
+STACKS=("${PLATFORM_STACKS[@]}" "${APP_STACKS[@]}")
 ```
 
 The `<name>:<deploy>:<destroy>` triple keeps a stack's name and both of its
 scripts on one line, so adding a stack is one edit in one place and the reverse
-order cannot fall out of sync.
+order cannot fall out of sync. `STACKS` preserves the existing contract for
+`deploy.sh` and `destroy.sh`; `deploy-platform.sh` iterates `PLATFORM_STACKS`
+only.
 
-Where a build script must run between two stacks — ECR before the build, the
-service after it — call it inline in `deploy.sh` rather than adding it to
-`STACKS`; it is not a stack and has no destroy counterpart:
+If a repository sits below the split threshold and has one combined stack, keep a
+single `STACKS` array and skip the two-section structure. Do not manufacture a
+platform/app split in the stack list that does not exist in the Terraform tree.
+
+Where a build script must run between two stacks during bring-up — ECR before the
+build, the app stack after it — call it inline in `deploy.sh` rather than adding
+it to an array; it is not a stack and has no destroy counterpart:
 
 ```bash
-run_stack "ecr"        1 N "deploy-ecr.sh"
+run_stack "platform-ecr" 1 N "deploy-platform-ecr.sh"
 "$SCRIPT_DIR/build-<service>.sh"
-run_stack "<service>"  2 N "deploy-<service>.sh"
+run_stack "app-<service>" 2 N "deploy-app-<service>.sh"
 ```
+
+In a release this sequencing does not arise: the build script and the single app
+stack run in the same job, and ECR already exists.
+
+**In a split repository this inline call has no equivalent — delete it.** This
+repository has no application source to build. Bring-up becomes three steps:
+apply the platform tier, release each service once from its own repository against
+the new environment, then run `deploy.sh` with every artifact file present. Do not
+replace the call with a cross-repository clone-and-build; that needs credentials
+for every application repository and reassembles the blast radius the split
+removed. Add the artifact-file pre-flight from
+[`split-repo-releases.md`](split-repo-releases.md) so a missing release fails at
+the top of `deploy.sh` with the service named, rather than as an opaque "no value
+for required variable" several stacks in.
 
 ## deploy.sh
 
@@ -51,13 +94,13 @@ failure context:
 
 ```bash
 #!/usr/bin/env bash
-# Deploy all stacks in dependency order
+# Bring up every stack in dependency order. Bring-up and DR only — not the CD path.
 #
 # Environment variables:
 #   ENV=<dev|staging|prod> — target environment (required everywhere)
-#   CI=true                — auto-approve all applies
-#   IMAGE_TAG=<tag>         — Docker image tag for ECS services
-#   SKIP_STACKS             — comma-separated stacks to skip (e.g. "s3,network")
+#   CI=true                — apply without an interactive prompt
+#   IMAGE_TAG=<tag>        — Docker image tag for ECS services
+#   SKIP_STACKS            — comma-separated stacks to skip on a partial re-run
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -140,6 +183,53 @@ deliberate cancellation.
 Export `ENV` explicitly before invoking child scripts. A shell variable created
 inside the orchestrator is not exported automatically, and every per-stack script
 requires `ENV`.
+
+`SKIP_STACKS` exists for **partial bring-up re-runs**, when an earlier attempt
+failed halfway. It has no role in a release: a release applies one app stack, so
+there is nothing to skip. Do not add it to a release workflow.
+
+## deploy-platform.sh
+
+The platform-tier orchestrator, and the one an infrastructure workflow actually
+runs on merge. Same structure as `deploy.sh` with two differences: it iterates
+`PLATFORM_STACKS`, and it refuses to touch an app stack.
+
+```bash
+#!/usr/bin/env bash
+# Apply the platform tier in dependency order
+#
+# Environment variables:
+#   ENV=<dev|staging|prod> — target environment (required)
+#   CI=true                — apply without an interactive prompt
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export ENV="${ENV:?Set ENV before deployment}"
+source "$SCRIPT_DIR/_stacks.sh"
+
+# Paste the four print_* helpers verbatim (SKILL.md -> Helper Functions).
+# Reuse should_skip, run_stack, and the FAILED_STACK trap from deploy.sh.
+
+TOTAL="${#PLATFORM_STACKS[@]}"
+INDEX=0
+for entry in "${PLATFORM_STACKS[@]}"; do
+  INDEX=$((INDEX + 1))
+  IFS=':' read -r name deploy_script _ <<<"$entry"
+  run_stack "$name" "$INDEX" "$TOTAL" "$deploy_script"
+done
+
+print_success "Platform tier applied ($ENV)"
+print_info "Application stacks release independently; this run did not touch them."
+```
+
+The closing line matters. An operator who just applied the platform tier needs to
+know that nothing shipped for any service, so a release that was waiting on new
+platform capacity still has to run.
+
+Bootstrap is deliberately excluded from this script even though `create-state.sh`
+appears in `PLATFORM_STACKS`: it runs on a local backend, once per project, by a
+human. Either drop it from the loop with an explicit `should_skip` entry or keep
+it first and accept that it exits early as a no-op once the bucket exists.
 
 ## destroy.sh
 
