@@ -210,11 +210,15 @@ marimo/_lsp/
 __marimo__/
 
 
-# Terraform 
+# Terraform
 .terraform/
 terraform.tfstate
 terraform.tfstate.*
 crash.log
+crash.*.log
+# Plan files contain resolved variable values and resource attributes — treat like state.
+tfplan
+*.tfplan
 # Terraform Lambda build output (feeder, orchestration, etc.)
 Terraform/**/.build/
 

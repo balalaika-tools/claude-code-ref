@@ -7,7 +7,9 @@ description: Conventions and patterns for writing shell scripts that wrap Terraf
 
 Each Terraform stack gets two dedicated scripts: `deploy-<stack>.sh` and `destroy-<stack>.sh`. A pair of orchestration scripts — `deploy.sh` and `destroy.sh` — run all stacks in dependency order. Stacks with container images also get a `build-<service>.sh`.
 
-All scripts follow a consistent structure so they work identically locally and in CI.
+Every script supports two callers with one code path: a human running it locally, and CI (GitHub Actions) running it unattended. `${CI:-}` is the only branch between them — see [Script Structure §5](#5-deploy-workflow) and [CI Integration](#ci-integration-github-actions). Locally you see the plan and approve it; in CI the plan is generated and applied without a prompt, gated instead by whatever branch/environment protection rules the workflow itself enforces.
+
+These scripts wrap the conventions in the companion `terraform` skill — this doc covers the shell layer (workflow, confirmation gates, CI branching); see that skill for the Terraform-side conventions (naming, state, tagging, lifecycle) the scripts assume. Read both together when adding a stack: the `terraform` skill's "Adding a New Stack" checklist creates the module and environment directories, this doc's "Adding a New Stack" section creates the scripts that drive them.
 
 ## File Naming
 
@@ -21,6 +23,8 @@ All scripts follow a consistent structure so they work identically locally and i
 | `destroy.sh` | Orchestrator — all stacks in reverse order |
 
 Use `deploy-` for standard remote-backend stacks. Reserve `create-` only for bootstrap stacks that use a local backend.
+
+A stack that owns both an ECR repo and the service that pushes to it (ECS, Lambda) splits into two stacks: `ecr` and the service. ECR repos are created once and almost never destroyed; the service stack churns on every deploy. Giving them separate lifecycles means a normal deploy never needs `-target` — see [§6](#6-ecr-as-its-own-stack).
 
 ---
 
@@ -41,11 +45,18 @@ set -euo pipefail
 ```bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TF_DIR="$REPO_ROOT/Terraform/environments/prod/<stack>"
-BACKEND_CONFIG="$REPO_ROOT/Terraform/backend-config/prod/<stack>.backend.hcl"
+ENV="${ENV:-prod}"
+TF_DIR="$REPO_ROOT/Terraform/environments/$ENV/<stack>"
+BACKEND_CONFIG="$REPO_ROOT/Terraform/backend-config/$ENV/<stack>.backend.hcl"
 ```
 
-Always resolve paths from `${BASH_SOURCE[0]}` — not `$PWD`. CI runners, orchestrators, and humans invoke scripts from different working directories. After `cd "$TF_DIR"`, reference tfvars as the relative `prod.tfvars`.
+Always resolve paths from `${BASH_SOURCE[0]}` — not `$PWD`. CI runners, orchestrators, and humans invoke scripts from different working directories. After `cd "$TF_DIR"`, reference tfvars as the relative `$ENV.tfvars`.
+
+`ENV` defaults to `prod` only for convenience running a single script by hand; the `terraform` skill's dev → staging → prod promotion flow means CI must always pass `ENV` explicitly (`ENV=staging ./scripts/deploy.sh`), never rely on the default. Validate it early if a script is destructive:
+
+```bash
+case "$ENV" in dev|staging|prod) ;; *) print_error "ENV must be dev, staging, or prod"; exit 1 ;; esac
+```
 
 ### 3. Helper Functions
 
@@ -60,10 +71,12 @@ print_error()   { printf "\033[0;31m[ERROR]\033[0m   %s\n" "$1"; }
 
 Each script must be runnable standalone. Sourcing a sibling file adds a failure mode (file not found, wrong path) for a handful of printf lines. The duplication buys portability and auditability.
 
+This standalone rule is about per-stack `deploy-*.sh` / `destroy-*.sh` scripts, which are meant to run in isolation. The orchestrators (`deploy.sh`, `destroy.sh`) are a narrow exception: they never run standalone by definition — they call the per-stack scripts — so they share one file for stack order. See [Orchestrators](#orchestrators).
+
 ### 4. Pre-flight Checks
 
 ```bash
-for cmd in terraform aws; do   # add docker if the script builds images
+for cmd in terraform aws; do   # add docker/jq if the script needs them
   if ! command -v "$cmd" &>/dev/null; then
     print_error "$cmd is not installed"
     exit 1
@@ -87,8 +100,14 @@ fi
 ```bash
 cd "$TF_DIR"
 
-print_info "Initializing Terraform (<stack>)..."
-terraform init -backend-config="$BACKEND_CONFIG"
+# Fires on every exit path — success, cancellation, or a failed apply — so a
+# stale tfplan never survives a crash. (Cleaning up per-branch instead of with
+# trap looks clearer but misses the failure path: `terraform apply` can exit
+# non-zero before any explicit `rm -f` runs.)
+trap 'rm -f tfplan' EXIT
+
+print_info "Initializing Terraform ($ENV/<stack>)..."
+terraform init -backend-config="$BACKEND_CONFIG" -input=false
 
 print_info "Validating..."
 terraform validate
@@ -100,60 +119,45 @@ if ! terraform fmt -check -recursive "$REPO_ROOT/Terraform/modules/<stack>" >/de
 fi
 
 print_info "Planning..."
-terraform plan -var-file=prod.tfvars -out=tfplan
+terraform plan -input=false -lock-timeout=5m -var-file="$ENV.tfvars" -out=tfplan
 # Add -var-file="$ARTIFACT_VARS" if the stack consumes build artifacts
 
 if [[ "${CI:-}" == "true" ]]; then
   print_info "CI detected — auto-approving..."
-  terraform apply tfplan
+  terraform apply -input=false tfplan
 else
   print_info "Review the plan above."
   read -p "Apply? (yes/no): " -r
   if [[ "$REPLY" == "yes" ]]; then
-    terraform apply tfplan
+    terraform apply -input=false tfplan
   else
     print_info "Cancelled"
-    rm -f tfplan
     exit 0
   fi
 fi
-
-rm -f tfplan
 ```
 
-Clean up `tfplan` explicitly after apply or cancellation. Never use `trap` for this — explicit cleanup per branch is clearer. Never hard-code `-auto-approve` in deploy scripts.
+`-input=false` on every `init`/`plan`/`apply` call so a missing var fails loudly instead of hanging on a stdin prompt in CI. `-lock-timeout=5m` on `plan` so a stale lock from a prior run fails with a clear message instead of blocking indefinitely. Never hard-code `-auto-approve` in deploy scripts — the `CI` branch is the only auto-approve path, and it applies a plan a human already reviewed in the diff, not a fresh unreviewed one.
 
-### 6. ECR-First Targeting Pattern
+### 6. ECR-as-its-own-Stack
 
-When a stack manages both ECR repos and ECS services, ECR repos must exist before images can be pushed. Apply just the ECR resources first, then build, then do the full plan:
+`-target` is Terraform's documented escape hatch for exceptional recovery, and it prints a warning every time it's used — it is not a pattern to build a routine deploy path around. Instead of targeting the ECR resources inside a combined stack, give ECR its own stack with its own lifecycle:
 
 ```bash
-ECR_TARGETS=(
-  "-target=module.<stack>.module.<service>.aws_ecr_repository.<service>"
-  "-target=module.<stack>.module.<service>.aws_ecr_lifecycle_policy.<service>"
-)
-print_info "Ensuring ECR repositories exist..."
-terraform apply -var-file=prod.tfvars -auto-approve "${ECR_TARGETS[@]}"
-
-ECR_REPO_URL="$(terraform output -raw <service>_ecr_repository_url)"
-
-"$SCRIPT_DIR/build-<service>.sh" "$ECR_REPO_URL"
-
-# Full plan after images are pushed
-terraform plan \
-  -var-file=prod.tfvars \
-  -var-file="$REPO_ROOT/build/<service>/<service>-image.tfvars" \
-  -out=tfplan
+# deploy.sh order: ecr deploys before the build script needs a repo to push to
+run_stack "ecr"        1 N "deploy-ecr.sh"
+"$SCRIPT_DIR/build-<service>.sh"
+run_stack "<service>"  2 N "deploy-<service>.sh"
 ```
 
-`-auto-approve` on the ECR-only apply is intentional — only inert repos are created. The full apply still goes through the interactive gate.
+`deploy-ecr.sh` is an ordinary stack script (§5) — no targeting, no partial applies, every stack always applies its whole plan. The service stack's `main.tf` reads the repo URL via `data "aws_ecr_repository"` or a `terraform_remote_state` output rather than owning the resource itself.
 
 ### 7. Pre-Deploy Asset Uploads
 
 Some stacks require files in S3 before Terraform runs (e.g. EC2 `user_data` fetches the app on first boot). Upload before `terraform init`:
 
 ```bash
-S3_BUCKET=$(awk -F'"' '/^[[:space:]]*s3_app_bucket[[:space:]]*=/ {print $2}' "$TF_DIR/prod.tfvars")
+S3_BUCKET="${S3_BUCKET:-$(awk -F'"' '/^[[:space:]]*s3_app_bucket[[:space:]]*=/ {print $2; exit}' "$ENV.tfvars")}"
 if [[ -n "$S3_BUCKET" ]]; then
   print_info "Syncing app files to s3://$S3_BUCKET/..."
   aws s3 sync "$APP_DIR/" "s3://$S3_BUCKET/$S3_PREFIX/" \
@@ -161,12 +165,14 @@ if [[ -n "$S3_BUCKET" ]]; then
 fi
 ```
 
+The `awk` parse only handles the simple `key = "value"` line format this repo's tfvars use — no interpolation, no same-line comments. It's a convenience fallback for local runs; CI should set `S3_BUCKET` as an explicit env var so the deploy never depends on scraping HCL with a regex.
+
 ### 8. Summary Banner (deploy scripts)
 
 ```bash
 echo ""
 print_success "════════════════════════════════════════"
-print_success "  <Stack> deployed!"
+print_success "  <Stack> deployed ($ENV)!"
 print_success "════════════════════════════════════════"
 
 SOME_OUTPUT=$(terraform output -raw some_key 2>/dev/null || echo "N/A")
@@ -180,27 +186,9 @@ For simple stacks with no notable outputs, call `terraform output` (no args) to 
 
 ## Destroy Scripts
 
-### Confirmation Gate
-
-```bash
-if [[ "${CI:-}" != "true" && "${SKIP_CONFIRM:-}" != "true" ]]; then
-  echo ""
-  print_warning "This will destroy the <STACK> stack:"
-  print_warning "  - Resource A"
-  print_warning "  - Resource B"
-  echo ""
-  read -p "Type 'DESTROY' to confirm: " -r
-  echo ""
-  if [[ "$REPLY" != "DESTROY" ]]; then
-    print_info "Cancelled"
-    exit 0
-  fi
-fi
-```
-
-Use `DESTROY` for standard stacks. Use a more specific token for irreversible data loss (e.g. `DESTROY-DATA` for a data bucket, `DESTROY-BACKEND` for the state bucket). All-caps defeats muscle memory — typing `yes` by reflex won't pass.
-
 ### Destroy Workflow
+
+Init first, then show the *real* destroy plan — not just a hand-maintained bullet list — before the confirmation gate:
 
 ```bash
 if [[ ! -d "$TF_DIR" ]]; then
@@ -210,31 +198,48 @@ fi
 
 cd "$TF_DIR"
 
-print_info "Initializing Terraform (<stack>)..."
-terraform init -backend-config="$BACKEND_CONFIG" >/dev/null
+print_info "Initializing Terraform ($ENV/<stack>)..."
+terraform init -backend-config="$BACKEND_CONFIG" -input=false >/dev/null
 
 if ! terraform state list >/dev/null 2>&1 || [[ -z "$(terraform state list 2>/dev/null)" ]]; then
   print_info "No resources in <stack> state, skipping"
   exit 0
 fi
 
+if [[ "${CI:-}" != "true" && "${SKIP_CONFIRM:-}" != "true" ]]; then
+  echo ""
+  print_warning "This will destroy the <STACK> stack ($ENV). Plan:"
+  terraform plan -destroy -input=false -lock-timeout=5m -var-file="$ENV.tfvars"
+  echo ""
+  read -p "Type 'DESTROY' to confirm: " -r
+  echo ""
+  if [[ "$REPLY" != "DESTROY" ]]; then
+    print_info "Cancelled"
+    exit 0
+  fi
+fi
+
 print_info "Destroying <stack> stack..."
-terraform destroy -auto-approve -var-file="prod.tfvars"
+terraform destroy -auto-approve -input=false -lock-timeout=5m -var-file="$ENV.tfvars"
 print_success "<Stack> stack destroyed"
 ```
+
+A hardcoded "this will destroy: Resource A, Resource B" list drifts from the stack the moment someone adds a resource without updating the script — `plan -destroy` can't drift, because it's reading the same state the `destroy` call is about to act on. Use `DESTROY` for standard stacks. Use a more specific token for irreversible data loss (e.g. `DESTROY-DATA` for a data bucket, `DESTROY-BACKEND` for the state bucket). All-caps defeats muscle memory — typing `yes` by reflex won't pass.
 
 Destroy scripts are always idempotent: missing directory or empty state → exit 0. The `destroy.sh` orchestrator runs stacks in sequence — a previously-torn-down stack must not halt the rest.
 
 ### ECS Drain-Before-Destroy
 
-ECS stacks stall Terraform destroy if tasks are still running. Scale to 0 and wait first:
+ECS stacks stall Terraform destroy if tasks are still running. Scale to 0 and wait first. Read the service list as JSON, not `-raw` inside a loop — a `for x in "$(terraform output -raw ...)"` loop over a single quoted string always iterates exactly once, silently, regardless of how many services the stack actually has:
 
 ```bash
-AWS_REGION="$(grep -E '^aws_region' "prod.tfvars" | awk -F'"' '{print $2}')"
-AWS_REGION="${AWS_REGION:-us-east-1}"
+AWS_REGION="${AWS_REGION:-$(awk -F'"' '/^[[:space:]]*aws_region[[:space:]]*=/ {print $2; exit}' "$ENV.tfvars")}"
 CLUSTER_NAME="$(terraform output -raw ecs_cluster_name 2>/dev/null || echo "")"
 
-for SERVICE_NAME in "$(terraform output -raw <service>_service_name 2>/dev/null || echo "")"; do
+# Stack output: ecs_service_names = ["worker", "api"]  (a list, even for one service)
+mapfile -t SERVICE_NAMES < <(terraform output -json ecs_service_names 2>/dev/null | jq -r '.[]')
+
+for SERVICE_NAME in "${SERVICE_NAMES[@]}"; do
   [[ -z "$SERVICE_NAME" ]] && continue
   if aws ecs describe-services --cluster "$CLUSTER_NAME" --services "$SERVICE_NAME" \
       --region "$AWS_REGION" --query 'services[0].status' --output text 2>/dev/null | grep -q ACTIVE; then
@@ -247,11 +252,11 @@ for SERVICE_NAME in "$(terraform output -raw <service>_service_name 2>/dev/null 
 done
 ```
 
-Read service names from `terraform output` — never hardcode values that can drift.
+Add `jq` to this script's pre-flight tool check. Read service names from `terraform output` — never hardcode values that can drift.
 
 ### ENI Diagnostic Pattern
 
-Lambda and ECS resources in a VPC hold ENIs that block Terraform destroy. Surface them on failure:
+Lambda and ECS resources in a VPC hold ENIs that block Terraform destroy. This is the reactive counterpart to the SG/ENI guardrails in the `terraform` skill (`timeouts { delete = "30m" }`, `replace_security_groups_on_destroy`) — those reduce how often a destroy gets stuck; this is what to run when it still does. Surface the blocking ENIs on failure:
 
 ```bash
 get_state_resource_id() {
@@ -270,7 +275,7 @@ describe_sg_enis() {
     --output table 2>/dev/null || true
 }
 
-if terraform destroy -auto-approve -var-file="prod.tfvars"; then
+if terraform destroy -auto-approve -input=false -lock-timeout=5m -var-file="$ENV.tfvars"; then
   print_success "<Stack> stack destroyed"
 else
   print_error "Destroy failed. Checking security-group ENI attachments..."
@@ -285,7 +290,7 @@ fi
 
 ### Lambda Artifact Build
 
-Build a zip package and Lambda layer, then write a `.tfvars` file for the deploy script:
+Build a zip package and Lambda layer, then write a `.tfvars` file for the deploy script. The `base64sha256` here is unrelated to the container image tagging debate below — it's the content hash the AWS Lambda API itself requires via `source_code_hash` to detect that a redeploy is actually needed, not a version tag a human or another stack reads.
 
 ```bash
 #!/usr/bin/env bash
@@ -339,12 +344,12 @@ The deploy script calls the build script before `terraform init`, then passes th
 ```bash
 "$SCRIPT_DIR/build-<service>.sh"
 # ...
-terraform plan -var-file=prod.tfvars -var-file="$ARTIFACT_VARS" -out=tfplan
+terraform plan -input=false -lock-timeout=5m -var-file="$ENV.tfvars" -var-file="$ARTIFACT_VARS" -out=tfplan
 ```
 
 ### Docker ECR Build
 
-Key patterns: source-hash tags, skip-if-tag-exists, ECR login, and an optional `$1` argument for the repo URL.
+Tag with the git SHA — never `latest`, never a content hash of the built artifact. See [`references/docker-image-tagging.md`](../../../../terraform/references/docker-image-tagging.md) in the `terraform` skill for the full rationale; the short version: a git SHA is traceable to the exact commit that produced it, and it gets the same "skip rebuild" optimization a content hash would — the same commit always produces the same tag, so `describe-images` already tells you whether this exact source has been pushed.
 
 ```bash
 #!/usr/bin/env bash
@@ -360,38 +365,32 @@ ARTIFACT_VARS="$BUILD_DIR/<service>-image.tfvars"
 
 print_info()    { printf "\033[0;34m[INFO]\033[0m    %s\n" "$1"; }
 print_success() { printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$1"; }
+print_warning() { printf "\033[0;33m[WARNING]\033[0m %s\n" "$1"; }
 print_error()   { printf "\033[0;31m[ERROR]\033[0m   %s\n" "$1"; }
 
-for cmd in aws docker shasum; do
+for cmd in aws docker git; do
   if ! command -v "$cmd" &>/dev/null; then
     print_error "$cmd is not installed"; exit 1
   fi
 done
 
-# Source-hash tag: deterministic, content-based, immutable
-calculate_source_hash() {
-  (
-    cd "$APP_DIR"
-    find . -type f \
-      ! -path './.venv/*' ! -path './__pycache__/*' ! -name '*.pyc' \
-      -print | LC_ALL=C sort | while IFS= read -r file; do
-        shasum -a 256 "$file"
-      done
-  ) | shasum -a 256 | awk '{print substr($1,1,12)}'
-}
-
-IMAGE_TAG="${IMAGE_TAG:-sha-$(calculate_source_hash)}"
+GIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short=12 HEAD)"
+IMAGE_TAG="${IMAGE_TAG:-$GIT_SHA}"
 [[ "$IMAGE_TAG" == "latest" ]] && { print_error "'latest' is not valid; ECR uses immutable tags."; exit 1; }
+
+if [[ -n "$(git -C "$REPO_ROOT" status --porcelain -- "$APP_DIR")" ]]; then
+  print_warning "Uncommitted changes in $APP_DIR — tag $IMAGE_TAG won't reproduce this exact build. Commit first for a real deploy."
+fi
 
 # Accept repo URL as argument or fall back to terraform output
 if [[ -n "${1:-}" ]]; then
   ECR_REPO_URL="$1"
 else
-  ECR_REPO_URL="$(cd "$REPO_ROOT/Terraform/environments/prod/<stack>" && terraform output -raw <service>_ecr_repository_url)"
+  ECR_REPO_URL="$(cd "$REPO_ROOT/Terraform/environments/${ENV:-prod}/ecr" && terraform output -raw <service>_ecr_repository_url)"
 fi
 
 AWS_ACCOUNT_ID="$(echo "$ECR_REPO_URL" | cut -d'.' -f1)"
-AWS_REGION="$(echo "$ECR_REPO_URL" | cut -d'.' -f4)"
+AWS_REGION="${AWS_REGION:-$(echo "$ECR_REPO_URL" | cut -d'.' -f4)}"
 ECR_REPO_NAME="$(echo "$ECR_REPO_URL" | cut -d'/' -f2)"
 
 write_artifact_vars() {
@@ -401,7 +400,8 @@ write_artifact_vars() {
 EOF
 }
 
-# Skip build if tag already exists in ECR (immutable tags make this safe)
+# Skip build if this commit's tag already exists in ECR — immutable tags + a
+# git-SHA tag make this safe: same commit always produces the same tag.
 if aws ecr describe-images --repository-name "$ECR_REPO_NAME" \
     --image-ids imageTag="$IMAGE_TAG" --region "$AWS_REGION" >/dev/null 2>&1; then
   write_artifact_vars
@@ -420,9 +420,25 @@ write_artifact_vars
 print_success "<Service> image pushed: ${ECR_REPO_URL}:${IMAGE_TAG}"
 ```
 
+`AWS_REGION` prefers an explicit env var (CI always sets one) and only falls back to parsing the ECR URL locally; `cut`-ing the URL on dots assumes the standard `<account>.dkr.ecr.<region>.amazonaws.com` shape and breaks on FIPS/dualstack/`.cn` endpoints, so don't rely on it as the only source of truth in CI.
+
 ---
 
 ## Orchestrators
+
+`deploy.sh` and `destroy.sh` are the one place scripts share state: a single ordered stack list, so destroy order is always the exact reverse of deploy order — not two hand-maintained lists that can silently drift apart.
+
+```bash
+# scripts/_stacks.sh — single source of truth for stack order.
+# deploy.sh iterates it forwards; destroy.sh iterates it backwards.
+# Sourced only by the two orchestrators — per-stack scripts stay standalone (§3).
+STACKS=(
+  "s3:create-s3.sh:destroy-s3.sh"
+  "ecr:deploy-ecr.sh:destroy-ecr.sh"
+  "network:deploy-network.sh:destroy-network.sh"
+  # "<stack>:deploy-<stack>.sh:destroy-<stack>.sh"
+)
+```
 
 ### deploy.sh
 
@@ -433,12 +449,15 @@ Uses `SKIP_STACKS` for partial re-runs and a `FAILED_STACK` trap for clear failu
 # Deploy all stacks in dependency order
 #
 # Environment variables:
-#   CI=true         — auto-approve all applies
-#   IMAGE_TAG=<tag> — Docker image tag for ECS services
-#   SKIP_STACKS     — comma-separated stacks to skip (e.g. "s3,network")
+#   ENV=<dev|staging|prod> — target environment (required in CI, defaults to prod locally)
+#   CI=true                — auto-approve all applies
+#   IMAGE_TAG=<tag>         — Docker image tag for ECS services
+#   SKIP_STACKS             — comma-separated stacks to skip (e.g. "s3,network")
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV="${ENV:-prod}"
+source "$SCRIPT_DIR/_stacks.sh"
 
 print_info()    { printf "\033[0;34m[INFO]\033[0m    %s\n" "$1"; }
 print_success() { printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$1"; }
@@ -452,9 +471,9 @@ should_skip() {
 }
 
 # The orchestrator's pre-flight checks the UNION of tools every child script
-# needs — include docker/git here when any stack it runs builds images, so the
-# run fails fast at the top instead of three stacks deep.
-for cmd in terraform aws docker git; do
+# needs — include docker/jq/git here when any stack it runs builds images, so
+# the run fails fast at the top instead of three stacks deep.
+for cmd in terraform aws docker jq git; do
   if ! command -v "$cmd" &>/dev/null; then print_error "$cmd is not installed"; exit 1; fi
 done
 if ! aws sts get-caller-identity &>/dev/null; then
@@ -462,7 +481,8 @@ if ! aws sts get-caller-identity &>/dev/null; then
 fi
 
 echo ""
-print_info "Deploy order: <stack-1> → <stack-2> → ..."
+print_info "Environment: $ENV"
+print_info "Deploy order: $(printf '%s → ' "${STACKS[@]%%:*}" | sed 's/ → $//')"
 [[ -n "${SKIP_STACKS:-}" ]] && print_warning "Skipping: ${SKIP_STACKS}"
 echo ""
 
@@ -493,22 +513,28 @@ run_stack() {
   FAILED_STACK=""
 }
 
-run_stack "s3"       1 N "create-s3.sh"
-run_stack "network"  2 N "deploy-network.sh"
-# ...
+total=${#STACKS[@]}
+i=1
+for entry in "${STACKS[@]}"; do
+  IFS=':' read -r name deploy_script _ <<<"$entry"
+  run_stack "$name" "$i" "$total" "$deploy_script"
+  ((i++))
+done
 
 echo ""
 print_success "════════════════════════════════════════"
-print_success "  All stacks deployed successfully!"
+print_success "  All stacks deployed successfully ($ENV)!"
 print_success "════════════════════════════════════════"
 echo ""
 print_info "To skip already-deployed stacks on re-run:"
 print_info "  SKIP_STACKS=s3,network ./scripts/deploy.sh"
 ```
 
+`ENV` doesn't need explicit passing into child scripts — it's an exported-by-default env var, so every `deploy-<stack>.sh` this script invokes inherits it automatically.
+
 ### destroy.sh
 
-Passes `SKIP_CONFIRM=true` as an inline env prefix (not `export`) — the orchestrator owns the single top-level confirmation gate:
+Iterates `_stacks.sh` in reverse — no second hand-maintained list to keep in sync with `deploy.sh`. Passes `SKIP_CONFIRM=true` as an inline env prefix (not `export`) — the orchestrator owns the single top-level confirmation gate:
 
 ```bash
 #!/usr/bin/env bash
@@ -516,6 +542,8 @@ Passes `SKIP_CONFIRM=true` as an inline env prefix (not `export`) — the orches
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV="${ENV:-prod}"
+source "$SCRIPT_DIR/_stacks.sh"
 
 STATE_BUCKET="${STATE_BUCKET:-<project>-tfstate}"
 
@@ -532,10 +560,8 @@ if ! aws sts get-caller-identity &>/dev/null; then
 fi
 
 echo ""
-print_warning "This will destroy all infrastructure:"
-print_warning "  1. <stack-N>"
-print_warning "  ..."
-print_warning "  N. s3 (data bucket)"
+print_warning "This will destroy all infrastructure ($ENV):"
+print_warning "  $(printf '%s, ' "${STACKS[@]%%:*}" | sed 's/, $//')"
 echo ""
 print_warning "NOT destroyed: state bucket s3://$STATE_BUCKET (prevent_destroy = true)"
 echo ""
@@ -546,16 +572,15 @@ if [[ "${CI:-}" != "true" ]]; then
   [[ "$REPLY" != "DESTROY" ]] && { print_info "Cancelled"; exit 0; }
 fi
 
-# Reverse dependency order
 # Add `sleep 30` between stacks where ENI/task cleanup needs time to settle
-SKIP_CONFIRM=true "$SCRIPT_DIR/destroy-<stack-N>.sh"
-# ...
-SKIP_CONFIRM=true "$SCRIPT_DIR/destroy-<stack-1>.sh"
-SKIP_CONFIRM=true "$SCRIPT_DIR/destroy-s3.sh"
+for (( idx=${#STACKS[@]}-1; idx>=0; idx-- )); do
+  IFS=':' read -r name _ destroy_script <<<"${STACKS[$idx]}"
+  SKIP_CONFIRM=true "$SCRIPT_DIR/$destroy_script"
+done
 
 echo ""
 print_success "════════════════════════════════════════"
-print_success "  All stacks destroyed."
+print_success "  All stacks destroyed ($ENV)."
 print_success "════════════════════════════════════════"
 echo ""
 # Restate what survived teardown — now, when the user is deciding what to clean
@@ -572,6 +597,7 @@ print_warning "State bucket s3://$STATE_BUCKET still exists (delete manually if 
 
 The state-bucket stack is the bootstrap exception:
 - Uses a **local backend** — the remote state bucket doesn't exist yet
+- Is not per-environment — one bucket holds every environment's state, keyed by `terraform-state-{env}/{stack}/...` (see the `terraform` skill's Backend section), so `create-s3.sh` ignores `ENV` entirely
 - Uses `import_if_exists` before apply to re-import buckets idempotently
 - Skips the plan file + interactive gate; in CI uses `-auto-approve`, locally uses the default interactive prompt
 - Destroy uses a stricter confirmation token (e.g. `DESTROY-DATA`) for the data bucket
@@ -591,17 +617,47 @@ import_if_exists() {
 }
 ```
 
+The `terraform` skill's general rule — prefer declarative `import` blocks over the imperative `terraform import` CLI — assumes you already know the resource is there to import. This bootstrap script doesn't: it has to check `head-bucket` against real AWS state *at runtime* to decide whether an import is even needed, which a static `import` block can't express. That's the one case where the CLI form is correct, not a violation of the rule.
+
+---
+
+## CI Integration (GitHub Actions)
+
+The scripts don't change between local and CI use — only the env vars set around them do. A workflow calling the orchestrator:
+
+```yaml
+# .github/workflows/deploy.yml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}   # dev / staging / prod — gates via GitHub environment protection rules
+    env:
+      CI: "true"
+      ENV: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DEPLOY_ROLE_ARN }}   # OIDC — no long-lived AWS keys in the repo
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: ./scripts/deploy.sh
+```
+
+`CI=true` is what makes `deploy.sh`/`deploy-<stack>.sh` skip the interactive `read -p "Apply?"` and apply the plan unattended (§5) — the approval gate moves from a terminal prompt to whatever branch protection / required-reviewers rule guards the workflow run itself (e.g. a GitHub Environment with required reviewers on `prod`). Locally, with `CI` unset, every script stops and shows the plan before applying. Same scripts, same code path — only the environment decides which gate applies.
+
 ---
 
 ## CI / Environment Variables
 
 | Variable | Used by | Effect |
 |---|---|---|
+| `ENV` | all | Target environment (`dev`, `staging`, `prod`) — defaults to `prod` locally; CI must always set it explicitly |
 | `CI=true` | all | Auto-approve deploys, skip interactive prompts |
 | `SKIP_CONFIRM=true` | destroy scripts | Skip `DESTROY` confirmation (set by `destroy.sh` orchestrator) |
 | `SKIP_STACKS` | `deploy.sh` | Comma-separated stack names to skip |
-| `IMAGE_TAG` | build scripts | Docker image tag; defaults to short content hash |
+| `IMAGE_TAG` | build scripts | Docker image tag; defaults to the current git SHA |
 | `<SERVICE>_IMAGE_TAG` | build scripts | Per-service override when multiple images are deployed |
+| `AWS_REGION` | build/destroy scripts | Explicit region; falls back to parsing tfvars/ECR URL locally only |
 | `TF_VAR_*` | deploy scripts | Inject sensitive Terraform variables without a tfvars file |
 
 ---
@@ -625,7 +681,7 @@ before committing:
 ## Adding a New Stack
 
 1. Copy the nearest similar deploy script → `deploy-<stack>.sh`; update `TF_DIR`, `BACKEND_CONFIG`, module path in fmt check, and summary outputs.
-2. Copy the nearest similar destroy script → `destroy-<stack>.sh`; update paths, warning bullet list, and add ENI diagnostics if the stack runs in a VPC.
-3. If the stack uses Docker images: create `build-<service>.sh`; add the ECR-first targeting section to the deploy script.
-4. Add to `deploy.sh` in the correct position with a progress banner. Add to `destroy.sh` in reverse order.
+2. Copy the nearest similar destroy script → `destroy-<stack>.sh`; update paths, and add ENS diagnostics if the stack runs in a VPC.
+3. If the stack manages container images: create an `ecr` stack (once, if the project doesn't have one yet) plus `build-<service>.sh`; the service stack reads the repo URL from the `ecr` stack rather than owning it (§6).
+4. Add the stack to `_stacks.sh` in the correct position — `deploy.sh` and `destroy.sh` both pick it up automatically, forwards and reversed.
 5. `chmod +x scripts/deploy-<stack>.sh scripts/destroy-<stack>.sh`

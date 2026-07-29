@@ -5,7 +5,9 @@ description: Terraform + AWS conventions for multi-environment infrastructure us
 user-invocable: false
 ---
 
-This skill defines the conventions for the `Terraform/` tree in this repo. Follow it when generating new configuration, extending existing stacks, or reviewing diffs — the goal is that any stack written by Codex or another agent looks and behaves like the ones already in the repo.
+This skill defines the conventions for a project's `Terraform/` tree. Follow it when generating new configuration, extending existing stacks, or reviewing diffs — the goal is that any stack written by an agent looks and behaves like the ones already in the target repo.
+
+The companion **`deploy-scripts`** skill covers the shell scripts (`deploy-*.sh`, `destroy-*.sh`, `build-*.sh`) that wrap these stacks for local and CI use. The two are meant to be read together — see [`references/deploy-scripts-pattern.md`](references/deploy-scripts-pattern.md) for the interface contract between them (what each side assumes about the other), and the `deploy-scripts` skill itself for the scripts.
 
 # Terraform Structure
 
@@ -102,6 +104,17 @@ resource "aws_acm_certificate" "cloudfront" {
 
 Each aliased provider needs its own `default_tags` — tags do not inherit across providers. Modules that use a non-default provider must declare `configuration_aliases` in their `required_providers` block so callers can pass the correct one in.
 
+**AWS provider v6 alternative:** since v6, most resources and data sources accept a top-level `region` argument, letting a single provider block manage resources across regions without a second provider or alias:
+
+```hcl
+resource "aws_acm_certificate" "cloudfront" {
+  region = "us-east-1" # overrides the provider's configured region for this resource only
+  # ...
+}
+```
+
+Changing `region` on an existing resource forces replacement, so treat it as fixed at creation time, not something toggled later. Provider aliases remain valid and are not deprecated — prefer aliases when most resources in a module share one non-default region (clearer intent, one `default_tags` block covers all of them); prefer the inline `region` argument for one-off cross-region resources (e.g. a single ACM cert for CloudFront) where a whole extra provider block would be overkill.
+
 ### Backend
 
 Use a remote S3 backend for state storage. Store partial backend configuration in `backend-config/{env}/{stack}.backend.hcl` and initialize from inside the stack directory (`environments/{env}/{stack}/`, three levels below the `Terraform/` root) with:
@@ -194,6 +207,8 @@ resource "aws_sqs_queue" "events" {
 
 Reserve `count` for a simple 0-or-1 toggle (`count = var.enabled ? 1 : 0`) — never for collections.
 
+`for_each` keys must be known at plan time — `for_each` over a computed attribute (an ARN, an ID from another resource not yet created) fails with "Invalid for_each argument." Key on something stable and known up front (a name from a variable, not a value AWS assigns), since changing a key changes the resource's address and forces replacement, same as an index shift would with `count`.
+
 ### AWS Security Groups and Managed ENIs
 
 When writing or reviewing AWS Terraform, treat security groups attached to managed ENI producers as lifecycle-sensitive. AWS cannot delete a security group while any ENI still references it, so destroys can appear to hang with `aws_security_group.<name>: Still destroying...`.
@@ -201,7 +216,7 @@ When writing or reviewing AWS Terraform, treat security groups attached to manag
 Common ENI producers include VPC Lambda functions, ECS/Fargate tasks, load balancers, VPC interface endpoints, EC2 instances, RDS, EFS mount targets, and ElastiCache. Use these guardrails:
 
 - Add `timeouts { delete = "30m" }` to security groups used by managed ENIs.
-- Manage inter-SG references as standalone `aws_security_group_rule` resources so Terraform can remove rules before deleting groups.
+- Manage inter-SG references as standalone `aws_vpc_security_group_ingress_rule` / `aws_vpc_security_group_egress_rule` resources (one rule per resource) so Terraform can remove rules before deleting groups. These superseded `aws_security_group_rule` and inline `ingress`/`egress` blocks on `aws_security_group` — the old resource couldn't hold stable IDs, tags, or descriptions, and struggled with multi-CIDR rules. Each new resource takes exactly one CIDR/prefix-list/referenced-SG per rule, so a rule that previously listed several CIDRs becomes a `for_each` over them.
 - For VPC Lambda, set `replace_security_groups_on_destroy = true` on `aws_lambda_function`.
 - For VPC Lambda, keep `AWSLambdaVPCAccessExecutionRole` attached until the Lambda security group is deleted; Lambda may need that permission to clean up Hyperplane ENIs after function deletion.
 - For ECS/Fargate, scale services to zero and wait for tasks to stop before deleting task security groups.
@@ -324,6 +339,8 @@ Modern Terraform provides declarative blocks for refactoring and for managing re
   }
   ```
 
+  This assumes you already know the resource exists and needs importing. A bootstrap script that must decide *at runtime* whether the resource is already there (e.g. re-running stack creation idempotently against a bucket that may or may not exist yet) can't express that with a static block — the imperative `terraform import` CLI, guarded by a `head-bucket`-style existence check in the script, is the correct tool there. See the `deploy-scripts` skill's S3 Bootstrap Exception for the concrete pattern.
+
 - **`removed` blocks (1.7+)** — drop a resource from state without destroying the real-world object (useful when handing a resource off to another stack or tool).
 
   ```hcl
@@ -336,6 +353,25 @@ Modern Terraform provides declarative blocks for refactoring and for managing re
 - **`check` blocks (1.5+)** — post-apply assertions that surface as warnings (not failures) when invariants break. Good for "this endpoint should be reachable" style checks that are not safe to fail the whole apply on.
 
 Delete `import` and `removed` blocks after a full dev → staging → prod promotion cycle. Keep `moved` blocks longer in reusable modules or shared stacks where consumers may upgrade across multiple releases; they are cheap compatibility breadcrumbs for anyone who did not apply every intermediate version.
+
+### The `lifecycle` Argument Block
+
+Distinct from the meta-blocks above, `lifecycle { ... }` is a nested block on the resource itself, controlling how *that instance* is created, updated, and destroyed:
+
+- **`prevent_destroy = true`** — hard-stop any plan that would destroy this resource, including via `terraform destroy`. Required on the tfstate bucket and any other resource an accidental destroy must never touch (the `deploy-scripts` skill's destroy orchestrator depends on this for the state bucket). Removing it requires deleting the line from source, not a flag on the CLI call — that friction is the point.
+- **`create_before_destroy = true`** — build the replacement before tearing down the old one, instead of the default destroy-then-create. Use for anything that must not have a gap: an SG a live ENI still references (the direct fix for the stuck-destroy scenario in the ENI section above), a launch template mid-rollout, an ACM cert a listener depends on.
+- **`ignore_changes = [...]`** — stop a specific attribute from producing a diff when something outside Terraform legitimately changes it: an ECS task definition's `desired_count` under autoscaling, tags applied by AWS Backup or a cost-allocation tool, an AMI ID a separate image pipeline rotates. Scope it to the exact attributes that drift, not `ignore_changes = all` — that hides real drift along with the expected kind.
+- **`replace_triggered_by = [...]`** (1.2+) — force replacement of this resource when a referenced attribute elsewhere changes, for cases where Terraform wouldn't otherwise infer the dependency (e.g. recreate an EC2 instance when a `null_resource`/`terraform_data` trigger value changes).
+- **`precondition` / `postcondition`** (1.2+) — assertions on this resource specifically that fail the apply immediately with a custom message, unlike `check` blocks (post-apply, warning-only, doc'd above). Use for invariants that must hold before Terraform proceeds (e.g. a variable-derived CIDR actually falls inside the VPC range).
+
+```hcl
+resource "aws_ecs_service" "worker" {
+  # ...
+  lifecycle {
+    ignore_changes = [desired_count] # autoscaling owns this after initial apply
+  }
+}
+```
 
 ## Bootstrapping Remote State
 
