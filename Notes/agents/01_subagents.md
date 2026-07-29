@@ -1,5 +1,7 @@
 # Subagents
 
+> **Who this is for**: Claude Code users who understand skills and want specialized workers with isolated context and controlled tools.
+
 Before reading this, understand skills: **[Skills Overview](../skills/01_skills_overview.md)**
 
 ---
@@ -75,7 +77,7 @@ Common fields:
 | `skills` | No | Skills to preload for this subagent |
 | `mcpServers` | No | MCP servers made available |
 | `hooks` | No | Agent-scoped hooks |
-| `background` | No | Hints whether the agent may run in the background |
+| `background` | No | `true` always runs the agent in the background; when omitted, Claude chooses |
 
 Keep the prompt operational: role, boundaries, output format, and what not to do.
 
@@ -116,13 +118,22 @@ Skills with `context: fork` bridge the two: a repeatable workflow that runs in s
 
 ---
 
-## 6. Interactive Setup
+## 6. Creating and Reloading Agents
 
-```
-/agents
+Ask Claude to create the file, or edit `.claude/agents/<name>.md` directly:
+
+```text
+Create a project subagent named security-reviewer with read-only tools.
+Save it to .claude/agents/security-reviewer.md and show me the result.
 ```
 
-Use the manager to create, edit, and inspect agents. Direct file edits may require restarting Claude Code, while edits through `/agents` are loaded automatically.
+`/agents` no longer opens an interactive creation wizard; it directs you to these
+creation methods. Claude Code watches existing agent files and normally reloads edits
+within seconds. Restart only when you create an `agents/` directory for the first time
+and the current session has not discovered it.
+
+Subagents run in the background by default. Set `background: false` only when the caller
+must wait inline for the complete result before continuing.
 
 You can also mention an agent explicitly:
 

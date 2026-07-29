@@ -11,9 +11,9 @@
 | File | Topic | Description |
 |------|-------|-------------|
 | [01_plugin_fundamentals.md](01_plugin_fundamentals.md) | Fundamentals | What plugins bundle, directory layout, plugin.json manifest |
-| [03_install_and_scopes.md](03_install_and_scopes.md) | Install & Scopes | `/plugin install`, shell install, scopes, uninstalling |
-| [04_marketplaces.md](04_marketplaces.md) | Marketplaces | Official and third-party marketplaces, hosting, sharing |
-| [05_managing_plugins.md](05_managing_plugins.md) | Managing | `/plugin` UI, enable/disable, updates, gotchas |
+| [02_install_and_scopes.md](02_install_and_scopes.md) | Install & Scopes | `/plugin install`, shell install, scopes, uninstalling |
+| [03_marketplaces.md](03_marketplaces.md) | Marketplaces | Official and third-party marketplaces, hosting, sharing |
+| [04_managing_plugins.md](04_managing_plugins.md) | Managing | `/plugin` UI, enable/disable, updates, gotchas |
 
 > **Note**: Skills are a standalone Claude Code feature, not specific to plugins. See the [Skills section](../skills/README.md).
 

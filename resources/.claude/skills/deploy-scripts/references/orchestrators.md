@@ -36,8 +36,14 @@ meaning.
 # Sourced only by the orchestrators — per-stack scripts stay standalone.
 
 # Platform tier — dependency order matters. Applied by deploy-platform.sh.
+# The bootstrap state stack (create-state.sh / destroy-state.sh) is
+# deliberately NOT here — see "The Bootstrap Exception" in SKILL.md. It runs
+# once per project, locally, by a human, on a local backend; it must never be
+# something an automated deploy-platform.sh (which infra-apply.yml runs on
+# every merge) or destroy.sh (which forwards a single blanket SKIP_CONFIRM=true
+# that would silently skip create-state.sh's own stricter destroy token) can
+# reach through this list.
 PLATFORM_STACKS=(
-  "state:create-state.sh:destroy-state.sh"
   "platform-network:deploy-platform-network.sh:destroy-platform-network.sh"
   "platform-data:deploy-platform-data.sh:destroy-platform-data.sh"
   "platform-ecr:deploy-platform-ecr.sh:destroy-platform-ecr.sh"
@@ -207,8 +213,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export ENV="${ENV:?Set ENV before deployment}"
 source "$SCRIPT_DIR/_stacks.sh"
 
-# Paste the four print_* helpers verbatim (SKILL.md -> Helper Functions).
-# Reuse should_skip, run_stack, and the FAILED_STACK trap from deploy.sh.
+# Paste the four print_* helpers verbatim (SKILL.md -> Helper Functions), plus
+# the should_skip function, the run_stack function, and the FAILED_STACK trap
+# shown in full in deploy.sh above — copy their definitions into this script
+# too. This orchestrator does not source deploy.sh; nothing here does.
 
 TOTAL="${#PLATFORM_STACKS[@]}"
 INDEX=0
@@ -226,10 +234,11 @@ The closing line matters. An operator who just applied the platform tier needs t
 know that nothing shipped for any service, so a release that was waiting on new
 platform capacity still has to run.
 
-Bootstrap is deliberately excluded from this script even though `create-state.sh`
-appears in `PLATFORM_STACKS`: it runs on a local backend, once per project, by a
-human. Either drop it from the loop with an explicit `should_skip` entry or keep
-it first and accept that it exits early as a no-op once the bucket exists.
+Bootstrap never appears in `PLATFORM_STACKS` at all, so this loop cannot reach
+it. That is deliberate, not an oversight to patch with a `should_skip` entry:
+`create-state.sh` runs on a local backend, once per project, by a human, and
+`deploy-platform.sh` is exactly the script `infra-apply.yml` runs unattended on
+every merge — the one context bootstrap must never run in automatically.
 
 ## destroy.sh
 

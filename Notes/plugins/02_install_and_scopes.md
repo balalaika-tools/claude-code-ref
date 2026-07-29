@@ -1,5 +1,7 @@
 # Install & Scopes
 
+> **Who this is for**: Claude Code users who understand plugin structure and need to install, test, share, or remove plugins safely.
+
 Before reading this: **[Plugin Fundamentals](01_plugin_fundamentals.md)**
 
 ---
@@ -90,4 +92,4 @@ Use `--keep-data` when you want to preserve the plugin's persistent data directo
 
 ---
 
-**Next**: [Marketplaces](04_marketplaces.md)
+**Next**: [Marketplaces](03_marketplaces.md)

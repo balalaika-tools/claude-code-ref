@@ -149,13 +149,42 @@ resource "kubernetes_manifest" "root_app" {
   reconciler upgrade.
 - Repository credentials are a secret: store them in the environment's selected
   secret store and have the reconciler read them (for example through External
-  Secrets), or supply them as an `ephemeral` variable. Do not put a token in
-  tfvars or in a Terraform-managed Secret body that lands in state.
+  Secrets). An `ephemeral` variable is not a drop-in substitute here: it can
+  only flow into an `ephemeral` block or a write-only argument, and neither
+  `helm_release`'s `values` nor an ordinary `kubernetes_secret`'s `data` is one
+  — assigning an ephemeral value there is a plan-time error, not a lesser
+  protection. Reach for it only if the specific resource/argument you are using
+  documents write-only support; otherwise the secret-store-plus-reconciler path
+  above is the one that actually keeps the token out of state.
 - One root Application or Kustomization per cluster. Everything else is a child
   in Git, not a Terraform resource.
 - `kubernetes_manifest` is acceptable here specifically because the cluster
   already exists in the addons stack. It still requires API reachability at plan
   time, so plan this stack from a runner with cluster access.
+
+**The first apply needs two passes.** `kubernetes_manifest.root_app` is a
+custom resource of the `applications.argoproj.io` CRD that `helm_release.argocd`
+itself installs. `depends_on` only orders the apply graph — it does not help
+the *plan*, and `kubernetes_manifest` does a server-side dry run against the
+live API at plan time. On a cluster where Argo CD has never been installed, the
+CRD does not exist yet when this configuration is first planned, so the plan
+fails regardless of `depends_on`. This is the same `kubernetes_manifest`
+plan-time constraint called out above, applied to a CRD this same apply is
+installing, not a pre-existing cluster.
+
+Bootstrap it in two explicit steps instead of expecting one apply to work
+end-to-end the first time:
+
+```sh
+terraform apply -target=helm_release.argocd   # installs the CRD; authorized, one-time
+terraform apply                                # now root_app can plan and apply
+```
+
+This is the same class of exception as the bootstrap state bucket's imperative
+import: a one-time, reviewed step for a resource that cannot exist before the
+apply that creates it, not a routine pattern. After this first apply,
+subsequent plans see the CRD already registered and proceed normally in one
+step.
 
 After this apply, Terraform's involvement in application delivery ends.
 

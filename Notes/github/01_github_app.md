@@ -1,5 +1,9 @@
 # GitHub App
 
+> **Who this is for**: Repository maintainers who want Claude to respond to issues and pull requests through the official GitHub integration.
+
+Before reading this, understand Claude Code authentication and project trust: **[Getting Started](../basics/01_getting_started.md)**
+
 ---
 
 ## 1. What Is the GitHub App?

@@ -10,7 +10,7 @@
 
 | File | Topic | Description |
 |------|-------|-------------|
-| [01_skills_overview.md](01_skills_overview.md) | Overview | What skills are, file locations, SKILL.md format, basic frontmatter, invocation |
+| [01_skills_overview.md](01_skills_overview.md) | Overview | What skills are, complete frontmatter, substitutions, invocation |
 | [02_skills_advanced.md](02_skills_advanced.md) | Advanced | Supporting files, dynamic context, auto-invocation, context forking, skill hooks |
 
 ---

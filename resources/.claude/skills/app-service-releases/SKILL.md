@@ -159,8 +159,13 @@ This repository owns the gates that were previously mixed into a monorepo's CI.
 Run them on pull request, and make the release depend on them:
 
 - Unit and integration tests for the service, at the version being released.
-- `uv lock --check` — a lockfile that has drifted from `pyproject.toml` fails here,
-  not inside the build.
+- `uv lock --check` — a lockfile that has drifted from `pyproject.toml` fails
+  fast here. The build script runs the same check again immediately before
+  packaging (see `deploy-scripts/references/build-scripts.md`); running it in
+  both places is deliberate defense in depth, not a sign one of them is
+  redundant — the test job gives quick feedback on a pull request, and the
+  build's own check is what actually protects a build invoked outside this
+  pipeline.
 - Lint and type checks per the repository's existing tooling.
 - `shellcheck scripts/*.sh` and `chmod +x` on new scripts, exactly as
   `deploy-scripts` requires — a non-executable build script fails with a confusing

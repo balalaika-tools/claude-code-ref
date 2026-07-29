@@ -255,8 +255,13 @@ provider "aws" {
   region              = var.aws_region
   allowed_account_ids = [var.aws_account_id]
 
-  assume_role {
-    role_arn = var.deployment_role_arn
+  # Only when the ambient credentials are not already the target deployment
+  # identity — see the note below. Omit this block entirely otherwise.
+  dynamic "assume_role" {
+    for_each = var.deployment_role_arn != null ? [var.deployment_role_arn] : []
+    content {
+      role_arn = assume_role.value
+    }
   }
 
   default_tags {
@@ -274,6 +279,22 @@ assumption — one role per tier, and for the application tier one role per serv
 per environment. Do not put access keys or secrets in provider configuration. Repeat
 `allowed_account_ids` and `default_tags` on aliased providers; configurations do not
 inherit them from one another.
+
+**Do not double-assume.** `assume_role` is for a *second* hop: a human's broad
+default credentials, or a generic CI identity, stepping down into a narrower
+`deployment_role_arn`. It is not universal. In the CI shape this skill and
+`deploy-scripts` document, OIDC already assumes the exact per-tier or
+per-service deployment role directly (`TerraformPlatformApplyRole`,
+`AppDeployRole-<service>-<env>` — see the sibling skill's
+`references/ci-workflows.md`). Ambient credentials in that job **are already**
+`deployment_role_arn`'s identity, and none of the trust policies in
+`ci-workflows.md` grant a role permission to assume itself. Configuring
+`assume_role` unconditionally there makes `sts:AssumeRole` fail with an access-denied
+error before any plan or apply runs. Leave `var.deployment_role_arn` unset (as
+the `dynamic` block above does) whenever the caller's ambient identity is
+already the intended deployment role, and set it only for a genuine second hop
+— a human's local profile, or a bootstrap identity that steps down into a
+stack-scoped role.
 
 Use aliases for distinct accounts or when a module manages a coherent group in
 another region. Pass aliases explicitly and declare `configuration_aliases` in
@@ -352,8 +373,11 @@ stack never reads an app stack's values. Details and the typical published set:
 ## Inputs, Outputs, and Secrets
 
 Define `project_name`, `environment_name`, `aws_account_id`, `aws_region`, and
-`deployment_role_arn` in each root. Validate the supported environment names,
-approved regions, IDs, CIDRs, ports, sizes, and mutually dependent settings.
+`deployment_role_arn` in each root. Unlike the others, `deployment_role_arn` is
+nullable (`type = string`, `default = null`) — see [Provider and Account
+Guardrails](#provider-and-account-guardrails) for when to leave it unset.
+Validate the supported environment names, approved regions, IDs, CIDRs, ports,
+sizes, and mutually dependent settings.
 Commit non-secret environment tfvars; never store credentials or secret values
 in them.
 

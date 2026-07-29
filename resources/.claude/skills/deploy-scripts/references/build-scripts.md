@@ -228,6 +228,7 @@ ENV="${ENV:?Set ENV before building or selecting an environment repository}"
 APP_DIR="$REPO_ROOT/apps/<service>"
 BUILD_DIR="$REPO_ROOT/build/<service>"
 ARTIFACT_VARS="$BUILD_DIR/<service>-image.tfvars"
+TARGET_PLATFORM="${TARGET_PLATFORM:?Set TARGET_PLATFORM to the task/function architecture, e.g. linux/arm64 or linux/amd64}"
 
 # Paste the four print_* helpers verbatim (SKILL.md -> Helper Functions).
 
@@ -245,19 +246,29 @@ if [[ -n "$(git -C "$REPO_ROOT" status --porcelain -- "$APP_DIR")" ]]; then
   print_warning "Uncommitted changes in $APP_DIR — tag $IMAGE_TAG won't reproduce this exact build. Commit first for a real deploy."
 fi
 
-# Accept repo URL as argument or fall back to terraform output.
+# Accept repo URL as argument or environment variable; fall back to terraform
+# output only in a monorepo, and only when neither was supplied.
 # Split repo: pass it in (argument or ECR_REPO_URL) — there is no Terraform tree
 # here to read an output from. Publish it as a platform SSM parameter and read
 # that, or set it as a repository variable in the application repository.
 if [[ -n "${1:-}" ]]; then
   ECR_REPO_URL="$1"
-elif [[ -n "${ECR_REPO_URL:-}" ]]; then
-  : # already set by the caller
+elif [[ -z "${ECR_REPO_URL:-}" ]]; then
+  ECR_TF_DATA_DIR="$REPO_ROOT/.terraform-data/$ENV/platform-ecr/platform-ecr"
+  ECR_BACKEND_CONFIG="$REPO_ROOT/Terraform/backend-config/$ENV/platform-ecr.backend.hcl"
+  TF_DATA_DIR="$ECR_TF_DATA_DIR" \
+    terraform -chdir="$REPO_ROOT/Terraform/stacks/platform-ecr" \
+    init -reconfigure -backend-config="$ECR_BACKEND_CONFIG" -input=false >/dev/null
   ECR_REPO_URL="$(
-    TF_DATA_DIR="$REPO_ROOT/.terraform-data/$ENV/ecr/ecr" \
-      terraform -chdir="$REPO_ROOT/Terraform/stacks/ecr" \
+    TF_DATA_DIR="$ECR_TF_DATA_DIR" \
+      terraform -chdir="$REPO_ROOT/Terraform/stacks/platform-ecr" \
       output -raw <service>_ecr_repository_url
   )"
+fi
+
+if [[ -z "$ECR_REPO_URL" ]]; then
+  print_error "ECR_REPO_URL could not be resolved; pass it as an argument or set ECR_REPO_URL"
+  exit 1
 fi
 
 AWS_ACCOUNT_ID="$(echo "$ECR_REPO_URL" | cut -d'.' -f1)"
@@ -284,7 +295,7 @@ aws ecr get-login-password --region "$AWS_REGION" | \
   docker login --username AWS --password-stdin \
   "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
-docker build --platform linux/arm64 -t "${ECR_REPO_URL}:${IMAGE_TAG}" "$APP_DIR"
+docker build --platform "$TARGET_PLATFORM" -t "${ECR_REPO_URL}:${IMAGE_TAG}" "$APP_DIR"
 docker push "${ECR_REPO_URL}:${IMAGE_TAG}"
 
 write_artifact_vars
@@ -296,9 +307,18 @@ early-exit path needs it too: when the tag already exists in ECR the script must
 still hand the deploy script a tfvars file, or the following `terraform plan`
 fails on a missing variable.
 
-Set `--platform` to the task/function architecture, not the builder's. Building
-`linux/arm64` on an x86 runner requires `docker buildx` with QEMU configured, or
-a native arm64 runner.
+Set `TARGET_PLATFORM` to the task/function architecture, not the builder's — it
+is a required input for exactly this reason, the same way `LAMBDA_ARCHITECTURE`
+drives `UV_PLATFORM` in the Lambda build above. Building `linux/arm64` on an x86
+runner requires `docker buildx` with QEMU configured, or a native arm64 runner.
+
+The terraform-output fallback for `ECR_REPO_URL` reads a *different* stack's
+state (`platform-ecr`), so it must initialize that stack's backend before
+calling `output` — it is not already initialized just because this script is
+running. Route the fallback through `platform-ecr`, never a bare `ecr` root;
+every other reference to the ECR stack in these skills uses that name, and a
+mismatched root name means `terraform -chdir` points at a directory that does
+not exist.
 
 `AWS_REGION` prefers an explicit env var (CI always sets one) and only falls
 back to parsing the ECR URL locally; `cut`-ing the URL on dots assumes the

@@ -1,5 +1,7 @@
 # Custom Commands
 
+> **Who this is for**: Claude Code users who understand project guidance and want quick, repeatable slash-command workflows.
+
 Before reading this, understand CLAUDE.md: **[Rules](../rules/01_claude_md.md)**
 
 ---
@@ -144,7 +146,10 @@ Output only the PR description.
 | Invocation | `/name` | `/name` or `/plugin:name` |
 | Plugin distribution | Use plugin `commands/`, but prefer plugin `skills/` | Yes |
 
-If a command and a skill have the same name, the skill takes precedence. Use `/reload-skills` to rescan command and skill files during an active session; restarting also reloads them.
+If a command and a skill have the same name, the skill takes precedence. Files
+inside an already-discovered command or skill directory are watched and normally
+reload automatically. Restart after creating a new top-level directory that the
+current session did not discover.
 
 ---
 

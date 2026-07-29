@@ -1,5 +1,9 @@
 # Hooks Overview
 
+> **Who this is for**: Claude Code users who understand `settings.json` and need deterministic automation or policy at lifecycle boundaries.
+
+Before reading this, understand project settings: **[settings.json](../settings/01_settings_json.md)**
+
 ---
 
 ## 1. What Are Hooks?
@@ -73,6 +77,8 @@ Most workflows need only a few events:
 | `InstructionsLoaded` | CLAUDE.md or `.claude/rules/*.md` loaded |
 | `SubagentStart` / `SubagentStop` | Subagent lifecycle |
 | `TaskCreated` / `TaskCompleted` | Background task lifecycle |
+| `TeammateIdle` | An agent-team teammate is about to become idle |
+| `WorktreeCreate` / `WorktreeRemove` | Claude Code creates or removes an isolated worktree |
 | `Notification` | Claude Code sends a notification |
 | `ConfigChange` | Config changes during a session |
 | `CwdChanged` | Working directory changes |
@@ -89,7 +95,9 @@ Do not build hooks on events you do not need. Every blocking hook adds latency t
 For tool events, `matcher` filters on tool name:
 
 ```json
-"matcher": "Write|Edit"
+{
+  "matcher": "Write|Edit"
+}
 ```
 
 Matcher values are exact strings or `|`-separated exact strings when they contain only word characters and `|`. Values with other regex characters are treated as JavaScript regular expressions.

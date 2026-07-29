@@ -10,7 +10,7 @@
 
 | File | Topic | Description |
 |------|-------|-------------|
-| [01_claude_md.md](01_claude_md.md) | CLAUDE.md | File format, locations, hierarchy, what to include, import syntax |
+| [01_claude_md.md](01_claude_md.md) | CLAUDE.md | Memory hierarchy, imports, complete rule `paths` frontmatter, glob scoping |
 
 ---
 

@@ -1,6 +1,8 @@
 # Marketplaces
 
-Before reading this: **[Install & Scopes](03_install_and_scopes.md)**
+> **Who this is for**: Plugin authors and team maintainers distributing trusted Claude Code plugins through public or private catalogs.
+
+Before reading this: **[Install & Scopes](02_install_and_scopes.md)**
 
 ---
 
@@ -68,21 +70,31 @@ A marketplace repo contains `.claude-plugin/marketplace.json`:
 
 ```json
 {
-  "name": "MyOrg Plugins",
+  "name": "myorg-plugins",
+  "owner": {
+    "name": "MyOrg Platform Engineering",
+    "email": "platform@example.com"
+  },
   "description": "Internal plugins for the engineering team.",
   "plugins": [
     {
       "name": "db-utils",
+      "source": "./plugins/db-utils",
       "description": "Database migration and introspection utilities.",
       "version": "1.3.2",
-      "repository": "https://github.com/myorg/db-utils-plugin",
       "keywords": ["database", "postgres"]
     }
   ]
 }
 ```
 
-Each entry's `name` should match the plugin's manifest name. The source can be a git repo, subdirectory, local path, URL, or other supported marketplace source.
+The top-level `name` is a machine-readable marketplace identifier, so use lowercase
+kebab-case without spaces. `owner` identifies the catalog maintainer. Every plugin entry
+requires `source`; a relative path is resolved from the marketplace root. Each entry's
+`name` should match the plugin manifest name.
+
+Use optional fields such as `repository` only as metadata. They do not replace `source`.
+The source can also point to a supported Git repository, URL, or package source.
 
 Teams can add marketplaces through project settings with `extraKnownMarketplaces` so collaborators are prompted to install trusted team marketplaces after trusting the repo.
 
@@ -109,4 +121,4 @@ Plugin detail views show components, estimated context cost, and what will be in
 
 ---
 
-**Next**: [Managing Plugins](05_managing_plugins.md)
+**Next**: [Managing Plugins](04_managing_plugins.md)

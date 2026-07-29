@@ -492,13 +492,16 @@ Set it up once per project: [`references/bootstrap-stack.md`](references/bootstr
 ## CI Integration (GitHub Actions)
 
 The scripts do not change between local and CI use — only the env vars and flags
-set around them do. Four workflows, each with its own role:
+set around them do. Five workflows, each with its own role. Platform and
+application changes are planned and applied by entirely separate workflows —
+merging one never triggers the other:
 
 | Workflow | Trigger | Runs | Role |
 |---|---|---|---|
-| `infra-plan.yml` | PR touching `Terraform/**` | `deploy-platform-<name>.sh --plan-only` | `TerraformPlanRole` — read plus the state lock |
+| `infra-plan.yml` | PR touching platform `Terraform/**` | `deploy-platform-<name>.sh --plan-only` | `TerraformPlanRole` — read plus the state lock |
+| `plan-app-<service>.yml` → `_app-plan.yml` | PR touching that service's stack/tfvars | `deploy-app-<service>.sh --plan-only` | `AppPlanRole` — read-only, application tier |
 | `infra-apply.yml` | merge to main, or dispatch | `deploy-platform.sh` | `TerraformPlatformApplyRole` — broad, only from a protected job |
-| `release-<service>.yml` → `_app-release.yml` | push to `apps/<service>/**` | `build-<service>.sh` then `deploy-app-<service>.sh` | `AppDeployRole-<service>-<env>` — that stack only |
+| `release-<service>.yml` → `_app-release.yml` | push to `apps/<service>/**` or that stack/tfvars | `build-<service>.sh` then `deploy-app-<service>.sh` | `AppDeployRole-<service>-<env>` — that stack only |
 | `drift-detect.yml` | schedule | `--plan-only --detailed-exitcode` | `TerraformPlanRole` |
 
 Two consequences worth stating plainly. A code push can no longer reach a role
@@ -506,17 +509,19 @@ that modifies databases or networking — the release role holds ECS/Lambda/ECR
 permissions for one service and write access to one state prefix. And no workflow
 runs `deploy.sh`; bring-up is a deliberate, manual operation.
 
-Complete YAML for all four, the reusable `_app-release.yml` with its per-service
-caller, the rejected alternatives, and every trust and permission policy:
-[`references/ci-workflows.md`](references/ci-workflows.md).
+Complete YAML for all five, the reusable `_app-release.yml`/`_app-plan.yml` with
+their per-service callers, the rejected alternatives, and every trust and
+permission policy: [`references/ci-workflows.md`](references/ci-workflows.md).
 
 That table describes the monorepo. In a split repository the release row becomes
 two workflows in two repositories: the application repository publishes the
 artifact under a publish-only role, then opens a pull request carrying the version;
 the infrastructure repository's caller triggers on that file and applies the stack.
-The other three workflows are unchanged, and `infra-plan.yml` plans the release
-pull request for free because its `Terraform/**` filter already matches. Both
-trust policies, the bring-up sequencing, and the promotion and rollback paths:
+The other workflows are unchanged, and the service's own `plan-app-<service>.yml`
+plans the release pull request — not `infra-plan.yml`, whose filter is
+platform-only and never matched an app stack. Both trust policies, the bring-up
+sequencing, and the promotion and rollback paths (including what a shared vs.
+per-environment artifact registry requires):
 [`references/split-repo-releases.md`](references/split-repo-releases.md).
 
 ---
@@ -529,9 +534,10 @@ trust policies, the bring-up sequencing, and the promotion and rollback paths:
 | `CI=true` | all | Skip interactive prompts and apply the saved plan; not the approval gate |
 | `SKIP_CONFIRM=true` | destroy scripts | Skip `DESTROY` confirmation (set by `destroy.sh` orchestrator) |
 | `SKIP_STACKS` | `deploy.sh` | Comma-separated stack names to skip. **Bring-up only** — a release applies one stack, so it has nothing to skip |
-| `SERVICE` | app release workflow | The service whose stack and artifact this run releases; set by the reusable workflow from a literal in the caller |
+| `SERVICE` | app release workflow | Informational only — identifies the service in the job's own environment for logging; no script in this skill reads it. `open-release-pr.sh` on the application-repository side does consume its own `$SERVICE`, set independently there |
 | `IMAGE_TAG` | build scripts | Docker image tag; defaults to the current git SHA |
 | `<SERVICE>_IMAGE_TAG` | build scripts | Per-service override when multiple images are deployed |
+| `TARGET_PLATFORM` | Docker build scripts | Required; the task/function architecture (`linux/arm64`, `linux/amd64`) — never the builder's own |
 | `AMI_ID` | build/deploy scripts | Pre-built AMI for the EC2/ASG path, when an earlier job produced it |
 | `LAMBDA_OBJECT_VERSION` | build/deploy scripts | S3 object version of a published Lambda ZIP, when the publish and apply are separate steps |
 | `TF_PLAN_ARTIFACT` | CI plan/apply jobs | Path of the saved plan handed from a plan job to a protected apply job; treat as sensitive, short retention |

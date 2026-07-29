@@ -1,5 +1,9 @@
 # Plugin Fundamentals
 
+> **Who this is for**: Claude Code users who want to package reusable skills, agents, hooks, MCP servers, or other extensions.
+
+Before reading this, understand reusable skills: **[Skills Overview](../skills/01_skills_overview.md)**
+
 ---
 
 ## 1. What Is a Plugin?
@@ -85,4 +89,4 @@ Not all components are required. A plugin with only one skill is valid.
 
 ---
 
-**Next**: [Install & Scopes](03_install_and_scopes.md)
+**Next**: [Install & Scopes](02_install_and_scopes.md)

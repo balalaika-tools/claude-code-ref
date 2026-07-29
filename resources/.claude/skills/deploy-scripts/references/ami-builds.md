@@ -161,12 +161,18 @@ if [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]]; then
 fi
 
 rm -f "$MANIFEST"
-packer init "$REPO_ROOT/packer/<service>.pkr.hcl"
+# Packer resolves the provisioner `scripts` and post-processor `output` paths
+# in the template relative to its own working directory, not relative to the
+# template file — cd first, or a caller invoking this script from anywhere
+# other than $REPO_ROOT gets "no such file" mid-build or a manifest written to
+# the wrong place.
+cd "$REPO_ROOT"
+packer init "packer/<service>.pkr.hcl"
 packer build \
   -var "git_sha=$GIT_SHA" \
   -var "aws_region=$AWS_REGION" \
   -var "source_ami_filter_name=${SOURCE_AMI_NAME:?Set SOURCE_AMI_NAME}" \
-  "$REPO_ROOT/packer/<service>.pkr.hcl"
+  "packer/<service>.pkr.hcl"
 
 AMI_ID="$(jq -r '.builds[-1].artifact_id' "$MANIFEST" | cut -d: -f2)"
 if [[ -z "$AMI_ID" || "$AMI_ID" != ami-* ]]; then
@@ -185,13 +191,27 @@ worst if the variable had a default. It must not have one.
 
 ## Handing the AMI ID to Terraform
 
-Exactly like an image tag or a Lambda object version:
+Exactly like an image tag or a Lambda object version. Capture the ASG's most
+recent refresh ID *before* the apply, so the waiter below can tell "a new
+refresh started" from "no refresh started, this is stale" instead of guessing:
 
 ```bash
 "$SCRIPT_DIR/build-<service>-ami.sh"
-# ...
+
+ASG_NAME="$(terraform output -raw <service>_asg_name 2>/dev/null || echo "")"
+PRE_APPLY_REFRESH_ID="None"
+if [[ -n "$ASG_NAME" ]]; then
+  PRE_APPLY_REFRESH_ID="$(aws autoscaling describe-instance-refreshes \
+    --auto-scaling-group-name "$ASG_NAME" \
+    --region "$AWS_REGION" \
+    --max-records 1 \
+    --query 'InstanceRefreshes[0].InstanceRefreshId' \
+    --output text 2>/dev/null || echo "None")"
+fi
+
 terraform plan -input=false -lock-timeout=5m \
   -var-file="$VAR_FILE" -var-file="$ARTIFACT_VARS" -out="$PLAN_FILE"
+# ... apply happens here ...
 ```
 
 In CI, `AMI_ID` may be supplied directly as an environment variable
@@ -202,7 +222,10 @@ release that skipped its build fails at plan.
 ## Waiting for the Instance Refresh
 
 `terraform apply` returns once the refresh has **started**. Without a wait, a
-release that rolls back mid-refresh looks like a successful deploy:
+release that rolls back mid-refresh looks like a successful deploy — and
+without comparing against a pre-apply baseline, `[0]` (most recent) can just as
+easily be a completed refresh from an *earlier* release when this apply's
+launch template didn't actually change:
 
 ```bash
 ASG_NAME="$(terraform output -raw <service>_asg_name)"
@@ -213,6 +236,11 @@ REFRESH_ID="$(aws autoscaling describe-instance-refreshes \
   --max-records 1 \
   --query 'InstanceRefreshes[0].InstanceRefreshId' \
   --output text)"
+
+if [[ "$REFRESH_ID" == "$PRE_APPLY_REFRESH_ID" ]]; then
+  print_info "No new instance refresh started — launch template did not change"
+  exit 0
+fi
 
 print_info "Waiting for instance refresh $REFRESH_ID..."
 DEADLINE=$((SECONDS + 1800))
@@ -252,9 +280,12 @@ fi
   loosely and never parse it for control flow.
 - Bound the wait. An ASG with a failing health check will sit in `InProgress`
   until the refresh's own timeout, which is longer than any CI job should hold.
-- If Terraform did not start a refresh (the launch template did not change), there
-  is no new refresh to find. Capture the refresh ID list before the apply and
-  compare, or skip the wait when the plan showed no launch template change.
+- The `PRE_APPLY_REFRESH_ID` comparison above is what makes "no new refresh
+  started" distinguishable from "the new refresh already finished by the time
+  we asked" — both look like `[0]` being a `Successful` refresh with a
+  different ID than the one you expected. Without the baseline, a build that
+  didn't change the launch template can report a stale, unrelated refresh as
+  this release's outcome.
 
 ## EC2 Image Builder
 

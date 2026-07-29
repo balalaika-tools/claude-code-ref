@@ -1,5 +1,7 @@
 # Hook Handlers
 
+> **Who this is for**: Hook authors who understand Claude Code events and need to implement command, HTTP, MCP, prompt, or agent handlers.
+
 Before reading this: **[Hooks Overview](01_hooks_overview.md)**
 
 ---
@@ -204,6 +206,10 @@ Use agent hooks sparingly. They are powerful but slower, more complex, and still
   }
 }
 ```
+
+When a handler does not appear, never fires, or blocks unexpectedly, use `/hooks`
+and category-specific debug logs as described in
+[Troubleshooting](../operations/01_troubleshooting.md).
 
 ---
 

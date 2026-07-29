@@ -1,5 +1,7 @@
 # GitHub Actions
 
+> **Who this is for**: GitHub Actions users configuring Claude workflows with least-privilege authentication and repository permissions.
+
 Before reading this: **[GitHub App](01_github_app.md)**
 
 ---

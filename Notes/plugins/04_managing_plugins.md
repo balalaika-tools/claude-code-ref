@@ -1,6 +1,8 @@
 # Managing Plugins
 
-Before reading this: **[Install & Scopes](03_install_and_scopes.md)**
+> **Who this is for**: Claude Code users responsible for installed plugin lifecycle, updates, diagnostics, and trust decisions.
+
+Before reading this: **[Install & Scopes](02_install_and_scopes.md)**
 
 ---
 
@@ -79,6 +81,9 @@ Versioning caveat: if a plugin sets `version` in `plugin.json`, users receive up
 5. **Use `/reload-plugins` after mid-session changes.** Restarting also reloads plugins.
 
 6. **Check the Errors tab** when a skill, hook, MCP server, or LSP server does not appear.
+
+For reload behavior, component isolation, and safe bisection, see
+[Troubleshooting](../operations/01_troubleshooting.md).
 
 ---
 

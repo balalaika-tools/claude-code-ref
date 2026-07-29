@@ -1,5 +1,9 @@
 # .mcp.json — MCP Server Configuration
 
+> **Who this is for**: Engineers comfortable with JSON and the terminal who want Claude Code to use external tools or data safely.
+
+Before reading this, understand project settings and permissions: **[settings.json](../settings/01_settings_json.md)**
+
 ---
 
 ## 1. What Is MCP?
@@ -118,6 +122,9 @@ claude mcp get my-server
 ```
 
 Use `/mcp` inside Claude Code to check connection status, authenticate OAuth servers, and inspect available tools/prompts.
+
+For startup, authentication, or zero-tool failures, use the MCP diagnostics in
+[Troubleshooting](../operations/01_troubleshooting.md).
 
 ---
 

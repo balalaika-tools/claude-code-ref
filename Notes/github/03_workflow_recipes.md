@@ -1,5 +1,7 @@
 # Workflow Recipes
 
+> **Who this is for**: Repository maintainers who understand the Claude Code action and want production-oriented workflow starting points.
+
 Before reading this: **[GitHub Actions](02_github_actions.md)**
 
 ---

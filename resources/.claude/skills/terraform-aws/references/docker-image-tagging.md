@@ -29,7 +29,18 @@ resource "aws_ecr_repository" "worker" {
 
 ECR belongs to the platform tier: repositories and images outlive the services
 that push to them. The application stack receives or discovers the repository
-URL; do not reference an `aws_ecr_repository` resource owned by another state:
+URL; do not reference an `aws_ecr_repository` resource owned by another state.
+
+**This example's `${var.environment_name}` in the repository name means each
+environment gets its own repository.** That is fine on its own, but it is
+incompatible with promoting a release by copying its tag between environments'
+artifact files — the tag exists only in the environment that built it. If your
+promotion path is "copy the artifact coordinate, don't rebuild" (see the
+sibling `deploy-scripts` skill's `references/split-repo-releases.md#promotion-and-rollback`),
+drop `${var.environment_name}` from the name and share one repository across
+environments, scoping IAM by tag prefix or a resource policy per environment
+instead. Keep the per-environment name only when each environment is expected
+to rebuild and republish independently:
 
 ```hcl
 variable "worker_image_repository_url" {

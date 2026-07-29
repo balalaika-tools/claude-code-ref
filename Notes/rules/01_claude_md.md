@@ -1,5 +1,9 @@
 # CLAUDE.md — Rules & Memory
 
+> **Who this is for**: Engineers configuring persistent Claude Code guidance for a project, monorepo, or personal workflow.
+
+Before reading this, complete a safe first session: **[Getting Started](../basics/01_getting_started.md)**
+
 ---
 
 ## 1. What Is CLAUDE.md?
@@ -17,9 +21,10 @@ Claude Code walks upward from the current working directory and loads relevant m
 | File | Scope | Committed? |
 |------|-------|-----------|
 | `~/.claude/CLAUDE.md` | All projects | No |
+| `~/.claude/rules/**/*.md` | Personal rules, organized by topic | No |
 | `./CLAUDE.md` | This project, all team members | Yes |
 | `./CLAUDE.local.md` | This project, you only | No |
-| `./.claude/rules/*.md` | This project, organized by topic | Usually yes |
+| `./.claude/rules/**/*.md` | This project, organized recursively by topic | Usually yes |
 | `<subdir>/CLAUDE.md` | Loaded when work enters that subtree | Yes |
 
 > **Case-sensitive**: Use `CLAUDE.md`. Do not rely on `claude.md`.
@@ -85,18 +90,86 @@ Paths are relative to the memory file. External imports may require approval the
 
 ---
 
-## 5. `.claude/rules/`
+## 5. `.claude/rules/` and Complete Frontmatter
 
-Use `.claude/rules/` when one CLAUDE.md would become cluttered:
+Use `.claude/rules/` when one `CLAUDE.md` would become cluttered. Claude Code
+discovers Markdown files recursively, so subfolders are valid:
 
-```
+```text
 .claude/rules/
-├── testing.md
-├── database.md
-└── api.md
+├── general.md
+├── frontend/
+│   └── react.md
+└── backend/
+    ├── api.md
+    └── database.md
 ```
 
-Rules can be broad or path-specific. Path-specific rules should state their trigger clearly and avoid duplicating root guidance.
+A rule with no YAML frontmatter is unconditional and loads with project memory:
+
+```markdown
+# Testing
+
+- Run the narrowest relevant test before the full suite.
+- Keep integration tests behind explicit external-service markers.
+```
+
+Claude Code documents exactly one public frontmatter field for rule files:
+
+[Official path-specific rules reference](https://code.claude.com/docs/en/memory#path-specific-rules)
+
+| Field | Type / default | Behavior |
+|-------|----------------|----------|
+| `paths` | YAML list of glob strings / unconditional | Loads the rule when Claude reads a file matching any listed pattern |
+
+Use `paths` to point a rule at a folder, file type, or set of related paths:
+
+```markdown
+---
+paths:
+  - "src/api/**/*.ts"
+  - "src/workers/**/*.{ts,tsx}"
+  - "tests/api/*.test.ts"
+---
+
+# API and Worker Rules
+
+- Validate external input at the transport boundary.
+- Keep retry policy in the worker, not the domain service.
+- Add an integration test for every new API error response.
+```
+
+The patterns are ORed: one match activates the rule. Path matching happens when
+Claude reads a file, not before every tool call.
+
+| Pattern | Matches |
+|---------|---------|
+| `**/*.ts` | TypeScript files at any depth |
+| `src/**/*` | Every file under `src/` |
+| `*.md` | Markdown files at the project root |
+| `src/components/*.tsx` | Direct `.tsx` children of `src/components/` |
+| `src/**/*.{ts,tsx}` | TypeScript and TSX files under `src/` |
+
+Brace expansion is limited per rule file to 1,000 expanded patterns and 4 MiB
+for the entire `paths` list. A brace expression that exceeds the budget is left
+unexpanded and normally matches nothing. Invalid bracket expressions such as an
+unclosed `[` also match nothing; escape a literal bracket as `\[`.
+
+> **Rule**: `description`, `name`, `scope`, `globs`, `folders`, `include`,
+> `exclude`, and `alwaysApply` are not supported Claude Code rule-frontmatter
+> fields. Use `paths` for conditional loading and prose for the rule itself.
+
+Personal rules under `~/.claude/rules/` load before project rules, so project
+guidance has higher priority. Symlinked rule files and directories are supported,
+and circular links are ignored safely.
+
+Rules in directories passed through `--add-dir` do not load merely because file
+access was granted. Set `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1` when
+those additional directories should also contribute `CLAUDE.md` and
+`.claude/rules/` guidance.
+
+Unconditional rules can be re-injected after compaction. Path-scoped rules are
+loaded again only after Claude reads another matching file.
 
 ---
 

@@ -1,5 +1,9 @@
 # settings.json
 
+> **Who this is for**: Claude Code users who need to control permissions, environment variables, hooks, models, and project integrations.
+
+Before reading this, understand sessions and permission modes: **[Sessions and Core CLI](../basics/02_sessions_and_cli.md)**
+
 ---
 
 ## 1. What Is settings.json?
@@ -115,6 +119,10 @@ Hooks are configured here unless they come from a plugin, skill, or agent. See [
 ```
 
 Prefer command hooks that read the event JSON from stdin for non-trivial logic. Use `disableAllHooks: true` only for emergency troubleshooting.
+
+If a setting appears ignored or startup breaks, follow the layered checks in
+[Troubleshooting](../operations/01_troubleshooting.md) before deleting state or
+rewriting multiple scopes.
 
 ---
 

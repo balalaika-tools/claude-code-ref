@@ -1,5 +1,7 @@
 # The `.claude/` Directory
 
+> **Who this is for**: Project maintainers deciding which Claude Code configuration belongs in version control and which must remain local.
+
 Before reading this, understand the difference between model guidance and harness config: **[settings.json](01_settings_json.md)**.
 
 ---
@@ -149,7 +151,10 @@ Then add only what the repo needs:
 5. Put deterministic enforcement in hooks configured from `settings.json`.
 6. Put external tool/server definitions in root `.mcp.json`, then approve them from settings.
 
-Use `/agents` to create or edit agents interactively. Use `/reload-skills` after adding or changing skills/commands during a session, and `/reload-plugins` after changing plugin components.
+Ask Claude to create an agent or edit `.claude/agents/<name>.md` directly; existing agent
+files are watched and normally reload within seconds. Skill and command files in
+already-discovered directories are watched as well; restart after creating a new
+top-level directory. Use `/reload-plugins` after changing non-skill plugin components.
 
 ---
 

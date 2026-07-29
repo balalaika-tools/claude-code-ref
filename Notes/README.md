@@ -1,8 +1,8 @@
 # Claude Code Notes
 
-> A practical reference for engineers who want to master Claude Code — from commands and skills to hooks, agents, GitHub integration, and plugins.
+> A practical reference for engineers using Claude Code — from safe first sessions through customization, automation, integrations, plugins, and troubleshooting.
 
-[![Claude Code](https://img.shields.io/badge/Claude_Code-CLI-191919.svg?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-CLI-191919.svg?logo=anthropic&logoColor=white)](https://code.claude.com/docs)
 [![Anthropic](https://img.shields.io/badge/Anthropic-API-FF6B35.svg?logoColor=white)](https://anthropic.com)
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF.svg?logo=githubactions&logoColor=white)](github/README.md)
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-Spec-000000.svg?logoColor=white)](https://modelcontextprotocol.io)
@@ -15,6 +15,11 @@
 ```
 claude-code/
 │
+│ ── FUNDAMENTALS ────────────────────────────────────────────
+├── basics/
+│   ├── 01_getting_started.md       Install, authenticate, trust, and run a safe first task
+│   └── 02_sessions_and_cli.md      Sessions, modes, models, permissions, output, budgets
+│
 │ ── CUSTOMIZATION ───────────────────────────────────────────
 ├── commands/
 │   └── 01_custom_commands.md       Flat skill-compatible slash commands
@@ -24,7 +29,7 @@ claude-code/
 │   └── 02_skills_advanced.md       Supporting files, dynamic context, auto-invoke, forking
 │
 ├── rules/
-│   └── 01_claude_md.md             CLAUDE.md, .claude/rules/, hierarchy, imports
+│   └── 01_claude_md.md             CLAUDE.md hierarchy, imports, rule paths and glob scoping
 │
 │ ── AUTOMATION ──────────────────────────────────────────────
 ├── hooks/
@@ -49,16 +54,29 @@ claude-code/
 │   └── 02_claude_directory.md      .claude/ layout, file roles, git hygiene
 │
 │ ── PLUGINS ─────────────────────────────────────────────────
-└── plugins/
-    ├── 01_plugin_fundamentals.md   What plugins bundle, directory layout, plugin.json
-    ├── 03_install_and_scopes.md    plugin install, scopes, uninstalling
-    ├── 04_marketplaces.md          Official/third-party marketplaces, hosting, sharing
-    └── 05_managing_plugins.md      /plugin UI, enable/disable, updates, gotchas
+├── plugins/
+│   ├── 01_plugin_fundamentals.md   What plugins bundle, directory layout, plugin.json
+│   ├── 02_install_and_scopes.md    plugin install, scopes, uninstalling
+│   ├── 03_marketplaces.md          Official/third-party marketplaces, hosting, sharing
+│   └── 04_managing_plugins.md      /plugin UI, enable/disable, updates, gotchas
+│
+│ ── OPERATIONS ──────────────────────────────────────────────
+└── operations/
+    └── 01_troubleshooting.md       doctor, safe mode, debug logs, component isolation
 ```
 
 ---
 
 ## Contents
+
+### Basics — [full index](basics/README.md)
+
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Basics-191919.svg?logo=anthropic&logoColor=white)](basics/README.md)
+
+| Guide | Description |
+|-------|-------------|
+| [Getting Started](basics/01_getting_started.md) | Installation, authentication, project trust, and a safe first workflow |
+| [Sessions and Core CLI](basics/02_sessions_and_cli.md) | Session lifecycle, permission modes, models, output formats, and budgets |
 
 ### Commands — [full index](commands/README.md)
 
@@ -83,7 +101,7 @@ claude-code/
 
 | Guide | Description |
 |-------|-------------|
-| [CLAUDE.md](rules/01_claude_md.md) | File hierarchy, what to include, imports, `.claude/rules/`, monorepos |
+| [CLAUDE.md](rules/01_claude_md.md) | Memory hierarchy, imports, complete rule `paths` frontmatter, glob scoping |
 
 ### Hooks — [full index](hooks/README.md)
 
@@ -136,9 +154,17 @@ claude-code/
 | Guide | Description |
 |-------|-------------|
 | [Plugin Fundamentals](plugins/01_plugin_fundamentals.md) | What plugins bundle, directory layout, plugin.json manifest |
-| [Install & Scopes](plugins/03_install_and_scopes.md) | `/plugin install`, shell install, scopes, uninstalling |
-| [Marketplaces](plugins/04_marketplaces.md) | Official marketplace, third-party hosting, sharing with teammates |
-| [Managing Plugins](plugins/05_managing_plugins.md) | `/plugin` UI, enable/disable, updates, key gotchas |
+| [Install & Scopes](plugins/02_install_and_scopes.md) | `/plugin install`, shell install, scopes, uninstalling |
+| [Marketplaces](plugins/03_marketplaces.md) | Official marketplace, third-party hosting, sharing with teammates |
+| [Managing Plugins](plugins/04_managing_plugins.md) | `/plugin` UI, enable/disable, updates, key gotchas |
+
+### Operations — [full index](operations/README.md)
+
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Operations-191919.svg?logo=anthropic&logoColor=white)](operations/README.md)
+
+| Guide | Description |
+|-------|-------------|
+| [Troubleshooting](operations/01_troubleshooting.md) | Layered diagnosis with doctor, safe mode, debug logs, and component checks |
 
 ---
 
@@ -149,12 +175,14 @@ claude-code/
 
 ### New to Claude Code
 
-1. [CLAUDE.md](rules/01_claude_md.md) — teach Claude about your project
-2. [`.claude/` Directory](settings/02_claude_directory.md) — understand project configuration layout
-3. [Custom Commands](commands/01_custom_commands.md) — quick flat skill-compatible shortcuts
-4. [Skills Overview](skills/01_skills_overview.md) — reusable workflows
-5. [settings.json](settings/01_settings_json.md) — control what Claude can do
-6. [Hooks Overview](hooks/01_hooks_overview.md) — automate around Claude's actions
+1. [Getting Started](basics/01_getting_started.md) — install, authenticate, and inspect a project safely
+2. [Sessions and Core CLI](basics/02_sessions_and_cli.md) — understand sessions, modes, and cost controls
+3. [CLAUDE.md](rules/01_claude_md.md) — teach Claude about your project
+4. [`.claude/` Directory](settings/02_claude_directory.md) — understand project configuration layout
+5. [Custom Commands](commands/01_custom_commands.md) — quick flat skill-compatible shortcuts
+6. [Skills Overview](skills/01_skills_overview.md) — reusable workflows
+7. [settings.json](settings/01_settings_json.md) — control what Claude can do
+8. [Troubleshooting](operations/01_troubleshooting.md) — isolate configuration and integration failures
 
 ### Setting up GitHub integration
 
@@ -169,14 +197,11 @@ claude-code/
 3. [Hooks Overview](hooks/01_hooks_overview.md) — event model
 4. [Hook Handlers](hooks/02_hook_handlers.md) — handler types and decisions
 5. [.mcp.json](mcp/01_mcp_json.md) — external tool integrations
+6. [Troubleshooting](operations/01_troubleshooting.md) — diagnose failures across layers
 
 ### Building and sharing plugins
 
 1. [Plugin Fundamentals](plugins/01_plugin_fundamentals.md) — directory structure
 2. [Skills Overview](skills/01_skills_overview.md) — authoring skills for plugins
-3. [Install & Scopes](plugins/03_install_and_scopes.md) — how plugins are installed
-4. [Marketplaces](plugins/04_marketplaces.md) — distributing to others
-
----
-
-*Last updated: May 2026*
+3. [Install & Scopes](plugins/02_install_and_scopes.md) — how plugins are installed
+4. [Marketplaces](plugins/03_marketplaces.md) — distributing to others
