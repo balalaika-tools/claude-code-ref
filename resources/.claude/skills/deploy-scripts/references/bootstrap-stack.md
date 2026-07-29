@@ -1,0 +1,61 @@
+# The Bootstrap State-Bucket Stack
+
+The state-bucket stack is the one stack that cannot follow the standard workflow
+in `SKILL.md`, because the remote backend it would use is the thing it creates.
+Name it `create-<stack>.sh`, not `deploy-<stack>.sh`, so the exception is visible
+in the filename.
+
+Set this up once per project. Nothing else in `scripts/` should look like it.
+
+## How it differs
+
+- Uses a **local backend** — the remote state bucket doesn't exist yet.
+- May be shared across environments in a dedicated state account, with each role
+  restricted to `<env>/<stack>/...`; projects that require account-level
+  isolation may bootstrap separate buckets instead.
+- Uses `import_if_exists` before apply to re-import buckets idempotently.
+- Skips the plan file and interactive gate; in CI uses `-auto-approve`, locally
+  uses Terraform's own default interactive prompt.
+- Destroy uses a stricter confirmation token (e.g. `DESTROY-DATA`) for the data
+  bucket.
+- The state bucket carries `prevent_destroy = true`; removing it requires
+  editing the source.
+
+Because the backend is local, `TF_DATA_DIR` isolation is not what keeps
+environments apart here — the state file's own path is. Decide deliberately
+whether that local state is committed, and never let two environments share one
+local state file.
+
+## Idempotent Import
+
+```bash
+import_if_exists() {
+  local tf_addr="$1" resource_id="$2"
+  if terraform state show "$tf_addr" &>/dev/null 2>&1; then
+    print_info "Already in state: $tf_addr — skipping import"
+    return
+  fi
+  if aws s3api head-bucket --bucket "$resource_id" 2>/dev/null; then
+    print_info "Importing existing bucket '$resource_id' → $tf_addr"
+    terraform import -var-file=prod.tfvars "$tf_addr" "$resource_id"
+  fi
+}
+```
+
+The two guards run in this order for a reason: the state check is local and free,
+and it short-circuits before the script spends an API call on a bucket Terraform
+already owns. `head-bucket` returning non-zero also covers "exists but not
+accessible to these credentials", so a permissions problem falls through to
+`apply` and fails there with a clearer message than a failed import would give.
+
+## Why the imperative CLI is correct here
+
+The `terraform-aws` skill's general rule — prefer declarative `import` blocks
+over the imperative `terraform import` CLI — assumes you already know the
+resource is there to import. This bootstrap script doesn't: it has to check
+`head-bucket` against real AWS state *at runtime* to decide whether an import is
+even needed, which a static `import` block can't express. That's the one case
+where the CLI form is correct, not a violation of the rule.
+
+Keep the exception this narrow. Every other known import in the repository stays
+declarative.
