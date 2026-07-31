@@ -21,7 +21,7 @@ When the user provides a topic:
 2. **Propose structure** — Show the directory tree and list of planned files with one-line descriptions. Ask: "Does this structure look right? Want to add or remove anything?"
 3. **Create root README.md and directory READMEs** — Write these directly; they're structural, not research-heavy. Use the templates in `references/templates/`.
 4. **Write note files** — If running in Claude Code with 3+ independent files, launch subagents in parallel (see Parallelizing section). Otherwise write files sequentially. See `references/example_note.md` for a complete worked example of a finished note.
-5. **Verify cross-references** — Check all internal links point to files that exist.
+5. **Verify cross-references and required moves** — Check all internal links point to files that exist. Then check each note for the three things subagents most often skip: a problem-first opening (not a definition), exactly one `> **Key insight**:`, and a marked default subset on every table longer than five rows.
 
 If the user asks to add a section to an existing repo, read the current README.md, propose where the new content fits, and update all affected READMEs and cross-references.
 
@@ -74,17 +74,23 @@ See `references/example_note.md` for a complete, filled-in example that demonstr
 
 ---
 
-## 1. Section Name
+## 1. {The problem this solves — a claim, not a label}
 
-{Explanation. Code example or diagram.}
+{The reader's situation first, then the one-sentence answer, then the mechanism.}
 
 ---
 
-## 2. Next Section
+## 2. {Next claim}
 
-{Table or deeper dive.}
+{Table or deeper dive. Any enumeration over five entries marks its default subset.}
 
-> **Key insight**: {Mental model or principle worth remembering.}
+> **Key insight**: {The transferable, non-obvious thing. Exactly one per file — required.}
+
+---
+
+## N. {What breaks, and when not to use this}
+
+{Failure modes with the symptom the reader will actually see, each marked ⚠️. Then the boundary.}
 
 ---
 
@@ -101,11 +107,23 @@ Don't mix styles within a single file.
 
 ### Writing quality
 
-Each note file should feel like it was written by a senior engineer explaining things to a competent colleague. The prose itself is governed by `../../rules/how-we-write-notes.md` — audience calibration, the detail-vs-simplicity balance, always stating the *why*, the completeness checklist (failure modes, limits/edge cases, trade-offs vs. alternatives, security/cost implications, a minimal runnable example, when *not* to use it), currency, and tone. Apply that standard while drafting — don't wait for an audit pass to catch what it was missing.
+Each note file should feel like it was written by a senior engineer explaining things to a competent colleague. The prose itself is governed by `references/how-we-write-notes.md`. Read it before drafting — it isn't just a list of things to avoid. Its required moves:
+
+- **Audience calibration** and the detail-vs-simplicity balance
+- **Lead with the problem**, then the definition — section 1 opens on the reader's situation, not a glossary sentence
+- **Work with the model the reader already has** — an analogy to their existing expertise with its boundary stated, and the common misconception named and killed
+- **Navigable enumerations** — any list over five entries marks the subset that matters and shows one of them in use
+- **A success signal for every instruction** — what the reader observes when it worked, and the tell for the common silent failure
+- **Completeness** — the three non-negotiables (what breaks first, when not to use it, how you know it's working) plus whatever else the subject warrants
+- **Examples: minimal first, hardened second**
+- **Headers that make claims**, exactly one `> **Key insight**:`, `⚠️` reserved for failure modes
+- **Currency** and tone
+
+Apply that standard while drafting — don't wait for an audit pass to catch what was missing.
 
 What's specific to authoring:
 
-- **Production-grade code examples** — real imports, realistic variable names, error handling where it matters. Not `foo`/`bar` toy code.
+- **Code examples follow the minimal-first, hardened-second sequence** from the rules file — the baseline block is deliberately bare, and the hardened block after it carries the real imports, error handling, and a comment per addition naming the failure it prevents. Neither block is `foo`/`bar` toy code.
 - **Inline comments that explain "why"** — not what the code does, but why this approach was chosen.
 - **Progressive complexity across the file** — start with the mental model, build to practical usage, end with advanced patterns or edge cases.
 - **High code-to-text ratio** — show, don't just tell. A code block with a two-line explanation beats a paragraph with no code.
@@ -118,11 +136,12 @@ What's specific to authoring:
 - **Blockquotes**: For principles, rules, and mental models:
   - `> **Principle**: ...`
   - `> **Rule**: ...`
-  - `> **Key insight**: ...`
+  - `> **Key insight**: ...` — required, exactly one per file
+  - `> **The near-miss**: ...` — the misconception this note corrects, where one genuinely exists
 - **Callout markers** (used sparingly, not decoratively):
-  - `✅` — correct approach
+  - `✅` — correct approach, paired with the `❌` it corrects
   - `❌` — incorrect / anti-pattern
-  - `⚠️` — warning / gotcha
+  - `⚠️` — a failure mode or gotcha, and nothing else. A reader returning to the note scans for these to find the landmines, so don't spend the marker on general emphasis.
   - `💡` — tip
 - **Markdown tables**: For feature comparisons, concept summaries, decision matrices.
 - **ASCII diagrams**: For architecture, data flow, and layered systems. Use box-drawing characters: `┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ → ↓ ↑ ←`
@@ -164,7 +183,7 @@ If the topic is current, niche, or fast-moving and native knowledge isn't enough
 
 After the user confirms structure, if there are **3+ independent files**, launch one subagent per file in parallel (all Agent tool calls in a single message). Each subagent writes its own `.md` file to disk following this skill's conventions, then returns a short confirmation — not the file contents.
 
-Prompt each subagent with: the topic, target file path, audience, adjacent files for cross-linking, and a pointer to this SKILL.md plus `../../rules/how-we-write-notes.md`. Per that doc's currency rule, any time-sensitive claim (versions, pricing, deprecated APIs, "current best practice," product names) must be verified with web search before it goes in the file — regardless of whether the user explicitly asked for "current" information. Material that isn't time-sensitive can still be written from native knowledge.
+Prompt each subagent with: the topic, target file path, audience, adjacent files for cross-linking, and a pointer to this SKILL.md plus `references/how-we-write-notes.md`. Per that doc's currency rule, any time-sensitive claim (versions, pricing, deprecated APIs, "current best practice," product names) must be verified with web search before it goes in the file — regardless of whether the user explicitly asked for "current" information. Material that isn't time-sensitive can still be written from native knowledge.
 
 The main agent handles: launching the scout (if needed), proposing structure, writing root and directory READMEs, launching file subagents, and verifying cross-references at the end.
 
@@ -173,9 +192,13 @@ The main agent handles: launching the scout (if needed), proposing structure, wr
 ## What NOT to do
 
 - Don't write thin, surface-level notes. Each file should be a genuine deep-dive that teaches something useful.
-- Don't use emojis decoratively. Only `1️⃣`–`9️⃣` for section numbering in intro files, and `✅❌⚠️💡` for callouts.
-- Don't write pseudocode. Code examples should be complete and runnable (or, for concept-heavy topics, replaced with concrete diagrams/traces).
+- Don't open a note with a definition. Section 1 leads with the reader's problem; the definition comes after.
+- Don't drop a table of every available option without marking the ones a reader actually reaches for. "Most workflows need only a few" is not a substitute for naming them.
+- Don't tell the reader to configure or run something without telling them what success looks like and how the common silent failure shows up.
+- Don't reach for an analogy you can't bound. State where it stops holding, or leave it out.
+- Don't use emojis decoratively. Only `1️⃣`–`9️⃣` for section numbering in intro files, and `✅❌⚠️💡` for callouts — with `⚠️` reserved for failure modes.
+- Don't write pseudocode. Every code block should be complete and runnable, the minimal baseline block included — minimal means fewer concerns, not fewer working lines. For concept-heavy topics, replace code with concrete diagrams or traces.
 - Don't create flat structures. If you have 15+ files, organize into directories.
 - Don't skip the ASCII tree diagram in the root README.
 - Don't forget cross-references. Every file should link to its "next" and mention prerequisites.
-- Don't ship a file without checking it against the completeness checklist in `../../rules/how-we-write-notes.md` (failure modes, limits/edge cases, trade-offs vs. alternatives, security/cost implications, a minimal runnable example, when not to use it) — skip only the items that genuinely don't apply to the topic.
+- Don't ship a file that fails any of the three non-negotiables in `references/how-we-write-notes.md`: what breaks first when the reader uses this for real, when *not* to use it, and how they know it's working. The subject-dependent items (limits, cost/security, trade-offs vs. alternatives) can be skipped where they genuinely don't apply — those three can't.
