@@ -2,16 +2,18 @@
 name: python-uv-workspace-monorepo
 description: >-
   Structure a Python monorepo that holds multiple independently deployable
-  services plus shared internal libraries, using a uv workspace: one
-  workspace-only root `pyproject.toml`, one `pyproject.toml` per service under
-  `services/`, one `pyproject.toml` per shared library under `libs/`, and
-  `[tool.uv.sources]` with `workspace = true` to wire internal packages
-  together. Use when deciding whether a service needs its own `pyproject.toml`,
-  setting up or reviewing a `uv` workspace, splitting a single bloated root
-  `pyproject.toml` into per-service dependency sets, keeping a service's Docker
-  image free of dependencies only a sibling service needs, or answering "should
-  each service have its own pyproject.toml" / "how do we share a library across
-  services without duplicating dependencies".
+  units plus shared internal libraries, using a uv workspace: one
+  workspace-only root `pyproject.toml`, one `pyproject.toml` per deployable
+  under `services/` or `apps/`, one `pyproject.toml` per shared library under
+  `libs/` or `packages/`, and `[tool.uv.sources]` with `workspace = true` to
+  wire internal packages together. Use when deciding whether a service needs
+  its own `pyproject.toml`, setting up or reviewing a `uv` workspace,
+  splitting a single bloated root `pyproject.toml` into per-service
+  dependency sets, keeping a service's Docker image free of dependencies only
+  a sibling service needs, choosing between `apps/`, `services/`, and
+  `libs/`/`packages/` for workspace member directories, or answering "should
+  each service have its own pyproject.toml" / "how do we share a library
+  across services without duplicating dependencies".
 ---
 
 # Python Monorepo: uv Workspaces Across Services
@@ -26,6 +28,34 @@ This applies once a repository holds more than one independently built artifact
 (more than one Dockerfile, more than one Lambda, more than one deployed
 process). A single-service repository does not need a workspace; give it one
 plain `pyproject.toml` at its root and stop reading here.
+
+## Naming The Top-Level Directory: `apps/` vs `services/` vs `libs/`/`packages/`
+
+The workspace mechanics in this skill — one `pyproject.toml` per member, glob
+workspace members, one shared lockfile, `--package`-scoped installs — work
+identically no matter what the top-level directories are named. The names
+themselves are a semantic choice, not a `uv` requirement, and are worth
+getting right before laying out the repo:
+
+- **`services/`** — specifically backend/network services and other
+  long-running service processes: an API, a worker, a queue consumer. Use
+  this name when *every* deployable in the repo fits that description.
+- **`apps/`** — any deployable/runnable application, backend or not: a CLI, a
+  scheduled batch job, a frontend, or a backend service. Use this name once
+  the repo has even one deployable that isn't a backend service. Don't run
+  both `apps/` and `services/` side by side for the same kind of thing — pick
+  one name for "things that get built and deployed on their own" and put
+  every such member under it.
+- **`libs/`** or **`packages/`** — reusable internal code with no deployable
+  of its own: consumed by other members via `{ workspace = true }`, never has
+  its own `Dockerfile`. Pick one of the two names and use it consistently.
+
+Decision rule: repo is backend-only → `services/`. Repo has any non-backend
+deployable → `apps/`. The rest of this skill illustrates the setup with
+`services/api` and `services/worker` because that's the common case for a
+Python workspace; if your repo's rule points to `apps/`, read every
+`services/<name>` example below as `apps/<name>` — nothing else about the
+workspace setup changes.
 
 ## Why Not One Root `pyproject.toml`
 
@@ -228,12 +258,14 @@ dependencies in their own cached layer: `references/docker-builds.md`.
 
 ## Adding a Service or Library
 
-1. Create `services/<name>/` (or `libs/<name>/`) with `src/<package>/` and a
-   `pyproject.toml` declaring only that member's own dependencies.
+1. Create `services/<name>/` (or `apps/<name>/`, or `libs/<name>/` — see
+   [Naming The Top-Level Directory](#naming-the-top-level-directory-apps-vs-services-vs-libspackages)
+   above) with `src/<package>/` and a `pyproject.toml` declaring only that
+   member's own dependencies.
 2. If it consumes a shared library, add the library by name to `dependencies`
    and add `<library> = { workspace = true }` under `[tool.uv.sources]`.
-3. Confirm it's picked up: `services/*` and `libs/*` globs cover it
-   automatically; an explicit `members` list needs a new line.
+3. Confirm it's picked up: `services/*` (or `apps/*`) and `libs/*` globs
+   cover it automatically; an explicit `members` list needs a new line.
 4. Run `uv lock` at the root to fold it into the shared lockfile, then `uv sync
    --package <name>` to verify it installs on its own with the dependencies
    you expect and nothing from a sibling service.

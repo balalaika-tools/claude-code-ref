@@ -8,17 +8,22 @@ description: >-
   artifact version to the infrastructure repository — including questions like
   "add a release workflow for this service", "how does this repo deploy", "wire up
   OIDC for the build", or "how do we ship a Lambda when Terraform is elsewhere".
-  Applies to repositories that hold application source and no Terraform tree. For
-  the Terraform and deploy-script side, and for a monorepo where both live
-  together, use the sibling `terraform-aws` and `deploy-scripts` skills instead.
+  Applies to repositories that hold application source and no Terraform tree,
+  whether the top-level source folder is named `apps/`, `services/`, or
+  `lambdas/`. For the Terraform and deploy-script side, and for a monorepo where
+  both live together, use the sibling `terraform-aws` and `deploy-scripts` skills
+  instead.
 ---
 # Application Repository Releases
 
 This skill covers the application side of a split repository layout: a repository
-that owns `apps/<service>/` or `lambdas/<service>/`, their tests, and a pipeline
-whose job ends at **"an immutable artifact is published and its version has been
-handed to the infrastructure repository."** Nothing here applies `terraform`, and
-this repository holds no credentials that could.
+that owns `apps/<service>/`, `services/<service>/`, or `lambdas/<service>/`, their
+tests, and a pipeline whose job ends at **"an immutable artifact is published and
+its version has been handed to the infrastructure repository."** Nothing here
+applies `terraform`, and this repository holds no credentials that could. The
+top-level folder name (`apps/` vs `services/`) is a naming convention only —
+everything below applies identically regardless of which one a given repository
+uses.
 
 The infrastructure side — Terraform, `deploy-app-<service>.sh`, the applying role
 — belongs to the sibling `terraform-aws` and `deploy-scripts` skills. The handoff
@@ -46,7 +51,7 @@ has to exist before the source moves.
 
 | Owns                                                                       | Does not own                              |
 | -------------------------------------------------------------------------- | ----------------------------------------- |
-| `apps/<service>/`, `lambdas/<service>/` — source, dependencies, tests | any`.tf` file                           |
+| `apps/<service>/` or `services/<service>/`, `lambdas/<service>/` — source, dependencies, tests | any`.tf` file                           |
 | `scripts/build-<service>.sh` — builds and publishes the artifact        | `deploy-*.sh`, `destroy-*.sh`         |
 | `scripts/open-release-pr.sh` — hands the version over                   | anything that runs`terraform`           |
 | Unit, integration, lint, and type gates for the service                    | `terraform test`, `tflint`, `trivy` |
@@ -68,7 +73,7 @@ Two rules follow from that table and are the whole point of the split:
 
 ```text
 <repo-root>/
-├── apps/<service>/            # container services: Dockerfile + source
+├── apps/<service>/            # or services/<service>/ — container services: Dockerfile + source
 ├── lambdas/<service>/         # Lambda functions
 │   ├── handler.py             # thin AWS entry point
 │   ├── pyproject.toml
@@ -195,7 +200,7 @@ ordering is now yours to get right.
 
 ## Adding A Service
 
-1. Add source under `apps/<service>/` or `lambdas/<service>/` with its own tests
+1. Add source under `apps/<service>/`, `services/<service>/`, or `lambdas/<service>/` with its own tests
    and, for Python, its own `pyproject.toml` and `uv.lock`.
 2. Copy the nearest `build-<service>.sh` and update the source directory, artifact
    name, and artifact destination. Follow
