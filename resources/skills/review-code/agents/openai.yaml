@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Code"
+  short_description: "Evidence-backed, read-only code reviews"
+  default_prompt: "Use $review-code to review the current branch against its requirements."

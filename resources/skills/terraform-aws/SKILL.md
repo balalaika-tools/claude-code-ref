@@ -51,17 +51,21 @@ Read the focused references when applicable:
 
 ## Required Workflow
 
-1. Inspect `CLAUDE.md`, `AGENTS.md`, and other repository-local instructions when
-   present. Resolve `TF_ROOT`, then inspect the Terraform tree, every affected
-   root's `required_version`, lockfiles, provider constraints, state boundaries,
-   and nearby modules before designing changes. Treat a missing `required_version`
+1. Resolve `TF_ROOT`, then inspect the Terraform tree, every affected root's
+   `required_version`, lockfiles, provider constraints, state boundaries, and
+   nearby modules before designing changes. Treat a missing `required_version`
    as unknown compatibility, not permission to use the current CLI's features.
    Also resolve the **repository topology**: application source may live in this
    repository (monorepo) or in a separate application repository whose pipeline
    publishes artifact versions into this one. It changes nothing about the
    Terraform tree, and two things about its edges — where workload source belongs,
-   and where an artifact version comes from. Detection rules and the handoff:
-   the `deploy-scripts` skill's `references/split-repo-releases.md`.
+   and where an artifact version comes from. Detection rules: the `deploy-scripts`
+   skill's `SKILL.md`, under "Repository Topology". Handoff mechanics once split:
+   its `references/split-repo-releases.md`. If the repository is new, the
+   topology is genuinely unclear, or `deploy-scripts` is unavailable to consult,
+   ask once and record the answer in that repository's `CLAUDE.md` and
+   `AGENTS.md` (create whichever is missing) — do not assume monorepo by
+   default.
 2. Resolve the target environment, AWS account, region, stack, and expected
    state path. Do not infer production as the default.
 3. Classify the change as platform-tier or application-tier and confirm the
@@ -195,9 +199,7 @@ child module is an interface choice, not a requirement to ban all data sources.
 
 ## Versions and Dependencies
 
-Choose the Terraform line and provider major after checking the repository,
-release notes, and upgrade guides; never call a patch "latest" in long-lived
-skill text. Read `required_version` before selecting a mechanism:
+Ch
 
 | Mechanism                                         | Minimum Terraform | Compatibility note                                                         |
 | ------------------------------------------------- | ----------------: | -------------------------------------------------------------------------- |

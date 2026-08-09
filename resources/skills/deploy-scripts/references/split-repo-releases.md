@@ -246,7 +246,7 @@ Three details that are easy to drop when adapting this file:
 - **`setup-uv` in the `publish` job, not just `test`.** Every job runs on its own
   fresh runner; a tool installed in `test` is gone by the time `publish` starts.
   `build-notifier.sh` needs `uv` on `PATH`, so the step has to be repeated here.
-- **The `test` job runs everything `app-service-releases`' Test And Lint Gates
+- **The `test` job runs everything `split-repo-app-releases`' Test And Lint Gates
   require**, not only `pytest`: lint, type checks, and `shellcheck` on this
   repository's own scripts. Gating the release on `pytest` alone lets an
   unlinted or non-executable script reach `publish`.
@@ -523,7 +523,7 @@ Its trust policy pins the application repository. Use the same composite
 `<service>-<environment>` environment name described in
 [`ci-workflows.md`](ci-workflows.md#generating-the-per-service-roles) — an
 application repository that holds several services (the preferred layout per
-`app-service-releases`) has the identical cross-service isolation gap if every
+`split-repo-app-releases`) has the identical cross-service isolation gap if every
 service shares the plain `prod` environment name:
 
 ```json

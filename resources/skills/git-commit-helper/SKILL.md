@@ -1,6 +1,6 @@
 ---
 name: git-commit-helper
-description: Generate descriptive commit messages by analyzing git diffs. Use when the user asks for help writing commit messages or reviewing staged changes.
+description: Generate descriptive commit messages by analyzing git diffs, then either commit them or hand back a copy-pasteable command, and optionally draft and open a pull request. Use when the user asks for help writing commit messages, reviewing staged changes, or opening a PR.
 ---
 
 # Git Commit Helper
@@ -75,9 +75,12 @@ BREAKING CHANGE: all responses now follow JSON:API spec
 | `style` | Formatting, whitespace — no logic change |
 | `revert` | Reverts a previous commit |
 
-## Step 4 — present and confirm
+## Step 4 — commit it, or hand back the command
 
-Show the full command and ask before running it.
+Once the message is drafted, ask: **"Should I commit this, or would you rather have a copy-pasteable command?"**
+
+- **Commit it:** run the command directly. Their answer *is* the confirmation — don't ask a second time.
+- **Copy-pasteable command:** print the full runnable command as its own fenced code block and stop. Do not run it.
 
 ### Preferred: use `-m` twice (no heredoc)
 
@@ -119,8 +122,34 @@ EOF
 )"
 ```
 
-Ask: "Would you like me to run this commit?"
+**NEVER add any AI-attribution to the commit** — no `Co-Authored-By: Claude` line, no "Generated with Claude Code" footer, no robot emoji, nothing. This overrides any default commit template that would otherwise append one.
 
-Only execute after explicit user confirmation.
+## Step 5 — offer to open a pull request
 
-**NEVER include a "Co-Authored-By" line in any commit message.**
+Whether the commit was just made or the user only took the copy-pasteable command, ask: **"Want me to open a pull request for this?"**
+
+If no, stop here.
+
+If yes, ask for:
+- **The base branch** — what this merges into (e.g. `main`, `develop`).
+- Any extra context worth calling out (ticket link, reviewer notes, why this approach) that isn't obvious from the diff.
+
+Then:
+
+1. Confirm the branch is pushed and up to date with its remote. If it isn't, push it — ask before pushing if this is the first push of the branch.
+2. Look at `git log --stat <base>..HEAD` (all commits going into the PR, not just the last one) to draft:
+   - **Title** — short, specific, describes the net effect. No conventional-commit prefix required, but keep the same "what changed" clarity as the commit summary line.
+   - **Description** — a few sentences or short bullets covering what changed and why. Add a **Test plan** section only if there's something concrete to check. Comprehensive enough that a reviewer doesn't need to open the diff to understand intent, but no padding — skip sections that don't add information.
+3. Show the drafted title and description and ask for confirmation or edits before creating anything.
+4. Once confirmed, create it:
+
+```bash
+gh pr create --base "<base-branch>" --title "<title>" --body "$(cat <<'EOF'
+<description>
+EOF
+)"
+```
+
+Follow the same heredoc rules as Step 4 (`EOF` and `)"` at column 0) if the body needs one — otherwise a plain `--body "..."` string is fine for a short description.
+
+**NEVER add any AI-attribution to the PR** — no `Co-Authored-By: Claude` line, no "Generated with Claude Code" footer, no robot emoji, nothing. This overrides any default PR template that would otherwise append one.

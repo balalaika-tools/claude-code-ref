@@ -1,5 +1,5 @@
 ---
-name: app-service-releases
+name: split-repo-app-releases
 description: >-
   Conventions for an application repository that owns service source code and its
   release pipeline while Terraform lives in a separate infrastructure repository.
@@ -12,7 +12,6 @@ description: >-
   the Terraform and deploy-script side, and for a monorepo where both live
   together, use the sibling `terraform-aws` and `deploy-scripts` skills instead.
 ---
-
 # Application Repository Releases
 
 This skill covers the application side of a split repository layout: a repository
@@ -45,13 +44,13 @@ has to exist before the source moves.
 
 ## What This Repository Owns
 
-| Owns | Does not own |
-|---|---|
-| `apps/<service>/`, `lambdas/<service>/` — source, dependencies, tests | any `.tf` file |
-| `scripts/build-<service>.sh` — builds and publishes the artifact | `deploy-*.sh`, `destroy-*.sh` |
-| `scripts/open-release-pr.sh` — hands the version over | anything that runs `terraform` |
-| Unit, integration, lint, and type gates for the service | `terraform test`, `tflint`, `trivy` |
-| A publish-only AWS role per service per environment | the applying role |
+| Owns                                                                       | Does not own                              |
+| -------------------------------------------------------------------------- | ----------------------------------------- |
+| `apps/<service>/`, `lambdas/<service>/` — source, dependencies, tests | any`.tf` file                           |
+| `scripts/build-<service>.sh` — builds and publishes the artifact        | `deploy-*.sh`, `destroy-*.sh`         |
+| `scripts/open-release-pr.sh` — hands the version over                   | anything that runs`terraform`           |
+| Unit, integration, lint, and type gates for the service                    | `terraform test`, `tflint`, `trivy` |
+| A publish-only AWS role per service per environment                        | the applying role                         |
 
 Two rules follow from that table and are the whole point of the split:
 
@@ -180,13 +179,13 @@ separate jobs and the dependency has to be declared.
 This repository knows less about the deployment than the monorepo did, and that is
 fine as long as the unknowns are passed in explicitly rather than inferred:
 
-| Needed | Where it comes from |
-|---|---|
-| Artifact bucket or ECR repository URL | repository/environment variable, or a platform SSM parameter the publish role may read |
-| Publish role ARN | repository variable, per environment |
-| Infrastructure repository and stack name | literals in this service's workflow and `open-release-pr.sh` |
-| Target environment | an explicit `workflow_dispatch` input, or the literal `dev` for merge-triggered releases |
-| Runtime configuration, secrets, memory, IAM | **none of this repository's business** — it belongs to the app stack's Terraform |
+| Needed                                      | Where it comes from                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Artifact bucket or ECR repository URL       | repository/environment variable, or a platform SSM parameter the publish role may read      |
+| Publish role ARN                            | repository variable, per environment                                                        |
+| Infrastructure repository and stack name    | literals in this service's workflow and`open-release-pr.sh`                               |
+| Target environment                          | an explicit`workflow_dispatch` input, or the literal `dev` for merge-triggered releases |
+| Runtime configuration, secrets, memory, IAM | **none of this repository's business** — it belongs to the app stack's Terraform     |
 
 The last row matters most. A service that needs a new environment variable, a new
 secret, or more memory needs a change in the infrastructure repository, not a

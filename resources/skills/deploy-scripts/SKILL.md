@@ -49,10 +49,11 @@ Detect the mode from the repository rather than asking first:
   infrastructure repository of a split.
 - Application source, **no** `Terraform/`, and a workflow that publishes to ECR or
   an artifact bucket → the application repository of a split. The
-  `app-service-releases` skill covers that side.
+  `split-repo-app-releases` skill covers that side.
 - Genuinely ambiguous — a new repository, or `Terraform/` beside one stray
   application directory — ask once, then record the answer in that repository's
-  `CLAUDE.md` so it is resolved permanently.
+  `CLAUDE.md` and `AGENTS.md` (create whichever is missing) so it is resolved
+  permanently for both Claude Code and Codex.
 
 One rule holds in both modes: **the build travels with the source; the apply
 travels with the Terraform.** `build-<service>.sh` belongs beside the source it

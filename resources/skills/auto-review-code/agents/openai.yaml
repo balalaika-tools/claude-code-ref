@@ -1,0 +1,7 @@
+interface:
+  display_name: "Auto Review Code"
+  short_description: "Safely fix review findings to convergence"
+  default_prompt: "Use $auto-review-code to review and safely fix the current branch until it converges."
+
+policy:
+  allow_implicit_invocation: false
