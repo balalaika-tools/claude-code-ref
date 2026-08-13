@@ -1,15 +1,16 @@
 ---
 name: note-reviewer
-description: "Audit a technical notes repository for explanation quality, accuracy, completeness, worked examples, production awareness, and the cold-reader journey from basic concepts to a usable baseline and advanced operations. Produces per-file findings, reading-path findings, and a repo-level missing-note report without editing notes. Use whenever the user wants to audit, review, fact-check, or find learning-curve and coverage gaps in a notes repo or knowledge base."
+description: "Audit a technical notes repository for explanation quality, safety, accuracy, completeness, worked examples, payoff placement, production awareness, and the cold-reader journey from a useful baseline to advanced operations. Produces independent ordering and explanation verdicts per note, reading-path findings, regression metrics, and a repo-level missing-note report without editing notes. Use whenever the user wants to audit, review, fact-check, or find learning-curve and coverage gaps in a notes repo or knowledge base."
 ---
 
 # Notes Repo Auditor
 
-You are auditing a technical notes repository — inspecting `.md` files and producing a report of exactly what needs to change and why. The audit has three required parts:
+You are auditing a technical notes repository — inspecting `.md` files and producing a report of exactly what needs to change and why. The audit has four required parts:
 
-1. A **per-file pass** grades notes that exist (dimensions 1–5).
-2. A **reader-journey pass** follows the named learning paths in order and tests whether a first-time reader reaches a useful baseline before production complexity.
-3. A **repo-level gap pass** asks which notes or pedagogical bridges should exist and do not.
+1. A **per-file content pass** grades notes that exist (dimensions 1–5).
+2. A **per-file learning pass** issues separate ordering and explanation verdicts, including safety, payoff distance, register ratio, and the restatement test.
+3. A **reader-journey pass** follows named learning paths in order and tests whether a first-time reader gets a useful result within two entries and before production complexity.
+4. A **repo-level gap pass** asks which notes or pedagogical bridges should exist and do not.
 
 A clean result in one pass does not compensate for a failure in another. You do not edit note files or decide whether findings get applied; a human reviews the reports and a fix-agent applies approved changes later.
 
@@ -19,16 +20,19 @@ A clean result in one pass does not compensate for a failure in another. You do 
 
 The repo has several subfolders (e.g. `aws/`, `backend/`, `langfuse/`), each with several `.md` files.
 
-> **Rule**: This section applies only when running in **Claude Code** (where the `Agent` tool is available). Outside Claude Code, audit subfolders one at a time yourself, then run the reader-journey pass and finally the gap pass over the whole tree.
+> **Rule**: When parallel subagents are available and permitted, use the isolated ownership below. Otherwise audit subfolders one at a time yourself, then run the reader-journey pass, the gap pass, and metrics aggregation over the whole tree.
 
-If there are multiple subfolders, launch one subagent per subfolder (all `Agent` tool calls in a single message so they run concurrently). Give each subagent this SKILL.md, the rules file at `references/how-we-write-notes.md`, and its assigned subfolder path. Rules for staying in your lane:
+If there are multiple subfolders, launch one subagent per subfolder concurrently, in waves when capacity is limited. Give each subagent this SKILL.md, both required references, and its assigned subfolder path. Rules for staying in your lane:
 
 - Read and audit only the `.md` files inside the assigned subfolder. Don't wander into other subfolders — another sub-agent owns those and is working from an identical copy of these instructions.
 - Notes in the same subfolder usually share vocabulary and cross-reference each other. Read the whole subfolder together, not file-by-file in isolation, so you catch inconsistencies between files — e.g. the same term defined two different ways in two notes.
 - If a subfolder has 30+ files, split it into two passes rather than holding all of it in context at once. Otherwise one pass covers the whole subfolder.
 - Write findings to a single audit file mirroring the subfolder's name, e.g. `_audit/aws.audit.md` for `aws/`. Don't touch any other audit file, and don't touch any note file.
+- Record the two per-note verdicts and raw metric counts in that audit file so the main agent can aggregate them without reinterpreting the notes.
 
 Launch the whole-tree reader-journey agent and gap agent alongside the per-subfolder agents. They write different files and must not be merged into a per-folder pass.
+
+After the per-folder and reader-journey reports finish, aggregate their recorded counts into `_audit/metrics.audit.md`. Do not launch this aggregation early; it depends on completed per-file verdicts.
 
 ### The reader-journey pass is one whole-tree cold read
 
@@ -38,7 +42,7 @@ For each path, start with only the knowledge promised by its audience statement.
 
 ### The gap pass is one whole-tree agent, not one per subfolder
 
-Launch it in the same message as the per-subfolder agents — it's read-only and writes only `_audit/gaps.audit.md`, so it can't collide with them. Give it this SKILL.md, the rules file, and the repo root.
+Launch it in the same message as the per-subfolder agents — it's read-only and writes only `_audit/gaps.audit.md`, so it can't collide with them. Give it this SKILL.md, both required references, and the repo root.
 
 It must see the **entire tree at once**, including every subfolder's READMEs and reading paths. That's not an efficiency preference: an absence is only visible against the full picture, and a subfolder-scoped agent will always conclude that its own folder's silence on a topic is someone else's folder's job. Never split this pass by subfolder, and never let a per-subfolder agent write gap findings — a per-file audit that starts speculating about missing files stops being an audit.
 
@@ -46,13 +50,18 @@ To fit a large tree, this agent reads breadth-first rather than every word: ever
 
 ---
 
-## The standard you're auditing against
+## Required references
 
-The house style lives in `references/how-we-write-notes.md`. **Read it before auditing anything.** It is the single source of truth for the audience definition, the detail-vs-simplicity balance, the required teaching moves, the completeness questions, currency, and tone — and it is the standard these notes were written to. Don't audit against a paraphrase of it, and don't apply a criterion you can't point to in it.
+Read both files completely before auditing anything:
 
-This skill adds only what's specific to auditing: the calibration anchors below, the per-file checks, the cold-reader journey protocol, the severity ladder, the report formats, the orchestration rules, and the audit-only boundary.
+1. `references/how-we-write-notes.md` is the writing contract and single source of truth for audience, teaching moves, safety, completeness, currency, and tone.
+2. `references/learning-curve-and-explanation-audit.md` defines the mandatory detection heuristics, metric counting, two-axis verdicts, safety scan, and regression anchors.
 
-One reminder from that file, because every judgment here rests on it — the reader is **a competent practitioner in the general domain, encountering this specific subject for the first time.** Concretely: a backend engineer reading a note on Langfuse tracing knows what an API, a decorator, and latency are; they do not yet know traces, spans, generations, or scores. If a note assumes the reader already knows the thing it is supposed to be teaching, that's a failure, not an acceptable shortcut.
+Don't audit against a paraphrase of either file, and don't apply a criterion you can't point to in them.
+
+This skill supplies the workflow, cold-reader protocol, severity ladder, report formats, orchestration rules, and audit-only boundary. The references carry the detailed contract and mechanical checks.
+
+One reminder from the house-style file, because every judgment here rests on it — the reader is **a competent practitioner in the general domain, encountering this specific subject for the first time.** Concretely: a backend engineer reading a note on Langfuse tracing knows what an API, a decorator, and latency are; they do not yet know traces, spans, generations, or scores. If a note assumes the reader already knows the thing it is supposed to be teaching, that's a failure, not an acceptable shortcut.
 
 ---
 
@@ -116,9 +125,9 @@ Notes in this repo often include a worked example that combines several tools to
 >
 > *Production-grade:* separate spans for embedding, retrieval, and generation; retrieved document IDs and scores attached as span metadata; the Langfuse trace ID injected into the OTel span so either system can be used to pivot into the other; sampling configured so trace volume doesn't blow up at scale; explicit note on what not to put in trace metadata.
 
-**Distinction to hold onto:** severity depends on how the note frames the example. If it's explicitly labeled a minimal illustration with a pointer to further reading, a shallow example is a `FIX-MED` at most. If it's the note's main worked example and a reader would reasonably copy it into a real project, treat gaps here as `FIX-HIGH` or higher — the same standard as the note's own explanations, not a discount for being "just an example."
+**Distinction to hold onto:** severity depends on how the note frames the example. If it's explicitly labeled a minimal illustration with a pointer to further reading, a shallow integration example is a `FIX-MED` at most. This discount never applies to toy-not-correct safety defects. If it's the note's main worked example and a reader would reasonably copy it into a real project, treat gaps here as `FIX-HIGH` or higher — the same standard as the note's own explanations, not a discount for being "just an example."
 
-One thing *not* to flag here: a bare minimal block that is immediately followed by a hardened one is the required minimal-first, hardened-second sequence from the rules file, not a shallow example. Judge the pair, not the first block.
+One thing *not* to flag here: a small, correct baseline block that is immediately followed by a hardened one is the required baseline-first, hardened-second sequence from the writing contract, not a shallow example. Judge the pair, but still apply the toy-not-correct scan to both blocks.
 
 ### 5. Reader traction — does the note land?
 
@@ -134,6 +143,23 @@ Dimensions 1–4 measure the content. This one measures the reader's experience 
 - **`⚠️` spent correctly** — reserved for failure modes, not general emphasis. `FIX-LOW`, and only if it's actually misleading the reader's scan.
 
 Don't apply this dimension to a file whose stated scope is a reference index or a link list. And don't let its mechanical checks turn into six findings per file — the "don't manufacture findings" rule in *Ground rules* binds here hardest, because these checks are the easiest in the skill to run up a score with.
+
+---
+
+## The mandatory per-file learning pass — two independent verdicts
+
+Run the full protocol in `references/learning-curve-and-explanation-audit.md` after dimensions 1–5. Do not infer either verdict from the other: runnable code does not prove understanding, and elegant prose does not excuse a buried payoff.
+
+For every teaching note:
+
+1. **Run the toy-not-correct scan first.** Unsafe simplification is `FIX-CRITICAL` regardless of labels or later hardening.
+2. **Issue the ORDERING verdict.** Record total lines, the first composed payoff line, payoff distance, short-version contract, baseline-before-hardening order, deferral contract, assembly, density, and prerequisite placement.
+3. **Issue the EXPLANATION verdict.** Record raw prescriptive and explanatory counts, register ratio, first-use jargon, problem-before-mechanism order, rule justification, concrete-before-abstract order, and the restatement result.
+4. **Run the restatement test last.** Treat it as the acceptance criterion for explanation, not as a summary of the ordering result.
+
+Apply findings in this priority order: toy-not-correct; unglossed jargon, unexplained rules or defenses, and mechanisms introduced without their problem; buried or hardened-first baselines; restatement failure; then medium readability findings. Report distinct corrections separately, but do not create duplicate lines for one root cause merely because several heuristics detected it.
+
+For a pure index, lookup reference, or link list, write `ORDERING: n/a` and `EXPLANATION: n/a` with the role reason. Do not quietly omit the verdicts.
 
 ---
 
@@ -153,6 +179,7 @@ For each file in path order, answer without borrowing from later material:
 6. **Stop point** — can a reader whose needs are already met stop confidently, and is the reason to continue concrete?
 7. **Canonical ownership** — is a full schema, implementation, or option set repeated instead of linked to its owner?
 8. **Production continuation** — does the collection provide a clear continuation from this path to failure modes, operational symptoms, limits, recovery, and the tricks that address them, without forcing those details into the foundation?
+9. **Payoff position** — does the path deliver a runnable result or concrete worked outcome within its first two entries, and does its order read do → understand → harden?
 
 Run a teach-back test at each milestone: can the reader state the problem, default mechanism, visible success, first real failure, and reason for the next layer in plain language? If not, identify the earliest file where the chain broke. Do not blame a later note for a prerequisite the earlier path failed to establish.
 
@@ -170,6 +197,7 @@ Use one block per audited path:
 # <README path> :: <path name>
 Outcome: <capability the path promises>
 Files: <ordered relative paths>
+PAYOFF: entry <N> (PASS|FAIL; threshold 2)
 Summary: N high, N med, N low
 
 FIX-HIGH: <earliest break in the path> — <specific structural or file change>.
@@ -179,6 +207,8 @@ NO-ACTION: <why the path progresses cleanly, only when worth recording>.
 ```
 
 Every finding names the earliest responsible README or note and the correction. Do not copy per-file findings unless their reader harm only becomes visible in sequence. If the repo defines no named learning paths, emit one `FIX-HIGH` block against the root README instead of inventing a path silently.
+
+Flag a path whose first runnable or concrete result occurs after entry two as `FIX-HIGH`; name that entry and prescribe a do → understand → harden reorder. Check repeated baselines across notes for drift: presentation-only duplication is `FIX-LOW`, while contradictory correctness or safety guidance inherits the reader-harm severity.
 
 ---
 
@@ -254,15 +284,17 @@ Two consequences worth stating outright, because they invert the intuitive defau
 
 ## Output — the per-file audit report
 
-The per-file audit files, `_audit/reader_paths.audit.md`, and `_audit/gaps.audit.md` are your only deliverables. Write per-file findings as instructions for a future fix-agent, not as a description of your process. No narration ("this report covers…"), no restating the rubric, no hedging. Every line under a file header is a direct, executable instruction.
+The per-file audit files, `_audit/reader_paths.audit.md`, `_audit/metrics.audit.md`, and `_audit/gaps.audit.md` are your only deliverables. Write per-file findings as instructions for a future fix-agent, not as a description of your process. No narration ("this report covers…"), no restating the rubric, no hedging.
 
 Format, one block per note file, using its path relative to the repo root:
 
 ```
-# <relative/path/to/note.md>
+# <relative/path/to/note.md> (<N> lines)
+ORDERING: payoff line <L>/<N> (<ratio>, PASS|FAIL); short version PASS|FAIL|n/a; length budget PASS|FAIL|n/a.
+EXPLANATION: register <P>:<E> (PASS|FAIL; <P> markers/<E> explanatory paragraphs); restatement PASS|FAIL|n/a; unglossed first uses <N>; unexplained rules/defenses <N>; intuition-building explanation yes|no|n/a.
 Summary: N critical, N high, N med, N low
 
-FIX-CRITICAL: <what's wrong> — <what the correction is>. Source: <url>, checked <date>.
+FIX-CRITICAL: <unsafe or actively misleading line> — <specific safe correction>.
 FIX-HIGH: <what's missing> — <what to add>.
 FIX-MED: <what section/line> — <what to change and why, in one sentence>.
 FIX-LOW: <the nit> — <the fix>.
@@ -270,9 +302,9 @@ NO-ACTION: <what's already solid, one line, only if worth flagging>.
 ```
 
 Rules for writing these lines:
-- One instruction per line. Three currency issues in a file means three `FIX-CRITICAL` lines, not one bundled paragraph.
-- `Summary:` is the only non-instruction line — a human triage aid for the review step between phases, not an action for the fix-agent. Everything else is a command.
-- Every `FIX-CRITICAL` tied to a currency issue must include a source URL and the date you checked it — a fix-agent can't correct what it can't verify, and a human reviewer can't sanity-check a bare assertion.
+- One instruction per line. Three distinct currency issues require three separate `FIX-*` lines at reader-harm-calibrated severities, not one bundled paragraph.
+- `ORDERING:`, `EXPLANATION:`, and `Summary:` are the only non-instruction lines. Keep the two verdicts present even for clean notes; use `n/a` only with a role reason.
+- Every finding based on a time-sensitive external fact must include a source URL and the date checked, whatever its severity. A source is not required for a directly visible unsafe code pattern; cite its file line instead.
 - Be concrete enough that the fix-agent doesn't have to guess. Bad: "explain caching better." Good: "add what the cache key is and when it invalidates — currently states results are cached but not on what."
 - If a file has no issues worth flagging, still emit its header with a single `NO-ACTION` line. Silence reads as "I forgot to check this," not "this passed."
 - Don't invent a finding to avoid an empty section. A short block is a legitimate result.
@@ -289,10 +321,41 @@ Each contains one block (as above) per `.md` file in that subfolder — nothing 
 
 ---
 
+## Output — `_audit/metrics.audit.md`
+
+Aggregate the raw per-file counts and reader-path results after the other audit passes complete. Use two tables and no narrative:
+
+```
+# Audit metrics — <checked date>
+Scope: <N> teaching notes, <N> reference/index notes, <N> reading paths
+
+## Ordering
+| Metric | Current | Pre-remediation baseline | Target |
+|---|---:|---:|---:|
+| Complete short-version contract | N/N | 1/43 | N/N |
+| Payoff distance > 0.25 | N/N | 40+/43 | 0 |
+| Over 500 lines without justification | N/N | 7/43 | 0 |
+| Paths with a result within two entries | N/N | 0/5 | N/N |
+| Toy-not-correct examples | N | not recorded | 0 |
+
+## Explanation
+| Metric | Current | Pre-remediation baseline | Target |
+|---|---:|---:|---:|
+| Repo-wide register ratio | P:E | ~21:1 | <=2:1 |
+| Unglossed first uses | N | 343 | 0 |
+| Notes with intuition-building explanation | N/N | ~8/43 | N/N |
+| Notes passing restatement | N/N | not recorded | N/N |
+| Rules/defenses without mechanism | N | not recorded | 0 |
+```
+
+Use the historical values only for `auth-notes`; write `n/a` for another repository. Sum marker and explanatory-paragraph counts before computing the repo ratio. Do not average ratios, and do not turn the intuition-building metric into a phrase quota.
+
+---
+
 ## Ground rules
 
 - You do not edit note files. You do not apply fixes. That happens in a separate phase, separate session, after a human reviews this report.
-- Every `FIX-CRITICAL` or currency claim needs a source and a date — not "this seems outdated."
+- Every time-sensitive factual or currency claim needs a source and checked date — not "this seems outdated." Directly visible safety defects need an exact file line and correction instead.
 - Severity comes from the reader-harm ladder above, not from which dimension the finding came out of.
 - Audit a note against its own stated scope first, general completeness second — don't turn scope creep into a finding. The one exception is the three completeness non-negotiables; those apply to any note the reader will act on, whatever its scope says.
 - If a file is genuinely solid, say so in one `NO-ACTION` line and move on. Don't manufacture findings to look thorough. The same holds for the gap pass and `NO-GAPS`.
@@ -300,6 +363,7 @@ Each contains one block (as above) per `.md` file in that subfolder — nothing 
 - Judge a worked example by the standard it sets for itself: if it's presented as the real way to do something, hold it to that; if it's explicitly a minimal illustration, don't grade it as if it were a reference implementation.
 - Do not excuse an abrupt learning path because every advanced fact is accurate. Grade when the reader encounters the mechanism, not only whether it is eventually explained.
 - Production awareness is the destination, not the entry price. Require failure modes, limits, recovery, and practitioner tactics eventually, while preserving a concept-first baseline and useful stop point.
+- Preserve useful depth. Recommend reordering, an entry point, or a split with a named boundary; never solve learning-curve inversion by deleting hardening, citations, or failure modes.
 
 ---
 
@@ -310,7 +374,11 @@ Each contains one block (as above) per `.md` file in that subfolder — nothing 
 - Don't bundle multiple distinct issues into one `FIX-*` line.
 - Don't flag a currency issue without a source URL and the date checked.
 - Don't rank every currency finding as `FIX-CRITICAL` — rank it by what happens to the reader who acts on it.
-- Don't apply a criterion you can't point to in the rules file, and don't restate one in your own words where citing it would do.
+- Don't apply a criterion you can't point to in the required references, and don't restate one in your own words where citing it would do.
+- Don't accept runnable code as evidence that the mechanism is explained, or a passing ordering verdict as evidence that the explanation verdict passes.
+- Don't demand runnable code from a conceptual note; require the concrete worked trace defined in the references.
+- Don't fix an explanation deficit by adding another warning, rule, or citation. Prescribe the causal mechanism, consequence, or attacker sequence.
+- Don't downgrade toy-not-correct code because it is labeled simplified, introductory, or non-production.
 - Don't skip a file's block when it's clean — emit `NO-ACTION` instead of silence.
 - Don't skip the full-prose reader-journey pass because READMEs, links, or individual files look well structured.
 - Don't manufacture findings on a solid file just to look thorough — dimension 5's checks are the easiest place to do this by accident.

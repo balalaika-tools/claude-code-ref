@@ -4,6 +4,15 @@ This is the house style for note prose. It governs two jobs: writing a new note,
 
 Most of what follows is a **required move**, not a prohibition. A note that only avoids the failure modes comes out accurate and teaches nothing. The devices below are what make it land on a first read and stick after.
 
+## Contents
+
+- [Audience and teaching balance](#who-the-note-is-for)
+- [Collection and note ordering](#the-collection-has-a-learning-contract)
+- [The short version](#open-with-a-result-that-also-teaches)
+- [Explanation moves](#ground-every-term-at-first-use)
+- [Examples and safety](#examples-baseline-first-hardened-second)
+- [Density, altitude, and completion](#mark-altitude-and-control-prescriptive-density)
+
 ## Who the note is for
 
 Write for **a competent practitioner in the general domain, meeting this specific subject for the first time.** They know the general basics; they don't know this tool or concept yet.
@@ -34,13 +43,35 @@ The goal is not merely complete notes. It is a path that takes a first-time read
 
 A single file does not need to carry all four layers. The **full learning path as a whole does**; shorter paths may stop at a declared milestone. Each file needs one primary role: foundation/tutorial, implementation, deep dive, decision guide, or reference. Do not turn every foundation note into a production reference in the name of completeness.
 
-Three rules keep the progression usable:
+Four rules keep the progression usable:
 
+- **Order paths do → understand → harden.** Every reading path produces a runnable result or concrete worked outcome within its first two entries. A path may revisit an earlier note for greater depth later; label the revisit instead of pretending the sequence is linear.
 - **Teach the smallest complete system before its advanced variants.** A reader should see one durable task before a stateful workflow, one claim before fencing and reconciliation, or one request before a full deployment topology.
 - **Provide stop points.** After the conceptual and minimal layers, say who can stop there and which new requirement makes the next layer necessary.
 - **Give each mechanism one canonical owner.** One note owns the full schema, implementation, or option set. Other notes use a small trace or excerpt and link to that owner instead of repeating the reference material.
 
 A first-time path fails this contract if every individual note is accurate but the reader must learn several production mechanisms before they can explain or build the baseline.
+
+## Open with a result that also teaches
+
+Every actionable note opens with `## The short version` after the title and audience line, before prerequisites and numbered sections. It is neither an abstract nor a contents list. A cold reader who stops there gets a small correct result and enough explanation to say why it works.
+
+The block contains, in order:
+
+1. Two to four sentences stating the problem, the one-line mental model, and why the inputs are sufficient.
+2. `**What you need (N things):**` followed by an enumerated list of the concrete inputs. The count is required: it bounds the task for a reader who does not yet know how much machinery is involved.
+3. `**The code:**` with 10–25 runnable lines, or `**Worked example:**` with named actors, real values, one transition, and one observable outcome.
+4. `**Success signal:**` with the exact output, status, or observation.
+5. `**Not handled yet:**` with every deferred production concern linked to its later section.
+
+Keep the block at 40 lines or fewer and end it by line 80. Runnable code appears by line 80 or 15% of the note, whichever comes first. A prerequisite never sits before the block; if one sentence of context is essential, supply it inline. Put advisory prerequisite links after the payoff.
+
+The short version has two independent acceptance tests:
+
+- **Execution:** a reader can run or follow it and observe the stated result.
+- **Restatement:** a competent reader new to the subject can explain what the inputs are, why those inputs are sufficient, and why the mechanism produces that result.
+
+A code block can pass execution and fail restatement. Both must pass.
 
 ## Lead with the problem, then state the *why*
 
@@ -53,6 +84,34 @@ Section 1 of every note has a fixed job: put the reader in the situation that ma
 The test: a reader who stops after three sentences should be able to say what this is *for*. If your opening would work equally well as a dictionary entry, it isn't an opening.
 
 The same obligation holds section by section, not just at the top. For any concept, say what problem it solves — not just what it is. Cover what's easy to get wrong, and when to use it vs. when not to.
+
+## Ground every term at first use
+
+Never require the reader to leave the note to learn its vocabulary. At the first use **in this note**, expand acronyms and add a short inline gloss that answers: *what kind of thing is this?* Keep cross-links for depth, not as the only definition.
+
+❌ "The verifier picks a key from the JWKS using `kid`."
+
+✅ "The verifier picks a key from the **JWKS** — a JSON file the issuer publishes with its current public keys — using `kid`, the short key identifier in the token header."
+
+This applies inside *The short version*. Familiarity elsewhere in the collection does not excuse an ungrounded first use here; search-engine readers and readers following a different path still need the six-word gloss.
+
+## Introduce a mechanism through the problem it solves
+
+Before describing how a mechanism works, show the world without it and the consequence. "A JWKS lists public keys" describes a thing. "A pasted public key works until rotation makes every request fail; a JWKS lets the verifier follow the issuer's current keys" explains why the thing exists.
+
+For every mechanism introduced, ask: **what breaks if this does not exist?** If the reader cannot answer, the mechanism was described but not explained. State the rule only after this causal explanation; a rule is the conclusion of understanding, not a substitute for it.
+
+## Explain the adversary before the defense
+
+For security controls, the attack is the explanation. Walk through the attacker's input, the verifier or system decision they exploit, and the observable consequence before prescribing the defense. End by naming exactly which choice the defense moves from untrusted input to trusted configuration.
+
+Do not stop at "pin the algorithm." Show that an attacker changes `alg`, why a permissive verifier obeys it, which key material is reused incorrectly, and how an explicit algorithm list prevents the token from choosing the verification method. Keep the attack concrete enough that the reader can recognize the same bug in differently shaped code.
+
+## Put concrete instances before abstractions
+
+Use a real value before a definition table. Show `"aud": "https://api.orders.example.com"` reaching the billing API and being refused before listing every claim type. Tables, taxonomies, full schemas, and production topologies remain valuable reference material, but they follow the instance that gives their rows meaning.
+
+The test is simple: could the reader point to one actor, value, transition, and consequence before being asked to generalize? If not, the section started too high.
 
 ## Work with the model the reader already has
 
@@ -108,33 +167,63 @@ These are the reader's questions, roughly in the order they'll ask them. Phrased
 
 Judge against the note's own stated scope first, general completeness second. The three non-negotiables are not scope-dependent: if the note teaches something the reader will act on, all three apply.
 
-## Examples: minimal first, hardened second
+## Examples: baseline first, hardened second
 
-"Production-grade" and "minimal runnable" are both required, in that order. The resolution is sequence, not compromise:
+**No production mechanism may appear before the baseline runs end to end.** Caching, rotation, retries, pooling, discovery or metadata indirection, emergency hooks, observability, and failure taxonomies are hardening. None may be the reader's first encounter with a concept. Show the baseline, state its operational risk in one line, link forward, and only then harden it.
 
-1. **The first example in a section is the smallest thing that runs and produces visible output.** No error handling, no config indirection, no retries. The reader's goal here is a baseline they can trust.
-2. **Then harden it** in a second block, with a comment on each addition naming the failure it prevents.
+Use this structural test: **delete every section after the first runnable end-to-end example. Does what remains still teach a correct, usable baseline?** If not, the note is ordered wrong.
 
-```python
-# Baseline — works, not safe for production
-client = Client(api_key=os.environ["API_KEY"])
+The sequence inside the note is:
 
-# Hardened — the default timeout is unbounded, so one hung request
-# holds the worker until the process is restarted
-client = Client(api_key=os.environ["API_KEY"], timeout=30.0)
-```
+1. Run the smallest correct end-to-end example and show its visible output.
+2. Explain why it works until the reader can restate the mechanism.
+3. Name omissions in **Not handled yet** and link each one forward.
+4. Harden in a later block, with a comment on each addition naming the failure it prevents.
+5. Finish with an integration or end-to-end check that you execute exactly as displayed. Include the required database connections, services, fixtures, and synchronization; a comment explaining why the shown block cannot run in its stated environment makes it a sketch, not a test.
 
-One 60-line production block teaches less than these two blocks, despite containing more. The diff between them *is* the lesson.
+> **Principle**: simplify the operational, never the correctness-critical. A minimal example should be acceptable in a junior engineer's pull request: small and unpolished, not unsafe.
 
-Where the example shows several tools combined to solve a real problem, the hardened version must show how they genuinely fit together — real integration, correct structure, the non-obvious tactics a practitioner actually reaches for — not just that each piece runs. The test: could a reader who copied it explain *why* it's built that way? If the example is explicitly a minimal illustration, that's fine — keep it labeled as one.
+Never omit these when they apply:
+
+- algorithm or cipher pinning; untrusted input never chooses the algorithm
+- audience, issuer, expiry, or freshness validation
+- constant-time comparison for secrets or signatures
+- TLS certificate verification; never use `verify=False` or `rejectUnauthorized: false`
+- parameterized queries; never build SQL through string interpolation
+- keeping secrets, credentials, and tokens out of logs and error strings
+
+Safe deferrals include caching and connection reuse, retries and backoff, key rotation, metrics and tracing, granular error mapping, configuration indirection, and dependency injection. Every deferral must appear in **Not handled yet** with a link to the section that owns it; a minimal example without this contract is not publishable.
+
+One 60-line production block teaches less than a small baseline followed by a hardened diff.
 
 Concept-heavy notes follow the same ladder without pretending diagrams are code:
 
 1. Start with a small concrete trace: named actors or rows, one input, one transition, and one visible outcome.
-2. Replay the same trace with the first crash, race, or scale constraint that requires hardening.
-3. Only then introduce the full schema, decision matrix, or production topology.
+2. Explain the causal mechanism behind the outcome.
+3. Replay the trace with the first crash, race, or scale constraint that requires hardening.
+4. Only then introduce the full schema, decision matrix, or production topology.
 
-A 100-line SQL block is not the minimal example merely because it is self-contained. The reader must be able to state what changed and why before reading the complete implementation.
+A 100-line SQL block is not minimal merely because it is self-contained. The reader must be able to state what changed and why before reading the complete implementation.
+
+## Mark altitude and control prescriptive density
+
+Uniform density makes core ideas and rare edge cases look equally important. Mark the reading altitude explicitly:
+
+- `> **Core:**` — required to understand or use the baseline
+- `> **Production:**` — required before shipping, skippable while learning
+- `> **Edge case:**` — conditional material to read only when its condition occurs
+
+Rules, warnings, and correct/incorrect markers are conclusions. They follow the mechanism or consequence that earns them. In a teaching note, write at least one paragraph of mechanism or consequence for every two `> **Rule:**`, `⚠️`, `❌`, or `✅` markers. A large imbalance is a checklist wearing a tutorial's clothes.
+
+Split notes over 500 lines unless one file is necessary for a concrete reason; record that reason near the top as `<!-- length-justification: ... -->`. Hardening may occupy most of a note, but never precedes the baseline.
+
+## Finish with the restatement test
+
+Accuracy and runnable code are necessary, not sufficient. Before shipping, ask:
+
+> Could a competent engineer who is new to this subject, having read only this note, explain the concept correctly to a colleague in their own words without quoting it?
+
+If the reader can only recite rules, the note transferred instructions rather than understanding. Apply this test to *The short version* separately and to the completed note as a whole.
 
 ## Headers make claims; one insight per note
 

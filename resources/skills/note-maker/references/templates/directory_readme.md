@@ -26,10 +26,11 @@ Every directory gets one. Directory READMEs are **intentionally minimal** — ju
 
 ## Reading Order
 
-**First-time outcome**: {the smallest useful capability this path teaches}.
+**Working result by entry 2**: {the smallest runnable result or concrete worked outcome}.
 
-1. **Topic** — why this comes first and what it unlocks
-2. **Topic** — builds the minimal usable mechanism
+1. **Do: Topic** — produces the first visible result
+2. **Understand: Topic** — explains why it works; name this explicitly if it revisits entry 1
+3. **Harden: Topic** — adds the first production requirement, only when needed
 
 **Stop here if**: {the baseline meets the reader's need}. Continue when {specific hardening, scale, or operational requirement appears}.
 
@@ -41,4 +42,4 @@ Every directory gets one. Directory READMEs are **intentionally minimal** — ju
 - [Other Section](../path/README.md) — if relevant
 ```
 
-The reading order is a learning contract, not a mirror of every file in the directory. Keep reference-only or specialist notes in Contents and route to them only when their requirement becomes relevant.
+The reading order is a learning contract, not a mirror of every file in the directory. Every path reaches a runnable result or concrete worked outcome within its first two entries and follows **do → understand → harden**. Keep reference-only or specialist notes in Contents and route to them only when their requirement becomes relevant.
