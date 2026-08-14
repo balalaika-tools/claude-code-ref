@@ -1,0 +1,16 @@
+[project]
+name = "sample-api"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi>=0.141.1,<1",
+    "sample-shared",
+    "uvicorn[standard]>=0.52.3,<1",
+]
+
+[tool.uv.sources]
+sample-shared = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.32.0,<2"]
+build-backend = "hatchling.build"

@@ -1,96 +1,204 @@
-# Docker Builds For A Workspace Member
+# Production Docker Builds For A Workspace Member
 
-Build from the **workspace root** as the Docker build context. A service's
-dependency resolution and its local path dependencies (shared libraries) both
-require files outside `services/<name>/` — the root `pyproject.toml`, the
-shared `uv.lock`, and the source of every workspace member it imports. Run
-`docker build -f services/api/Dockerfile .` from the repository root, not
-`docker build .` from inside the service directory.
+## Contents
 
-## Two-Stage Sync For Layer Caching
+- Version contract
+- Build context and dependency metadata
+- Required multi-stage shape
+- Sync flags
+- `.dockerignore`
+- Service variants
+- Validation
 
-Split the dependency install from the source copy so that changing service
-code doesn't invalidate the third-party dependency layer:
+Use `../assets/workspace-template/services/api/Dockerfile` and
+`../assets/workspace-template/.dockerignore` as the canonical files. Copy and
+adapt them; do not rewrite the pattern from memory.
+
+## Version Contract
+
+Keep these version surfaces aligned:
+
+```text
+.python-version                         3.13.14
+member requires-python                  >=3.13,<3.14
+Docker ARG PYTHON_VERSION               3.13.14
+root [tool.uv] required-version         ==0.12.4
+Docker ARG UV_VERSION                   0.12.4
+```
+
+The exact Python patch belongs in `.python-version`, Docker, and CI. The member
+metadata uses a compatible minor range because it describes package
+compatibility rather than selecting an interpreter. Put the same range on
+every service and library; a virtual workspace root has no `[project]` table.
+
+Do not add mise. Locally, let uv read `.python-version`; run `uv python install`
+when the interpreter is absent. Pin uv in the root so the wrong local version
+fails immediately, and install that exact version in CI.
+
+Docker evaluates `FROM` before it can `COPY` `.python-version`. Therefore it
+cannot dynamically derive `ARG PYTHON_VERSION` from that file. Repeat the
+literal exact version and add this early builder check:
 
 ```dockerfile
-FROM python:3.12-slim AS builder
-COPY --from=ghcr.io/astral-sh/uv:<pinned-version> /uv /bin/uv
-WORKDIR /workspace
-
-# 1. Resolve and install third-party dependencies only. uv needs the root
-#    pyproject.toml, uv.lock, and every member's pyproject.toml to validate
-#    the lock — but not yet any source — so this layer stays cached across
-#    source-only changes.
-COPY pyproject.toml uv.lock ./
-COPY services/api/pyproject.toml services/api/pyproject.toml
-COPY libs/company_observability/pyproject.toml libs/company_observability/pyproject.toml
-RUN uv sync --frozen --no-dev --no-install-workspace
-
-# 2. Copy the source for this service and the workspace members it depends
-#    on, then install just this service's dependency closure.
-COPY services/api/src services/api/src
-COPY libs/company_observability/src libs/company_observability/src
-RUN uv sync --frozen --no-dev --no-editable --package api
-
-FROM python:3.12-slim
-COPY --from=builder /workspace/.venv /workspace/.venv
-COPY --from=builder /workspace/services/api/src /workspace/services/api/src
-ENV PATH="/workspace/.venv/bin:$PATH"
-WORKDIR /workspace
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0"]
+ARG PYTHON_VERSION
+COPY .python-version ./
+RUN test "$(tr -d '\r\n' < .python-version)" = "${PYTHON_VERSION}"
 ```
 
-Pin the `uv` image to a specific version or digest rather than `latest`.
-
-## Flags, Verified
-
-Each flag below was checked directly against a real three-member workspace
-(two services, one shared library) before writing this reference — this is
-observed `uv` behavior, not a paraphrase of documentation:
-
-- **`--no-install-workspace`** on the first sync installs zero workspace
-  members (no service, no library) while still resolving and installing every
-  third-party dependency declared anywhere in the workspace. That's too broad
-  for a single-service image on its own — it's a caching step, not the final
-  install. Combine it with per-member `pyproject.toml` copies as shown above
-  so it has enough to validate against, without needing full source yet.
-- **`--package api`** on the second sync installs `api` and only the workspace
-  members `api` actually depends on. Confirmed: in a workspace with `api`,
-  `worker`, and `company-observability`, `uv sync --package api` installed
-  `api` and `company-observability` and left `worker` completely out of the
-  virtual environment.
-- **`--no-dev` is required alongside `--package`, not optional.** A root-level
-  `[dependency-groups] dev = [...]` is installed by default even when
-  `--package` scopes everything else — confirmed directly. Omitting `--no-dev`
-  here means every production image quietly carries the repo's lint/test
-  tooling.
-- **`--frozen` instead of `--locked`** on the first sync, because that stage
-  only has the root lockfile plus per-member `pyproject.toml` files copied in
-  piecemeal — uv cannot fully assert the lock is up to date without every
-  member present, so `--locked` would fail there for a reason unrelated to
-  whether the lock is actually stale. Use `--locked` (or repeat `--frozen`) on
-  the second sync once full source is present, if the pipeline should fail
-  hard on a stale lock.
-- **`--no-editable`** on the final sync installs the service and its
-  workspace dependencies as real, non-editable installs rather than the
-  editable/`.pth`-based installs uv uses by default for workspace members —
-  appropriate for a production image, where nothing will edit the source in
-  place after the image is built.
-
-## Verifying Isolation Before Shipping
-
-The shared local dev `.venv` (plain `uv sync`, no `--package`) installs every
-workspace member together and does not stop one member from importing
-another's code — uv's own documentation states it cannot enforce that
-isolation. That means a stray cross-service import can pass local testing and
-only fail once something does a scoped install. Before trusting that a
-service's image is actually lean:
+When invoking Docker from a wrapper or CI shell, deriving the build argument
+from the file is also valid:
 
 ```bash
-uv sync --frozen --no-dev --package <service>
-uv run --package <service> python -c "import <service>.main"
+docker build \
+  --build-arg PYTHON_VERSION="$(tr -d '\r\n' < .python-version)" \
+  -f services/api/Dockerfile .
 ```
 
-Run this in a clean environment (or the Docker build itself, which is
-naturally scoped this way) rather than relying on the shared dev venv, which
-will import successfully even when the boundary is already broken.
+Keep the Dockerfile default and the in-build equality check even when the
+wrapper supplies the argument.
+
+## Build Context And Dependency Metadata
+
+Build from the workspace root:
+
+```bash
+docker build --pull -f services/api/Dockerfile -t sample-api:local .
+```
+
+Do not build with `services/api` as the context. uv needs the root
+`pyproject.toml`, root `uv.lock`, `.python-version`, the target member's
+metadata and source, and every internal library in its transitive dependency
+closure.
+
+For the dependency layer, copy the root files and every workspace member
+`pyproject.toml` required to validate the shared lock before copying source:
+
+```dockerfile
+COPY .python-version pyproject.toml uv.lock ./
+COPY services/api/pyproject.toml services/api/pyproject.toml
+COPY libs/sample_shared/pyproject.toml libs/sample_shared/pyproject.toml
+```
+
+If the root `members` globs include additional members, either copy all member
+metadata for strict `--locked` validation or use a generated metadata-copy
+stage. Do not hide a stale lock with `--frozen` merely because required member
+metadata was omitted.
+
+## Required Multi-Stage Shape
+
+Use these stages:
+
+1. `uv`: exact `ghcr.io/astral-sh/uv:${UV_VERSION}` binary source.
+2. `python-base`: exact `python:${PYTHON_VERSION}-slim-trixie` shared by builder
+   and runtime.
+3. `builder`: install locked third-party dependencies, then install the target
+   service and its internal dependency closure non-editably.
+4. `runtime`: install only small OS runtime requirements, copy `.venv`, switch
+   to a numeric non-root user, and start through `tini`.
+
+Keep `/app` identical in builder and runtime because virtual-environment
+scripts can contain absolute interpreter paths. Do not copy uv into the final
+runtime stage. Do not copy source separately after `uv sync --no-editable`;
+the service and internal libraries are already installed into `.venv`.
+
+Keep these builder settings:
+
+```dockerfile
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_NO_PROGRESS=1 \
+    UV_PYTHON_DOWNLOADS=0
+```
+
+Use a BuildKit cache mount for `/root/.cache/uv`. Add compilers and development
+headers only to the builder when a dependency lacks a wheel. Add only the
+corresponding shared runtime libraries to the runtime stage.
+
+## Sync Flags
+
+Dependency-only cached layer:
+
+```bash
+uv sync --locked --no-dev --no-install-workspace --package sample-api
+```
+
+Final builder layer after copying service and internal-library source:
+
+```bash
+uv sync --locked --no-dev --no-editable --package sample-api
+```
+
+- `--locked`: fail if metadata and `uv.lock` disagree.
+- `--no-dev`: exclude centralized Ruff, pytest, coverage, and mypy tooling.
+- `--package`: include only the target service and its transitive workspace
+  dependencies.
+- `--no-install-workspace`: keep source packages out of the cached dependency
+  layer.
+- `--no-editable`: install immutable wheels suitable for production.
+
+Never put service runtime dependencies in the root dev group. `--no-dev`
+correctly removes tooling only when runtime dependencies remain in each
+member's `[project.dependencies]`.
+
+## `.dockerignore`
+
+Always exclude `.venv`; it is platform-specific and must be recreated inside
+the image. Exclude tests, caches, build output, VCS data, editor files, and
+local secrets unless the package build genuinely needs one of them.
+
+Do **not** exclude `.python-version`. It must be available for the Docker
+version-alignment check. In particular, remove this old rule if present:
+
+```dockerignore
+.python-version
+```
+
+Use the canonical `.dockerignore` from the bundled asset.
+
+## Service Variants
+
+For a web service, keep `EXPOSE`, a cheap local `HEALTHCHECK`, and an explicit
+server command. Configure equivalent readiness/liveness checks in the actual
+orchestrator; the Docker health check does not replace them.
+
+For a worker, remove `EXPOSE` and HTTP `HEALTHCHECK`, then use a module or
+console-script command such as:
+
+```dockerfile
+CMD ["/app/.venv/bin/python", "-m", "sample_worker.main"]
+```
+
+Package static resources into the wheel and read them with
+`importlib.resources`. Copy migrations or external configuration separately
+only when they intentionally remain outside the installed package.
+
+Never pass secrets through `ARG` or `ENV` during builds. Use BuildKit secret
+mounts for private indexes and the deployment platform's secret store at
+runtime.
+
+## Validation
+
+Run from the workspace root:
+
+```bash
+uv lock --check
+uv sync --frozen
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy services libs
+uv run pytest
+docker build --pull -f services/api/Dockerfile -t sample-api:local .
+docker run --rm --entrypoint python sample-api:local --version
+docker run --rm --entrypoint id sample-api:local
+docker run --rm -d --name sample-api -p 8080:8080 sample-api:local
+```
+
+Confirm the reported Python equals `.python-version`, `id` reports UID/GID
+`10001`, the container becomes healthy, and the runtime image has no uv:
+
+```bash
+docker exec sample-api sh -c 'command -v uv >/dev/null; test $? -ne 0'
+docker inspect --format '{{json .State.Health}}' sample-api
+```
+
+Stop and remove the named validation container after the check.

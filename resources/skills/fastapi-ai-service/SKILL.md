@@ -1,3 +1,4 @@
+
 ---
 name: fastapi-ai-service
 description: >
@@ -8,7 +9,6 @@ description: >
   service, build a new agent backend, align a backend with this repo's service
   conventions, or coordinate focused sub-skills such as settings-config.
 ---
-
 # FastAPI AI Service
 
 Use this as the orchestration skill for FastAPI AI backends. Keep decisions

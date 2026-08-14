@@ -1,19 +1,17 @@
 ---
 name: python-uv-workspace-monorepo
 description: >-
-  Structure a Python monorepo that holds multiple independently deployable
-  units plus shared internal libraries, using a uv workspace: one
-  workspace-only root `pyproject.toml`, one `pyproject.toml` per deployable
-  under `services/` or `apps/`, one `pyproject.toml` per shared library under
-  `libs/` or `packages/`, and `[tool.uv.sources]` with `workspace = true` to
-  wire internal packages together. Use when deciding whether a service needs
-  its own `pyproject.toml`, setting up or reviewing a `uv` workspace,
-  splitting a single bloated root `pyproject.toml` into per-service
-  dependency sets, keeping a service's Docker image free of dependencies only
-  a sibling service needs, choosing between `apps/`, `services/`, and
-  `libs/`/`packages/` for workspace member directories, or answering "should
-  each service have its own pyproject.toml" / "how do we share a library
-  across services without duplicating dependencies".
+  Structure or review a multi-service Python monorepo with a virtual uv
+  workspace root, one `pyproject.toml` per deployable under `services/`, one
+  per internal library under `libs/` or `packages/`, and workspace sources for
+  internal dependencies. Standardize centralized Ruff, pytest, coverage, and
+  mypy tooling; exact Python and uv versions across local development, CI, and
+  Docker; one shared lockfile; scoped per-service installs; and lean
+  multi-stage production images. Use when deciding whether each service needs
+  its own `pyproject.toml`, splitting root dependencies, scaffolding or
+  reviewing uv workspaces and Dockerfiles, sharing internal packages, or
+  preventing sibling-service dependencies and dev tools from entering an
+  image.
 ---
 
 # Python Monorepo: uv Workspaces Across Services
@@ -22,14 +20,15 @@ Apply this rule first; everything else in this skill follows from it:
 
 > **Independently deployable = its own `pyproject.toml`. Shared internal code =
 > its own `pyproject.toml`. The root `pyproject.toml` declares the workspace and
-> nothing else — it must not hold runtime dependencies any service ships.**
+> repo-wide development tooling, but no runtime dependencies any service
+> ships.**
 
 This applies once a repository holds more than one independently built artifact
 (more than one Dockerfile, more than one Lambda, more than one deployed
 process). A single-service repository does not need a workspace; give it one
 plain `pyproject.toml` at its root and stop reading here.
 
-## Naming The Top-Level Directory: `apps/` vs `services/` vs `libs/`/`packages/`
+## Naming The Top-Level Directory: `services/` vs `libs/`/`packages/`
 
 The workspace mechanics in this skill — one `pyproject.toml` per member, glob
 workspace members, one shared lockfile, `--package`-scoped installs — work
@@ -37,25 +36,19 @@ identically no matter what the top-level directories are named. The names
 themselves are a semantic choice, not a `uv` requirement, and are worth
 getting right before laying out the repo:
 
-- **`services/`** — specifically backend/network services and other
-  long-running service processes: an API, a worker, a queue consumer. Use
-  this name when *every* deployable in the repo fits that description.
-- **`apps/`** — any deployable/runnable application, backend or not: a CLI, a
-  scheduled batch job, a frontend, or a backend service. Use this name once
-  the repo has even one deployable that isn't a backend service. Don't run
-  both `apps/` and `services/` side by side for the same kind of thing — pick
-  one name for "things that get built and deployed on their own" and put
-  every such member under it.
+- **`services/`** — every independently deployable unit in the repo: an API,
+  a worker, a queue consumer, a scheduled batch job, a CLI, a frontend build —
+  whatever it is, if it ships as its own deployable it's a service. Use this
+  name for all of them, even a worker-only repo with no HTTP API in sight —
+  it's still a deployable service unit. Don't introduce an `apps/` directory
+  alongside it; every "things that get built and deployed on their own"
+  member lives under `services/`.
 - **`libs/`** or **`packages/`** — reusable internal code with no deployable
   of its own: consumed by other members via `{ workspace = true }`, never has
   its own `Dockerfile`. Pick one of the two names and use it consistently.
 
-Decision rule: repo is backend-only → `services/`. Repo has any non-backend
-deployable → `apps/`. The rest of this skill illustrates the setup with
-`services/api` and `services/worker` because that's the common case for a
-Python workspace; if your repo's rule points to `apps/`, read every
-`services/<name>` example below as `apps/<name>` — nothing else about the
-workspace setup changes.
+The rest of this skill illustrates the setup with `services/api` and
+`services/worker` because that's the common case for a Python workspace.
 
 ## Why Not One Root `pyproject.toml`
 
@@ -76,8 +69,10 @@ to exactly one member's dependency closure.
 
 ```text
 repo/
-├── pyproject.toml              # workspace root — no [project] table, no dependencies
+├── pyproject.toml              # virtual root: workspace + shared dev tooling
 ├── uv.lock                     # single lockfile for the entire workspace
+├── .python-version             # exact local/CI/Docker Python patch
+├── .dockerignore               # must not exclude .python-version
 │
 ├── services/
 │   ├── api/
@@ -106,29 +101,100 @@ Use plural glob members (`services/*`, `libs/*`) rather than an explicit list.
 An explicit list silently excludes a new service that forgets to update it; a
 glob has no such failure mode.
 
-## Root `pyproject.toml`: Workspace Only
+## Choose And Align Toolchain Versions First
+
+Before scaffolding, verify the current stable patch release for the chosen
+Python minor and the current stable uv release from official sources. Propose
+the defaults, then ask one concise question: “I will use Python X.Y.Z and uv
+A.B.C; do you want different versions?” Skip the question when the user has
+already supplied both versions.
+
+Use these verified defaults for the bundled template:
+
+- Python `3.13.14`, with `.python-version` containing exactly `3.13.14`.
+- uv `0.12.4`.
+- Every member: `requires-python = ">=3.13,<3.14"`.
+
+Apply them in this order:
+
+1. Put `requires-python = ">=3.13,<3.14"` in every service and library
+   `pyproject.toml`.
+2. Run `uv python pin 3.13.14` at the workspace root to create
+   `.python-version`.
+3. Read that exact value into each Dockerfile's `ARG PYTHON_VERSION` default
+   and keep the in-build equality check.
+4. Put `required-version = "==0.12.4"` in the root `[tool.uv]` table and use
+   the same exact uv version in Docker and CI.
+
+Treat these as a coherent set. If the user changes the Python minor, update
+all member `requires-python` ranges, Ruff's `target-version`,
+`.python-version`, the Docker `PYTHON_VERSION`, and CI. If only the patch
+changes within 3.13, update `.python-version`, Docker, and CI. If uv changes,
+update root `required-version`, Docker, and CI.
+
+Do not add mise. Let uv read `.python-version` locally; `uv python install`
+can install the pinned interpreter when needed. A Dockerfile cannot derive a
+pre-`FROM` `ARG` from a file in the build context, so repeat the exact Python
+pin in `ARG PYTHON_VERSION` and fail the build if it differs from
+`.python-version`.
+
+In CI, install the exact root `required-version`, run `uv python install`, and
+then use the root lockfile. `required-version` enforces the uv pin but does not
+install the matching uv binary by itself.
+
+## Root `pyproject.toml`: Workspace And Shared Tooling
 
 ```toml
+[tool.uv]
+required-version = "==0.12.4"
+
 [tool.uv.workspace]
 members = [
     "services/*",
     "libs/*",
 ]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.0,<3",
+    "pytest>=9.1.1,<10",
+    "pytest-cov>=7.1.0,<8",
+    "ruff>=0.16.3,<0.17",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+testpaths = ["services", "libs"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
 ```
 
 uv supports a root with no `[project]` table at all — this is a "virtual"
 workspace root: nothing is built or installed for the root itself, it only
-groups members and anchors the single `uv.lock`. Verified directly: `uv lock`,
-`uv sync`, and `uv sync --package <member>` all work against a root that
-contains only `[tool.uv.workspace]`.
+groups members, anchors the single `uv.lock`, pins uv, and configures shared
+development tools. Keep repo-wide lint, test, coverage, and type-check tools in
+the root `dev` group. Keep framework-specific test plugins or type stubs used
+by only one member in that member's own dependency group.
 
-The root is still the right place for repo-wide **tooling** configuration,
-since none of it ships in an image: `[tool.ruff]`, `[tool.mypy]`,
-`[tool.pytest.ini_options]`, and a root `[dependency-groups] dev = [...]` for
-lint/test tools every service uses. That is a development-time concern, not a
-runtime dependency — keep it separate from any service's `[project.dependencies]`.
-See [Root Dev Dependencies and Docker](#root-dev-dependencies-and-docker) below
-for the one gotcha this creates.
+Do not add root `[project]`, root `[project.dependencies]`, or a root
+`[build-system]` merely to express Python compatibility. Put
+`requires-python` on every installable workspace member instead.
 
 ## Service `pyproject.toml`
 
@@ -136,7 +202,7 @@ for the one gotcha this creates.
 [project]
 name = "api"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "fastapi",
     "uvicorn",
@@ -147,7 +213,7 @@ dependencies = [
 company-observability = { workspace = true }
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.32.0,<2"]
 build-backend = "hatchling.build"
 ```
 
@@ -155,7 +221,7 @@ build-backend = "hatchling.build"
 [project]
 name = "worker"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "boto3",
     "company-observability",
@@ -165,7 +231,7 @@ dependencies = [
 company-observability = { workspace = true }
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.32.0,<2"]
 build-backend = "hatchling.build"
 ```
 
@@ -188,13 +254,13 @@ name).
 [project]
 name = "company-observability"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "structlog",
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.32.0,<2"]
 build-backend = "hatchling.build"
 ```
 
@@ -253,19 +319,57 @@ still requires the root `pyproject.toml`, the shared `uv.lock`, and the source
 of every workspace member `api` imports (at minimum `libs/company_observability/`).
 Scoping the build context to just `services/api/` is a common mistake that
 breaks the build the moment a service depends on a shared library. Full
-Dockerfile pattern, including the two-stage sync that keeps third-party
-dependencies in their own cached layer: `references/docker-builds.md`.
+production Dockerfile, `.dockerignore`, version-alignment checks, and build
+commands: read `references/docker-builds.md` before creating or editing a
+workspace member's image.
+
+Use `assets/workspace-template/` as the canonical runnable scaffold. Copy and
+adapt the asset instead of recreating these files from memory. It contains a
+FastAPI service, an internal library, centralized tooling, tests, exact
+toolchain pins, and the workspace-aware multi-stage Dockerfile.
+
+## Setup And Verification
+
+After adapting the template, run all of these from the repository root:
+
+```bash
+uv python install
+uv lock --check
+uv sync --frozen
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy services libs
+uv run pytest
+uv sync --frozen --no-dev --package <service>
+docker build --pull -f services/<service>/Dockerfile .
+```
+
+Also verify the version contract explicitly:
+
+```bash
+test "$(uv run python -c 'import platform; print(platform.python_version())')" = "$(tr -d '\r\n' < .python-version)"
+uv --version
+```
+
+The final expected ownership is:
+
+| Environment | Python | uv |
+| --- | --- | --- |
+| Local project | exact `.python-version` | exact root `required-version` |
+| CI | exact `.python-version` | exact root `required-version` |
+| Docker builder | exact `PYTHON_VERSION` | exact `UV_VERSION` |
+| Docker runtime | exact `PYTHON_VERSION` | absent |
 
 ## Adding a Service or Library
 
-1. Create `services/<name>/` (or `apps/<name>/`, or `libs/<name>/` — see
-   [Naming The Top-Level Directory](#naming-the-top-level-directory-apps-vs-services-vs-libspackages)
+1. Create `services/<name>/` (or `libs/<name>/` — see
+   [Naming The Top-Level Directory](#naming-the-top-level-directory-services-vs-libspackages)
    above) with `src/<package>/` and a `pyproject.toml` declaring only that
    member's own dependencies.
 2. If it consumes a shared library, add the library by name to `dependencies`
    and add `<library> = { workspace = true }` under `[tool.uv.sources]`.
-3. Confirm it's picked up: `services/*` (or `apps/*`) and `libs/*` globs
-   cover it automatically; an explicit `members` list needs a new line.
+3. Confirm it's picked up: `services/*` and `libs/*` globs cover it
+   automatically; an explicit `members` list needs a new line.
 4. Run `uv lock` at the root to fold it into the shared lockfile, then `uv sync
    --package <name>` to verify it installs on its own with the dependencies
    you expect and nothing from a sibling service.
