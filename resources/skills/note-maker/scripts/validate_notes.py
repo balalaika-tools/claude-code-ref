@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Validate mechanical parts of the note-maker writing contract."""
+"""Validate role-agnostic mechanical parts of the note-maker writing contract."""
 
 from __future__ import annotations
 
 import argparse
-import math
 import re
 import sys
 from dataclasses import dataclass, field
@@ -12,10 +11,6 @@ from pathlib import Path
 
 NOTE_NAME = re.compile(r"^\d{2}_.+\.md$")
 NUMBERED_HEADING = re.compile(r"^##\s+(?:\d+\.|[1-9]️⃣)\s+")
-WHAT_YOU_NEED = re.compile(
-    r"\*\*What you need \((\d+) (?:thing|things|input|inputs|item|items)\):\*\*",
-    re.IGNORECASE,
-)
 NUMBERED_ITEM = re.compile(r"^\s*\d+\.\s+")
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 PRESCRIPTIVE_MARKER = re.compile(r"(?:> \*\*Rule\*\*:|⚠️|❌|✅)")
@@ -49,20 +44,6 @@ def collect_notes(paths: list[Path]) -> list[Path]:
             continue
         raise FileNotFoundError(path)
     return sorted(notes)
-
-
-def first_index(lines: list[str], predicate) -> int | None:
-    return next((index for index, line in enumerate(lines) if predicate(line)), None)
-
-
-def short_version_bounds(lines: list[str]) -> tuple[int, int] | None:
-    start = first_index(lines, lambda line: line.strip() == "## The short version")
-    if start is None:
-        return None
-    for index in range(start + 1, len(lines)):
-        if lines[index].strip() == "---" or NUMBERED_HEADING.match(lines[index]):
-            return start, index
-    return start, len(lines)
 
 
 def visible_paragraph_count(lines: list[str]) -> int:
@@ -115,154 +96,18 @@ def validate_note(path: Path) -> Result:
     lines = path.read_text(encoding="utf-8").splitlines()
     total_lines = len(lines)
 
-    bounds = short_version_bounds(lines)
-    if bounds is None:
-        result.error("missing '## The short version'")
-        validate_links(path, lines, result)
-        return result
-
-    short_start, short_end = bounds
-    short_lines = lines[short_start:short_end]
-    numbered_start = first_index(lines, lambda line: bool(NUMBERED_HEADING.match(line)))
-    audience_index = first_index(
-        lines, lambda line: line.strip().startswith("> **Who this is for**:")
-    )
-
-    if audience_index is None:
-        result.error("missing '> **Who this is for**:' audience line")
-    elif audience_index > short_start:
-        result.error("audience line must appear before the short version")
-    if numbered_start is not None and short_start > numbered_start:
-        result.error("short version appears after the first numbered section")
-    if short_end + 1 > 80:
-        result.error(f"short version ends on line {short_end + 1}; maximum is line 80")
-    if short_end - short_start > 40:
-        result.error(f"short version is {short_end - short_start} lines; maximum is 40")
-
-    need_match = next(
-        (
-            WHAT_YOU_NEED.search(line)
-            for line in short_lines
-            if WHAT_YOU_NEED.search(line)
-        ),
-        None,
-    )
-    need_index = None
-    if need_match is None:
-        result.error("short version needs counted '**What you need (N things):**'")
-    else:
-        need_index = next(
-            i for i, line in enumerate(short_lines) if WHAT_YOU_NEED.search(line)
-        )
-        stop_index = next(
-            (
-                i
-                for i in range(need_index + 1, len(short_lines))
-                if short_lines[i].startswith("**The code:**")
-                or short_lines[i].startswith("**Worked example:**")
-            ),
-            len(short_lines),
-        )
-        actual_items = sum(
-            bool(NUMBERED_ITEM.match(line))
-            for line in short_lines[need_index + 1 : stop_index]
-        )
-        expected_items = int(need_match.group(1))
-        if actual_items != expected_items:
-            result.error(
-                f"What you need says {expected_items}, but enumerates {actual_items}"
-            )
-
-    code_index = next(
-        (
-            i
-            for i, line in enumerate(lines)
-            if line.strip().startswith("```") and i > short_start
-        ),
-        None,
-    )
-    worked_local_index = first_index(
-        short_lines, lambda line: line.strip().startswith("**Worked example:**")
-    )
-    worked_index = (
-        short_start + worked_local_index if worked_local_index is not None else None
-    )
-    baseline_index = code_index if code_index is not None else worked_index
-    if baseline_index is None or baseline_index >= short_end:
-        result.error(
-            "short version needs runnable code or a concrete '**Worked example:**'"
-        )
-    else:
-        deadline = min(80, max(1, math.ceil(total_lines * 0.15)))
-        if baseline_index + 1 > deadline:
-            result.error(
-                f"first runnable/worked example is on line {baseline_index + 1}; "
-                f"deadline is line {deadline} (line 80 or 15%, whichever is sooner)"
-            )
-
-    if code_index is not None and code_index < short_end:
-        code_end = next(
-            (
-                i
-                for i in range(code_index + 1, short_end)
-                if lines[i].strip().startswith("```")
-            ),
-            None,
-        )
-        if code_end is None:
-            result.error("short-version code fence is not closed")
-        elif not 10 <= code_end - code_index - 1 <= 25:
-            result.error(
-                "short-version code must contain 10–25 lines; "
-                f"found {code_end - code_index - 1}"
-            )
-
-    success_index = first_index(
-        short_lines, lambda line: line.strip().startswith("**Success signal:**")
-    )
-    if success_index is None:
-        result.error("short version is missing '**Success signal:**'")
-
-    deferral_index = next(
-        (
-            i
-            for i, line in enumerate(short_lines)
-            if line.strip().startswith("**Not handled yet:**")
-        ),
-        None,
-    )
-    if deferral_index is None:
-        result.error("short version is missing '**Not handled yet:**'")
-    else:
-        deferral_text = " ".join(short_lines[deferral_index:])
-        if not MARKDOWN_LINK.search(deferral_text):
-            result.error("Not handled yet must link each deferred concern forward")
-
-    local_baseline_index = (
-        baseline_index - short_start if baseline_index is not None else None
-    )
-    ordered_indices = [
-        need_index,
-        local_baseline_index,
-        success_index,
-        deferral_index,
-    ]
-    if all(
-        index is not None for index in ordered_indices
-    ) and ordered_indices != sorted(ordered_indices):
-        result.error(
-            "short version must order What you need → code/worked example → "
-            "Success signal → Not handled yet"
-        )
-
-    prefix = lines[:short_start]
-    if any(
-        "Before reading" in line or re.match(r"^## Prerequisites", line)
-        for line in prefix
+    if not any(
+        line.strip().startswith("> **Who this is for**:") for line in lines
     ):
-        result.error(
-            "prerequisites must be advisory and appear after the short version"
-        )
+        result.error("missing '> **Who this is for**:' audience line")
+
+    fence_lines = [
+        line_number
+        for line_number, line in enumerate(lines, start=1)
+        if line.strip().startswith("```")
+    ]
+    if len(fence_lines) % 2:
+        result.error(f"unclosed fenced code block near line {fence_lines[-1]}")
 
     if sum("> **Key insight**:" in line for line in lines) != 1:
         result.error("note must contain exactly one '> **Key insight**:'")
@@ -276,9 +121,7 @@ def validate_note(path: Path) -> Result:
 
     if "> **Core:**" not in "\n".join(lines):
         result.warn("no '> **Core:**' altitude marker")
-    if "**Not handled yet:**" in "\n".join(
-        lines
-    ) and "> **Production:**" not in "\n".join(lines):
+    if "**Not handled yet:**" in "\n".join(lines) and "> **Production:**" not in "\n".join(lines):
         result.warn(
             "deferred concerns exist but no '> **Production:**' altitude marker appears"
         )

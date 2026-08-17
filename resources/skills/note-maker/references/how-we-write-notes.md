@@ -8,8 +8,9 @@ Most of what follows is a **required move**, not a prohibition. A note that only
 
 - [Audience and teaching balance](#who-the-note-is-for)
 - [Collection and note ordering](#the-collection-has-a-learning-contract)
-- [The short version](#open-with-a-result-that-also-teaches)
+- [Role-aware opening payoff](#open-with-the-payoff-that-fits-the-notes-role)
 - [Explanation moves](#ground-every-term-at-first-use)
+- [Concrete carriers](#make-the-mechanism-visible-in-its-native-artifact)
 - [Examples and safety](#examples-baseline-first-hardened-second)
 - [Density, altitude, and completion](#mark-altitude-and-control-prescriptive-density)
 
@@ -43,7 +44,7 @@ The goal is not merely complete notes. It is a path that takes a first-time read
 
 A single file does not need to carry all four layers. The **full learning path as a whole does**; shorter paths may stop at a declared milestone. Each file needs one primary role: foundation/tutorial, implementation, deep dive, decision guide, or reference. Do not turn every foundation note into a production reference in the name of completeness.
 
-Three rules keep the progression usable:
+Four rules keep the progression usable:
 
 - **Order paths do → understand → harden.** Every reading path produces a runnable result or concrete worked outcome within its first two entries. A path may revisit an earlier note for greater depth later; label the revisit instead of pretending the sequence is linear.
 - **Teach the smallest complete system before its advanced variants.** A reader should see one durable task before a stateful workflow, one claim before fencing and reconciliation, or one request before a full deployment topology.
@@ -52,26 +53,42 @@ Three rules keep the progression usable:
 
 A first-time path fails this contract if every individual note is accurate but the reader must learn several production mechanisms before they can explain or build the baseline.
 
-## Open with a result that also teaches
+## Open with the payoff that fits the note's role
 
-Every actionable note opens with `## The short version` after the title and audience line, before prerequisites and numbered sections. It is neither an abstract nor a contents list. A cold reader who stops there gets a small correct result and enough explanation to say why it works.
+Every teaching note gives the reader a useful reason to continue early, but it does not need a
+universal `## The short version` block or fixed labels. Choose the opening payoff from the note's
+declared role:
 
-The block contains, in order:
+| Note role | Useful opening payoff |
+|---|---|
+| Foundation/tutorial | A concrete situation and the first correct mental model or worked outcome. |
+| Implementation | The smallest runnable path, its bounded inputs, and the observable result. |
+| Deep dive | The failure, constraint, or surprising behavior that requires this deeper mechanism. |
+| Decision guide | A named decision, the few criteria that change it, and an initial recommendation. |
+| Reference | Scope, lookup map, and defaults or common subset; an example only when it improves lookup. |
 
-1. Two to four sentences stating the problem, the one-line mental model, and why the inputs are sufficient.
-2. `**What you need (N things):**` followed by an enumerated list of the concrete inputs. The count is required: it bounds the task for a reader who does not yet know how much machinery is involved.
-3. `**The code:**` with 10–25 runnable lines, or `**Worked example:**` with named actors, real values, one transition, and one observable outcome.
-4. `**Success signal:**` with the exact output, status, or observation.
-5. `**Not handled yet:**` with every deferred production concern linked to its later section.
+Use a natural heading such as `Quick start`, `Worked example`, or a claim that names the payoff—or
+no separate payoff heading when the opening paragraphs already do the job. Exact labels, counted
+input lists, and a fixed block order are optional. A title plus a generic summary is not a payoff.
 
-Keep the block at 40 lines or fewer and end it by line 80. Runnable code appears by line 80 or 15% of the note, whichever comes first. A prerequisite never sits before the block; if one sentence of context is essential, supply it inline. Put advisory prerequisite links after the payoff.
+When the opening asks the reader to perform an action, bound the required inputs and show the exact
+success signal. When a minimal example intentionally defers production concerns, name the relevant
+omissions nearby and point forward; `Not handled yet` is a useful label, not mandatory syntax. A
+genuine prerequisite may appear before the payoff when the intended audience cannot proceed without
+it; keep optional background advisory and do not use it as a gate.
 
-The short version has two independent acceptance tests:
+Judge proximity semantically. The payoff should arrive before setup detail, taxonomies, or hardening
+that the reader does not yet need. Do not force a deep dive, decision guide, or reference to recreate
+a baseline already owned by another note merely to satisfy an opening template.
 
-- **Execution:** a reader can run or follow it and observe the stated result.
-- **Restatement:** a competent reader new to the subject can explain what the inputs are, why those inputs are sufficient, and why the mechanism produces that result.
+The opening has two possible acceptance tests, applied only where the role warrants them:
 
-A code block can pass execution and fail restatement. Both must pass.
+- **Execution/decision:** the reader can run, trace, or make the promised first decision and observe
+  the stated result.
+- **Restatement:** the reader can explain why the example, scenario, or criteria produce that result.
+
+A code block can pass execution and fail restatement. A conceptual or decision-oriented opening may
+need only the restatement test.
 
 ## Lead with the problem, then state the *why*
 
@@ -93,7 +110,7 @@ Never require the reader to leave the note to learn its vocabulary. At the first
 
 ✅ "The verifier picks a key from the **JWKS** — a JSON file the issuer publishes with its current public keys — using `kid`, the short key identifier in the token header."
 
-This applies inside *The short version*. Familiarity elsewhere in the collection does not excuse an ungrounded first use here; search-engine readers and readers following a different path still need the six-word gloss.
+This applies inside the opening payoff. Familiarity elsewhere in the collection does not excuse an ungrounded first use here; search-engine readers and readers following a different path still need the six-word gloss.
 
 ## Introduce a mechanism through the problem it solves
 
@@ -112,6 +129,38 @@ Do not stop at "pin the algorithm." Show that an attacker changes `alg`, why a p
 Use a real value before a definition table. Show `"aud": "https://api.orders.example.com"` reaching the billing API and being refused before listing every claim type. Tables, taxonomies, full schemas, and production topologies remain valuable reference material, but they follow the instance that gives their rows meaning.
 
 The test is simple: could the reader point to one actor, value, transition, and consequence before being asked to generalize? If not, the section started too high.
+
+## Make the mechanism visible in its native artifact
+
+A note can contain a strong opening example and still leave later mechanisms floating in prose.
+Run the **concrete-carrier test** at each high-leverage explanation: if the reader must write,
+inspect, review, or debug a policy, configuration, schema, query, payload, command, or state
+transition, or if the result depends on a particular field, order, or interaction, show the
+smallest faithful form of that thing near its first explanation.
+
+Match the carrier to the mechanism. Use a policy/config snippet for structured rules, a
+request/response for protocols, named rows and output for data transformations, an event/state
+trace for temporal behavior, and two or three input-to-decision rows for precedence or
+intersection. Code is not the universal representation.
+
+A useful local teaching unit is:
+
+1. one sentence of context with a named actor or input;
+2. the smallest faithful carrier;
+3. a mapping from its important field or transition to the observed result; and
+4. when the distinction is non-obvious, one changed input that produces a different result.
+
+This is a semantic obligation, not an example quota. Do not add artifacts to simple definitions,
+repeat an earlier example that already carries the same behavior, or duplicate a canonical full
+implementation. A local excerpt plus a link is enough when another note owns the full artifact.
+Anything presented as copyable must be complete, valid, and safe. A deliberately incomplete block
+must be labeled as an **explanatory excerpt**, remain syntactically faithful, and never omit
+correctness- or security-critical context. Labels and annotations belong outside a code fence when
+its declared language does not support comments; a `json` fence, including an excerpt, must parse
+as JSON.
+
+Read `example-selection.md` for the carrier matrix, sizing rules, anti-overfitting guardrails, and
+calibration cases.
 
 ## Work with the model the reader already has
 
@@ -169,15 +218,20 @@ Judge against the note's own stated scope first, general completeness second. Th
 
 ## Examples: baseline first, hardened second
 
-**No production mechanism may appear before the baseline runs end to end.** Caching, rotation, retries, pooling, discovery or metadata indirection, emergency hooks, observability, and failure taxonomies are hardening. None may be the reader's first encounter with a concept. Show the baseline, state its operational risk in one line, link forward, and only then harden it.
+In a **tutorial or implementation note that owns the runnable path**, no production mechanism may
+appear before the baseline runs end to end. Caching, rotation, retries, pooling, discovery or
+metadata indirection, emergency hooks, observability, and failure taxonomies are hardening. Show the
+baseline, state its operational risk in one line, link forward, and only then harden it. A deep dive
+may begin from the failure that requires one of these mechanisms when it states or links the baseline
+it assumes; it does not reproduce that baseline in full.
 
 Use this structural test: **delete every section after the first runnable end-to-end example. Does what remains still teach a correct, usable baseline?** If not, the note is ordered wrong.
 
-The sequence inside the note is:
+The sequence inside a tutorial or implementation note is:
 
 1. Run the smallest correct end-to-end example and show its visible output.
 2. Explain why it works until the reader can restate the mechanism.
-3. Name omissions in **Not handled yet** and link each one forward.
+3. Name relevant omissions near the baseline and link each one forward; the label is optional.
 4. Harden in a later block, with a comment on each addition naming the failure it prevents.
 5. Finish with an integration or end-to-end check that you execute exactly as displayed. Include the required database connections, services, fixtures, and synchronization; a comment explaining why the shown block cannot run in its stated environment makes it a sketch, not a test.
 
@@ -192,11 +246,11 @@ Never omit these when they apply:
 - parameterized queries; never build SQL through string interpolation
 - keeping secrets, credentials, and tokens out of logs and error strings
 
-Safe deferrals include caching and connection reuse, retries and backoff, key rotation, metrics and tracing, granular error mapping, configuration indirection, and dependency injection. Every deferral must appear in **Not handled yet** with a link to the section that owns it; a minimal example without this contract is not publishable.
+Safe deferrals include caching and connection reuse, retries and backoff, key rotation, metrics and tracing, granular error mapping, configuration indirection, and dependency injection. A minimal example that omits relevant production concerns names them nearby and points to the section that owns them; do not require a particular label or repeat concerns that do not apply.
 
-One 60-line production block teaches less than a small baseline followed by a hardened diff. For a worked before/after showing this ordering change, see `example_note.md`.
+One 60-line production block teaches less than a small baseline followed by a hardened diff.
 
-Concept-heavy notes follow the same ladder without pretending diagrams are code:
+Concept-heavy foundation/tutorial notes follow the same ladder without pretending diagrams are code:
 
 1. Start with a small concrete trace: named actors or rows, one input, one transition, and one visible outcome.
 2. Explain the causal mechanism behind the outcome.
@@ -223,7 +277,7 @@ Accuracy and runnable code are necessary, not sufficient. Before shipping, ask:
 
 > Could a competent engineer who is new to this subject, having read only this note, explain the concept correctly to a colleague in their own words without quoting it?
 
-If the reader can only recite rules, the note transferred instructions rather than understanding. Apply this test to *The short version* separately and to the completed note as a whole.
+If the reader can only recite rules, the note transferred instructions rather than understanding. Apply this test to the role-appropriate opening payoff, when it teaches a mechanism, and to the completed note as a whole.
 
 ## Headers make claims; one insight per note
 

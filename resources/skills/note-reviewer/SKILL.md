@@ -22,7 +22,7 @@ The repo has several subfolders (e.g. `aws/`, `backend/`, `langfuse/`), each wit
 
 > **Rule**: When parallel subagents are available and permitted, use the isolated ownership below. Otherwise audit subfolders one at a time yourself, then run the reader-journey pass, the gap pass, and metrics aggregation over the whole tree.
 
-If there are multiple subfolders, launch one subagent per subfolder concurrently, in waves when capacity is limited. Give each subagent this SKILL.md, both required references, and its assigned subfolder path. Rules for staying in your lane:
+If there are multiple subfolders, launch one subagent per subfolder concurrently, in waves when capacity is limited. Give each subagent this SKILL.md, all required references, and its assigned subfolder path. Rules for staying in your lane:
 
 - Read and audit only the `.md` files inside the assigned subfolder. Don't wander into other subfolders — another sub-agent owns those and is working from an identical copy of these instructions.
 - Notes in the same subfolder usually share vocabulary and cross-reference each other. Read the whole subfolder together, not file-by-file in isolation, so you catch inconsistencies between files — e.g. the same term defined two different ways in two notes.
@@ -42,7 +42,7 @@ For each path, start with only the knowledge promised by its audience statement.
 
 ### The gap pass is one whole-tree agent, not one per subfolder
 
-Launch it in the same message as the per-subfolder agents — it's read-only and writes only `_audit/gaps.audit.md`, so it can't collide with them. Give it this SKILL.md, both required references, and the repo root.
+Launch it in the same message as the per-subfolder agents — it's read-only and writes only `_audit/gaps.audit.md`, so it can't collide with them. Give it this SKILL.md, all required references, and the repo root.
 
 It must see the **entire tree at once**, including every subfolder's READMEs and reading paths. That's not an efficiency preference: an absence is only visible against the full picture, and a subfolder-scoped agent will always conclude that its own folder's silence on a topic is someone else's folder's job. Never split this pass by subfolder, and never let a per-subfolder agent write gap findings — a per-file audit that starts speculating about missing files stops being an audit.
 
@@ -52,10 +52,11 @@ To fit a large tree, this agent reads breadth-first rather than every word: ever
 
 ## Required references
 
-Read both files completely before auditing anything:
+Read all three files completely before auditing anything:
 
 1. `references/how-we-write-notes.md` is the writing contract and single source of truth for audience, teaching moves, safety, completeness, currency, and tone.
 2. `references/learning-curve-and-explanation-audit.md` defines the mandatory detection heuristics, metric counting, two-axis verdicts, safety scan, and regression anchors.
+3. `references/example-selection.md` defines the concrete-carrier test, representation choices, excerpt contract, anti-quota guardrails, and calibration cases for local example coverage.
 
 Don't audit against a paraphrase of either file, and don't apply a criterion you can't point to in them.
 
@@ -77,6 +78,10 @@ Not a completeness check (that's #3), not about whether the note's worked exampl
 - **Too dense (loses simplicity):** technically accurate, but unreadable on a first pass. Leads with jargon before any intuition is built. Explains one unfamiliar concept by referencing three other unfamiliar concepts. Lists every option/flag with no signal of which ones matter.
 
 **Target:** the balance set out under *The core balance* in the rules file — the correct mental model in plain language first, then the precise mechanism that makes that model actionable. One well-chosen example beats five abstract sentences.
+
+A missing concrete carrier for a policy, configuration, query, payload, state transition, or
+precedence rule belongs to #4, not here. Keep prose craft and artifact coverage separate so one
+root cause produces one finding.
 
 **Calibration examples** (same underlying facts, different craft — use these to anchor your judgment across files):
 
@@ -112,6 +117,8 @@ A note that only covers the happy path is incomplete even if everything in it is
 Notes in this repo often include a worked example that combines several tools to solve a real problem — e.g. a RAG pipeline instrumented with OpenTelemetry and Langfuse. That example's job is to show the reader how the pieces genuinely fit together at a production level, not just that each piece individually runs. Check:
 
 - **The example ladder exists.** Before production integration, is there a minimal runnable baseline or, for a concept-heavy note, a small concrete trace with named inputs, state changes, and visible output? A full schema, topology, or 100-line script as the first example is `FIX-MED`; `FIX-HIGH` when the note is the beginner path's only implementation and the reader cannot isolate the baseline mechanism.
+
+- **Local concrete-carrier coverage exists.** Inventory the high-leverage mechanisms whose behavior is expressed through a policy, configuration, schema, query, payload, command, state transition, precedence rule, or interaction. Apply `references/example-selection.md`: can the reader see the smallest faithful carrier near the first explanation, map its important field or transition to the outcome, and—when the distinction is non-obvious—see one changed input produce a different result? Do not let an unrelated opening or final integration example satisfy a local gap. A labeled excerpt plus a link to the canonical full owner is enough when it carries the local semantics safely.
 
 - **Real integration, not a sketch.** Does it show how these specific tools actually connect to each other — trace context propagated correctly across the pipeline's steps, correct span/trace hierarchy — or does it just wrap one function in a decorator and call it "instrumented"?
 - **The non-obvious tactics.** Does it include the specific moves a practitioner reaches for with *this combination* of tools — the stuff that isn't obvious from reading each tool's docs separately? For a RAG + OTel + Langfuse example: separate spans for retrieval vs. generation, retrieved-document metadata attached to the right span, the Langfuse trace ID correlated with the OTel trace so either tool can be used to debug the other.
@@ -153,11 +160,12 @@ Run the full protocol in `references/learning-curve-and-explanation-audit.md` af
 For every teaching note:
 
 1. **Run the toy-not-correct scan first.** Unsafe simplification is `FIX-CRITICAL` regardless of labels or later hardening.
-2. **Issue the ORDERING verdict.** Record total lines, the first composed payoff line, payoff distance, short-version contract, baseline-before-hardening order, deferral contract, assembly, density, and prerequisite placement.
-3. **Issue the EXPLANATION verdict.** Record raw prescriptive and explanatory counts, register ratio, first-use jargon, problem-before-mechanism order, rule justification, concrete-before-abstract order, and the restatement result.
-4. **Run the restatement test last.** Treat it as the acceptance criterion for explanation, not as a summary of the ordering result.
+2. **Issue the ORDERING verdict.** Identify the note role, then record total lines, the first role-appropriate payoff line, payoff distance, opening-payoff quality, baseline-before-hardening order where applicable, relevant deferrals, assembly, density, and whether prerequisites genuinely belong before the payoff.
+3. **Run the concrete-carrier gap scan.** Identify only the mechanisms that meet the semantic triggers in `references/example-selection.md`; record how many remain abstract at their point of need. Do not count concepts, code blocks, or examples as a proxy.
+4. **Issue the EXPLANATION verdict.** Record raw prescriptive and explanatory counts, register ratio, first-use jargon, problem-before-mechanism order, rule justification, concrete-before-abstract order, concrete-carrier gaps, and the restatement result.
+5. **Run the restatement test last.** Treat it as the acceptance criterion for explanation, not as a summary of the ordering result.
 
-Apply findings in this priority order: toy-not-correct; unglossed jargon, unexplained rules or defenses, and mechanisms introduced without their problem; buried or hardened-first baselines; restatement failure; then medium readability findings. Report distinct corrections separately, but do not create duplicate lines for one root cause merely because several heuristics detected it.
+Apply findings in this priority order: toy-not-correct; unglossed jargon, unexplained rules or defenses, mechanisms introduced without their problem, and central mechanisms left without a concrete carrier; buried or hardened-first baselines; restatement failure; then medium readability findings. Report distinct corrections separately, but do not create duplicate lines for one root cause merely because several heuristics detected it.
 
 For a pure index, lookup reference, or link list, write `ORDERING: n/a` and `EXPLANATION: n/a` with the role reason. Do not quietly omit the verdicts.
 
@@ -290,8 +298,8 @@ Format, one block per note file, using its path relative to the repo root:
 
 ```
 # <relative/path/to/note.md> (<N> lines)
-ORDERING: payoff line <L>/<N> (<ratio>, PASS|FAIL); short version PASS|FAIL|n/a; length budget PASS|FAIL|n/a.
-EXPLANATION: register <P>:<E> (PASS|FAIL; <P> markers/<E> explanatory paragraphs); restatement PASS|FAIL|n/a; unglossed first uses <N>; unexplained rules/defenses <N>; intuition-building explanation yes|no|n/a.
+ORDERING: role <role>; payoff line <L>/<N> (<ratio>, PASS|FAIL|n/a); opening payoff PASS|FAIL|n/a; length budget PASS|FAIL|n/a.
+EXPLANATION: register <P>:<E> (PASS|FAIL; <P> markers/<E> explanatory paragraphs); restatement PASS|FAIL|n/a; unglossed first uses <N>; unexplained rules/defenses <N>; concrete-carrier gaps <N>; intuition-building explanation yes|no|n/a.
 Summary: N critical, N high, N med, N low
 
 FIX-CRITICAL: <unsafe or actively misleading line> — <specific safe correction>.
@@ -332,7 +340,7 @@ Scope: <N> teaching notes, <N> reference/index notes, <N> reading paths
 ## Ordering
 | Metric | Current | Pre-remediation baseline | Target |
 |---|---:|---:|---:|
-| Complete short-version contract | N/N | 1/43 | N/N |
+| Role-appropriate opening payoff | N/N | not comparable (former short-version baseline 1/43) | N/N |
 | Payoff distance > 0.25 | N/N | 40+/43 | 0 |
 | Over 500 lines without justification | N/N | 7/43 | 0 |
 | Paths with a result within two entries | N/N | 0/5 | N/N |
@@ -346,6 +354,7 @@ Scope: <N> teaching notes, <N> reference/index notes, <N> reading paths
 | Notes with intuition-building explanation | N/N | ~8/43 | N/N |
 | Notes passing restatement | N/N | not recorded | N/N |
 | Rules/defenses without mechanism | N | not recorded | 0 |
+| Example-demanding mechanisms without a local concrete carrier | N | not recorded | 0 |
 ```
 
 Use the historical values only for `auth-notes`; write `n/a` for another repository. Sum marker and explanatory-paragraph counts before computing the repo ratio. Do not average ratios, and do not turn the intuition-building metric into a phrase quota.
@@ -364,6 +373,7 @@ Use the historical values only for `auth-notes`; write `n/a` for another reposit
 - Do not excuse an abrupt learning path because every advanced fact is accurate. Grade when the reader encounters the mechanism, not only whether it is eventually explained.
 - Production awareness is the destination, not the entry price. Require failure modes, limits, recovery, and practitioner tactics eventually, while preserving a concept-first baseline and useful stop point.
 - Preserve useful depth. Recommend reordering, an entry point, or a split with a named boundary; never solve learning-curve inversion by deleting hardening, citations, or failure modes.
+- Treat example coverage semantically, never numerically. A note with one well-placed carrier can be complete; a note with ten unrelated code blocks can still leave its central policy, state transition, or precedence rule abstract.
 
 ---
 
@@ -376,6 +386,9 @@ Use the historical values only for `auth-notes`; write `n/a` for another reposit
 - Don't rank every currency finding as `FIX-CRITICAL` — rank it by what happens to the reader who acts on it.
 - Don't apply a criterion you can't point to in the required references, and don't restate one in your own words where citing it would do.
 - Don't accept runnable code as evidence that the mechanism is explained, or a passing ordering verdict as evidence that the explanation verdict passes.
+- Don't count code blocks, examples, or sections and infer coverage from the total. Apply the concrete-carrier triggers mechanism by mechanism, and emit no finding when prose is sufficient or an earlier nearby example already carries the same semantics.
+- Don't accept an unrelated opening or integration example as coverage for a later artifact-shaped mechanism whose fields, states, or interactions remain invisible.
+- Don't demand a duplicate full implementation when another note is the canonical owner; prescribe the smallest safe local excerpt or trace plus a link.
 - Don't demand runnable code from a conceptual note; require the concrete worked trace defined in the references.
 - Don't fix an explanation deficit by adding another warning, rule, or citation. Prescribe the causal mechanism, consequence, or attacker sequence.
 - Don't downgrade toy-not-correct code because it is labeled simplified, introductory, or non-production.

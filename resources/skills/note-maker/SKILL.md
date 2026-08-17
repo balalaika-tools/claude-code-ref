@@ -18,11 +18,11 @@ If the user already has an existing notes repo and wants to add to it, read the 
 When the user provides a topic:
 
 1. **Decide if a scout is needed** — If native knowledge is sparse or the topic is fast-moving, launch a scout subagent for a brief landscape summary (main sub-areas, versioning notes, recent shifts). Otherwise skip.
-2. **Design the learning ladder** — Define what a first-time reader already knows, the first correct thing they can run or trace, the explanation that lets them restate why it works, and the production concerns that belong later. Order paths **do → understand → harden**; every path reaches a runnable result or concrete worked outcome within its first two entries. Assign each planned file one role: foundation/tutorial, implementation, deep dive, decision guide, or reference. Name the canonical owner of every full schema, implementation, or option set.
+2. **Design the learning ladder** — Define what a first-time reader already knows, the first correct thing they can run or trace, the explanation that lets them restate why it works, and the production concerns that belong later. Order paths **do → understand → harden**; every path reaches a runnable result or concrete worked outcome within its first two entries. Assign each planned file one role: foundation/tutorial, implementation, deep dive, decision guide, or reference. Name the canonical owner of every full schema, implementation, or option set. Build a short internal **example-coverage map**: list the high-leverage mechanisms, mark which ones need a concrete carrier, choose its form, and mark prose-sufficient items explicitly so examples do not become a quota.
 3. **Propose structure** — Show the directory tree and planned files with a one-line reader outcome for each. Include a short first-time path, the working result reached by entry two, and its stop point, then ask: "Does this structure look right? Want to add or remove anything?"
 4. **Create root README.md and directory READMEs** — Write these directly; they're structural learning maps, not merely indexes. Use the templates in `references/templates/`.
-5. **Write note files** — Read `references/how-we-write-notes.md` before drafting and use `references/example_note.md` as the concrete shape. If running in Claude Code with 3+ independent files, launch subagents in parallel (see *Parallelizing with subagents*). Otherwise write files sequentially.
-6. **Run the assembly pass** — Read the first-time path in order as one course. Verify that it delivers a working baseline before hardening, grounds every new term locally, explains each mechanism through the problem it solves, provides useful stop points, and does not repeat canonical reference material across files.
+5. **Write note files** — Read `references/how-we-write-notes.md` before drafting and use `references/example_note.md` as the concrete shape. When a note teaches policies, configuration, schemas, queries, API payloads, commands, state transitions, precedence, or multi-layer evaluation, also read `references/example-selection.md`. If running in Claude Code with 3+ independent files, launch subagents in parallel (see *Parallelizing with subagents*). Otherwise write files sequentially.
+6. **Run the assembly pass** — Read the first-time path in order as one course. Verify that it delivers a working baseline before hardening, grounds every new term locally, explains each mechanism through the problem it solves, provides useful stop points, and does not repeat canonical reference material across files. Re-run the example-coverage map against the assembled prose: a strong opening does not compensate for a later policy, configuration, state transition, or precedence rule that the reader must simulate without seeing its carrier.
 7. **Verify files and paths** — Check every internal link, run `python <skill-directory>/scripts/validate_notes.py <note paths or directories>`, then complete the manual checklist under *Final verification*. Resolve `<skill-directory>` to the directory containing this `SKILL.md`. A clean mechanical check does not prove that the note teaches.
 
 If the user asks to add a section to an existing repo, read the current README.md, propose where the new content fits, and update all affected READMEs and cross-references.
@@ -62,12 +62,6 @@ These are the actual content. Each file teaches one focused topic.
 
 Numbered with zero-padded prefix: `01_topic_name.md`, `02_topic_name.md`. Numbers indicate reading order within a directory. Use lowercase with underscores.
 
-### Topic type
-
-**Code-heavy topics** (frameworks, APIs, languages, tools): put the smallest correct end-to-end example in *The short version*, make its output visible, explain why it works, then add the production-grade version with real imports, error handling, limits, and operational evidence.
-
-**Concept-heavy topics** (system design, distributed systems theory, architecture patterns): put one concrete worked trace with real values in *The short version*. Use diagrams, decision matrices, and annotated tables only after the instance has made the abstraction necessary.
-
 ### Note role
 
 Choose one primary role before drafting; do not make one file serve as both first tutorial and exhaustive reference:
@@ -78,34 +72,44 @@ Choose one primary role before drafting; do not make one file serve as both firs
 - **Decision guide** — compares known alternatives and routes the reader to canonical implementation notes.
 - **Reference** — optimizes for lookup; it may be dense, but no beginner path should require reading it front to back.
 
-### Structure
+### Open with a role-appropriate payoff
 
-See `references/example_note.md` for a complete, filled-in example that demonstrates all conventions. The key skeleton:
+Do not impose `## The short version` or one universal mini-tutorial on every file. Give the reader
+an early payoff that fits the declared role:
+
+| Note role | Opening payoff |
+|---|---|
+| Foundation/tutorial | A concrete situation and the first correct mental model or worked outcome. |
+| Implementation | The smallest runnable path, bounded inputs, and visible output. |
+| Deep dive | The failure, constraint, or surprising behavior that makes the deeper mechanism necessary. |
+| Decision guide | A named decision, the few criteria that change it, and an initial recommendation. |
+| Reference | Scope, lookup map, defaults, or common subset; no forced tutorial. |
+
+Use whatever heading makes the payoff clear: `Quick start`, `Worked example`, a claim-specific
+heading, or no dedicated heading when the opening prose already delivers it. Exact labels such as
+`What you need`, `Success signal`, and `Not handled yet` are optional. Their information remains
+required only when it applies: bound inputs for an action, show its observable success, and name
+relevant production omissions near a deliberately minimal example.
+
+For code-heavy tutorial or implementation notes, show the smallest correct end-to-end example,
+make its output visible, explain why it works, then add hardening. For concept-heavy foundation
+notes, use a concrete worked trace before abstract tables. Deep dives, decision guides, and
+references do not recreate a baseline already owned elsewhere merely to satisfy an opening form.
+
+See `references/example_note.md` for one complete **foundation/tutorial** example, not a universal
+template. A general teaching-note skeleton is:
 
 ````markdown
 # {Descriptive Title}
 
 > **Who this is for**: {Audience only; prerequisites do not gate the payoff.}
 
-## The short version
+{Optional genuine prerequisite; keep optional background advisory.}
 
-{2–4 sentences: the problem, the mental model, and why the inputs are sufficient.
-Gloss every domain term at first use.}
+## {Role-appropriate opening claim or payoff}
 
-**What you need ({N} things):**
-
-1. {Concrete input}
-2. {Concrete input}
-
-**The code:**
-
-```{lang}
-{10–25 runnable, minimal-but-correct lines with visible output}
-```
-
-**Success signal:** {Exact output, status, or observation.}
-
-**Not handled yet:** [{Deferred production concern}](#later-section), ...
+{A concrete situation, runnable baseline, motivating failure, decision scenario, or lookup map.
+Include bounded inputs and an observable result when the reader is asked to act.}
 
 ---
 
@@ -139,9 +143,10 @@ Before going deeper, it helps to know X: **[Guide](path/to/guide.md)**.
 **Next**: [Part 2: Title](02_next_file.md)
 ````
 
-The short-version block is mandatory for every actionable note. It is a result, not an abstract or table of contents: a cold reader can run the code or follow the worked trace, observe the stated result, and explain the mechanism in plain language. Keep it to 40 lines and end it by line 80; the first runnable code must appear by line 80 or 15% of the file, whichever is sooner. For a conceptual note, replace **The code** with **Worked example** and show named actors, real values, a transition, and an outcome.
-
-Prerequisites are advisory and come after the short version. If the short version needs one prerequisite to make sense, supply one sentence of inline context instead of sending the reader away.
+The opening must earn attention before setup detail, exhaustive taxonomy, or hardening, but it has
+no fixed heading, field order, line count, or percentage threshold. A title plus a generic summary
+does not count. Genuine prerequisites may precede the payoff when the intended audience cannot
+proceed without them; keep optional background advisory and brief.
 
 ### Section numbering
 
@@ -157,7 +162,7 @@ Each note file should feel like it was written by a senior engineer explaining t
 
 - **Audience calibration** and the detail-vs-simplicity balance
 - **The collection learning contract** — concept → minimal usable mechanism → production hardening → operational awareness, with file roles, stop points, and one canonical owner per mechanism
-- **Ground vocabulary locally** — expand acronyms and give every domain term a short "what kind of thing is this?" gloss at first use in this note, including inside *The short version*; links provide depth, never the only definition
+- **Ground vocabulary locally** — expand acronyms and give every domain term a short "what kind of thing is this?" gloss at first use in this note, including inside the opening payoff; links provide depth, never the only definition
 - **Introduce mechanisms through their need** — show the world without the mechanism and the consequence before defining it; for security controls, walk through the attack before stating the defense
 - **Concrete before abstract** — put one instance with real values before the definition table, taxonomy, full schema, or topology
 - **Work with the model the reader already has** — an analogy to their existing expertise with its boundary stated, and the common misconception named and killed
@@ -165,6 +170,7 @@ Each note file should feel like it was written by a senior engineer explaining t
 - **A success signal for every instruction** — what the reader observes when it worked, and the tell for the common silent failure
 - **Completeness** — the three non-negotiables (what breaks first, when not to use it, how you know it's working) plus whatever else the subject warrants
 - **Examples: minimal first, hardened second**
+- **Concrete carriers at the point of need** — structured and interaction-shaped mechanisms show the smallest faithful policy, config, request/response, query/result, state trace, or decision contrast that makes their behavior inspectable
 - **Headers that make claims**, exactly one `> **Key insight**:`, `⚠️` reserved for failure modes
 - **Currency** and tone
 
@@ -172,21 +178,24 @@ Apply that standard while drafting — don't wait for an audit pass to catch wha
 
 What's specific to authoring:
 
-- **No hardening before the baseline** — caching, rotation, retries, pooling, discovery indirection, emergency hooks, observability, and failure taxonomies come only after the first end-to-end result. Delete everything after that result: what remains must still be a correct, usable baseline.
+- **No hardening before the baseline in notes that own it** — a tutorial or implementation note puts caching, rotation, retries, pooling, discovery indirection, emergency hooks, observability, and failure taxonomies after its first end-to-end result. A deep dive may start from the failure that requires one of these mechanisms when it states or links the baseline it assumes.
 - **Simplify the operational, never the correctness-critical** — the baseline may defer caching, retries, rotation, metrics, granular errors, config indirection, and dependency injection. It never defers algorithm/cipher pinning, issuer/audience/freshness checks, constant-time secret comparison, TLS verification, parameterized queries, or keeping secrets out of logs. Read the full rule in `references/how-we-write-notes.md` before choosing omissions.
-- **Carry a deferral contract** — every short version ends with **Not handled yet**, naming and linking every production concern it omits. A minimal example without that list is not publishable.
+- **Carry a relevant deferral contract** — when a minimal example omits production concerns that matter to its claim, name them nearby and link forward. `Not handled yet` is an optional label, and irrelevant concerns do not need ceremonial mention.
 - **Code examples follow the minimal-first, hardened-second sequence** — the baseline is small and correct; the hardened block after it carries the real imports, error handling, and a comment per addition naming the failure it prevents. Neither block is `foo`/`bar` toy code.
 - **Inline comments that explain "why"** — not what the code does, but why this approach was chosen.
 - **Progressive complexity across the collection and the file** — the reading path establishes the baseline before advanced mechanisms; each file then starts at its declared role and adds only the next necessary layer.
 - **The load-bearing example must teach** — after showing the runnable baseline, explain the mechanism and consequence until a new reader can restate why it works. A code block proves execution, not understanding.
+- **Example coverage is semantic, not numeric** — use the internal coverage map to ask which mechanisms need a carrier, not how many examples the note contains. One annotated example may cover several adjacent concepts; a simple definition may need none.
+- **Put the carrier beside the explanation it unlocks** — do not count an unrelated opening or end-to-end example as coverage for a later mechanism whose fields, states, or interactions remain invisible.
+- **Distinguish excerpts from copyable examples** — a copyable block is complete, valid, and safe. A smaller explanatory excerpt is allowed when labeled, syntactically faithful, locally mapped to an outcome, and free of omitted correctness- or security-critical context; link to the canonical complete owner. Put prose labels outside the fence when its declared language does not support comments: a `json` excerpt must still parse as JSON.
 - **The final composition check runs as shown** — execute it in the documented environment and show the observed output. A comment saying that a real test needs different connections, services, fixtures, or synchronization is an admission that the block is a sketch; supply that setup or narrow the claim.
 - **Canonical ownership** — keep the full schema, code path, or exhaustive table in one note. Elsewhere, show only the fragment needed for the local teaching point and link to the owner.
 - **Production tricks have a reason** — attach every advanced tactic to the failure, scaling limit, review concern, or operational symptom it addresses; do not collect unexplained "best practices."
 
 ### Density and altitude budgets
 
-- *The short version* is at most 40 lines and ends by line 80.
-- Runnable code appears by line 80 or 15% of the note, whichever comes first; conceptual notes place their concrete worked trace under the same budget.
+- Put the role-appropriate payoff before setup detail, exhaustive reference material, or hardening that the reader does not yet need. Do not use a universal line or percentage quota.
+- Tutorial and implementation notes reach their runnable baseline early; concept notes place the first useful trace near the mechanism it explains. Deep dives, decision guides, and references use their own payoff forms instead of forced code.
 - Split a note over 500 lines, or add `<!-- length-justification: ... -->` near the top with the concrete reason it must remain one file.
 - Hardening may occupy most of a note, but all of it follows the baseline.
 - Use `> **Core:**` for material the learning path cannot skip, `> **Production:**` for pre-ship hardening, and `> **Edge case:**` for conditional specialist material.
@@ -217,7 +226,7 @@ What's specific to authoring:
 ### Cross-referencing
 
 - **End of file**: `**Next**: [Part N: Title](next_file.md)` pointing to the next file in sequence
-- **Prerequisites**: Advisory and placed after *The short version*: `For more background on X, see **[Guide](path/to/guide.md)**`
+- **Prerequisites**: Keep optional background advisory. Put a genuine prerequisite near the audience statement only when the intended reader cannot use the note without it.
 - **Inline links**: `see [Connection Pooling](../database/05_connection_pooling.md)` when referencing concepts from other files
 - Use **relative paths** for all internal links
 
@@ -251,7 +260,7 @@ If the topic is current, niche, or fast-moving and native knowledge isn't enough
 
 After the user confirms structure, if there are **3+ independent files**, launch one subagent per file in parallel (all Agent tool calls in a single message). Each subagent writes its own `.md` file to disk following this skill's conventions, then returns a short confirmation — not the file contents.
 
-Prompt each subagent with: the topic, target file path, note role, exact knowledge the reader enters with, capability the reader leaves with, canonical mechanisms this file owns, adjacent files for cross-linking, and a pointer to this `SKILL.md`, `references/how-we-write-notes.md`, and `references/example_note.md`. Require the short-version contract, local term grounding, problem-before-mechanism explanations, the never-defer safety list, an actually executed final integration check, and the restatement test explicitly; do not assume a pointer alone will make these survive parallel drafting. Name reference material owned elsewhere that the subagent must link rather than reproduce. Per the currency rule, verify any time-sensitive claim with web search before it goes in the file. Each subagent runs both its displayed code/integration commands and `scripts/validate_notes.py` on its file before returning.
+Prompt each subagent with: the topic, target file path, note role, exact knowledge the reader enters with, capability the reader leaves with, canonical mechanisms this file owns, adjacent files for cross-linking, and a pointer to this `SKILL.md`, `references/how-we-write-notes.md`, and `references/example_note.md`. For artifact- or interaction-shaped topics, also point to `references/example-selection.md` and require an internal example-coverage map. Require a role-appropriate opening payoff, local term grounding, problem-before-mechanism explanations, concrete carriers at the point of need, the never-defer safety list, an actually executed final integration check when the note presents runnable integration, and the restatement test explicitly; do not assume a pointer alone will make these survive parallel drafting. Name reference material owned elsewhere that the subagent must link rather than reproduce. Per the currency rule, verify any time-sensitive claim with web search before it goes in the file. Each subagent runs both its displayed code/integration commands and `scripts/validate_notes.py` on its file before returning.
 
 The main agent handles: launching the scout (if needed), designing and proposing the learning ladder, writing READMEs, launching file subagents, and reading the assembled first-time path in full. Subagent confirmations are not evidence that the collection has a coherent difficulty curve.
 
@@ -269,14 +278,14 @@ The main agent handles: launching the scout (if needed), designing and proposing
 - Don't tell the reader to configure or run something without telling them what success looks like and how the common silent failure shows up.
 - Don't reach for an analogy you can't bound. State where it stops holding, or leave it out.
 - Don't use emojis decoratively. Only `1️⃣`–`9️⃣` for section numbering in intro files, and `✅❌⚠️💡` for callouts — with `⚠️` reserved for failure modes.
-- Don't write pseudocode. Every code block should be complete and runnable, the minimal baseline block included — minimal means fewer concerns, not fewer working lines. For concept-heavy topics, replace code with concrete diagrams or traces.
+- Don't write ambiguous pseudocode or present fragments as runnable. Baseline and copyable blocks must be complete and correct. A deliberately labeled explanatory excerpt may omit irrelevant outer structure, but it must remain syntactically faithful, map to a concrete outcome, preserve every correctness- and security-critical property relevant to its claim, and link to the canonical complete owner. For concept-heavy topics, use the matching concrete trace instead of forcing code.
 - Don't call a block an integration test while explaining in prose that its database, connection, service, fixture, or concurrency setup cannot execute it as written.
 - Don't begin a concept-heavy note with the full schema or production topology. Show the smallest concrete trace first, then replay it with the failure that requires hardening.
 - Don't repeat a full implementation across overview, architecture, reliability, and operations notes. Choose a canonical owner and cross-link it.
 - Don't call a collection beginner-friendly because each file has an introductory paragraph. Follow the actual first-time path and verify its cumulative complexity.
 - Don't create flat structures. If you have 15+ files, organize into directories.
 - Don't skip the ASCII tree diagram in the root README.
-- Don't forget cross-references. Every file links to its next step; relevant prerequisites remain advisory and appear only after the short version.
+- Don't forget cross-references. Every file links to its next step; optional background remains advisory, while genuine prerequisites may be stated briefly near the audience contract.
 - Don't ship a file that fails any of the three non-negotiables in `references/how-we-write-notes.md`: what breaks first when the reader uses this for real, when *not* to use it, and how they know it's working. The subject-dependent items (limits, cost/security, trade-offs vs. alternatives) can be skipped where they genuinely don't apply — those three can't.
 
 ---
@@ -287,23 +296,25 @@ Run `python <skill-directory>/scripts/validate_notes.py <note paths or directori
 
 ### Per note
 
-- [ ] *The short version* is present, no longer than 40 lines, and ends by line 80.
-- [ ] **What you need** enumerates and counts the minimal concrete inputs, and the prose explains why those inputs are sufficient.
-- [ ] The short-version code actually runs and produces its exact **Success signal**, or the conceptual worked example has real values and a visible outcome.
-- [ ] **Not handled yet** names every deferred production concern and links each one forward.
+- [ ] The opening delivers the payoff appropriate to the note's declared role; it is not merely a generic summary.
+- [ ] A tutorial or implementation opening bounds the inputs and shows an observable result; a foundation, deep dive, decision guide, or reference uses the matching payoff form instead of forced code.
+- [ ] Any minimal example that omits relevant production concerns names them nearby and links forward, without requiring a particular label.
 - [ ] No correctness- or security-critical parameter from the never-defer list was simplified away.
-- [ ] No caching, rotation, retries, pooling, discovery indirection, metrics, or failure taxonomy appears before the end-to-end baseline.
-- [ ] The delete-everything-after-the-baseline test passes: what remains is correct, usable, and self-sufficient.
-- [ ] Prerequisites appear after the short version, are advisory, and are not the only definition of a term.
-- [ ] Every new acronym and domain term is grounded at first use in this note, including the short version.
+- [ ] In a tutorial or implementation note that owns the runnable path, no caching, rotation, retries, pooling, discovery indirection, metrics, or failure taxonomy appears before the end-to-end baseline.
+- [ ] For a note that owns a baseline, the delete-everything-after-that-baseline test passes: what remains is correct, usable, and self-sufficient. A deep dive states or links the baseline it assumes instead of reproducing it.
+- [ ] Genuine prerequisites are brief and audience-relevant; optional background is advisory and is not the only definition of a term.
+- [ ] Every new acronym and domain term is grounded at first use in this note, including the opening payoff.
 - [ ] Every introduced mechanism first shows the problem and consequence it solves; every security defense walks through the adversary's move before stating the rule.
 - [ ] A real instance appears before any abstract table, taxonomy, schema, or topology.
+- [ ] Every high-leverage mechanism that requires the reader to write, inspect, review, debug, or mentally simulate a structured artifact or interaction has the smallest faithful concrete carrier near its first explanation.
+- [ ] Each such carrier maps its important field, value, or transition to an outcome; a changed-input contrast appears when the distinction is non-obvious.
+- [ ] No example was added merely to satisfy a section or count; existing examples are reused when they already carry the same semantics, and non-canonical notes use excerpts plus links instead of duplicate full implementations.
 - [ ] Rules and `⚠️`/`❌`/`✅` callouts follow explanations; there is at least one mechanism-or-consequence paragraph per two prescriptive markers.
 - [ ] `> **Core:**`, `> **Production:**`, and `> **Edge case:**` make the applicable altitude visible.
 - [ ] The note is under 500 lines or contains an explicit `<!-- length-justification: ... -->`.
 - [ ] Section 1 is problem-first; section headers make claims; exactly one `> **Key insight**:` is present.
 - [ ] Every instruction has a success signal and silent-failure tell; the note names what breaks first and when not to use the mechanism.
-- [ ] The displayed integration or end-to-end check was executed exactly as shown; its dependencies and concurrency setup are present, and its observed output matches the stated success signal.
+- [ ] When the note presents an integration or end-to-end check, it was executed exactly as shown; its dependencies and concurrency setup are present, and its observed output matches the stated success signal.
 - [ ] Restatement test: a competent engineer new to the subject could explain the mechanism to a colleague in their own words, not merely recite its rules.
 
 ### Per reading path
