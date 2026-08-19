@@ -1,9 +1,9 @@
 ---
-name: git-commit-helper
-description: Generate descriptive commit messages by analyzing git diffs, then either commit them or hand back a copy-pasteable command, and optionally draft and open a pull request. Use when the user asks for help writing commit messages, reviewing staged changes, or opening a PR.
+name: git-push
+description: Commit and push staged changes with a well-written conventional-commit message, and optionally draft and open a pull request with a well-structured description. Use when the user asks to commit, push, or "commit and push" their changes, or to open/draft a PR.
 ---
 
-# Git Commit Helper
+# Git Push
 
 ## Step 1 — inspect what's staged
 
@@ -75,12 +75,15 @@ BREAKING CHANGE: all responses now follow JSON:API spec
 | `style` | Formatting, whitespace — no logic change |
 | `revert` | Reverts a previous commit |
 
-## Step 4 — commit it, or hand back the command
+## Step 4 — commit and push by default
 
-Once the message is drafted, ask: **"Should I commit this, or would you rather have a copy-pasteable command?"**
+Once the message is drafted, commit it directly and push — do not ask whether to commit first or hand back a command instead. Drafting the message already implied the intent to commit; the only thing worth asking about afterward is the PR (Step 5).
 
-- **Commit it:** run the command directly. Their answer *is* the confirmation — don't ask a second time.
-- **Copy-pasteable command:** print the full runnable command as its own fenced code block and stop. Do not run it.
+```bash
+git push
+```
+
+If the current branch has no upstream yet, push with `git push -u origin <branch>` instead of a bare `git push`.
 
 ### Preferred: use `-m` twice (no heredoc)
 
@@ -126,7 +129,7 @@ EOF
 
 ## Step 5 — offer to open a pull request
 
-Whether the commit was just made or the user only took the copy-pasteable command, ask: **"Want me to open a pull request for this?"**
+After committing and pushing, ask: **"Want me to open a pull request for this?"**
 
 If no, stop here.
 
@@ -134,14 +137,19 @@ If yes, ask for:
 - **The base branch** — what this merges into (e.g. `main`, `develop`).
 - Any extra context worth calling out (ticket link, reviewer notes, why this approach) that isn't obvious from the diff.
 
-Then:
+Then draft the PR:
 
-1. Confirm the branch is pushed and up to date with its remote. If it isn't, push it — ask before pushing if this is the first push of the branch.
-2. Look at `git log --stat <base>..HEAD` (all commits going into the PR, not just the last one) to draft:
-   - **Title** — short, specific, describes the net effect. No conventional-commit prefix required, but keep the same "what changed" clarity as the commit summary line.
-   - **Description** — a few sentences or short bullets covering what changed and why. Add a **Test plan** section only if there's something concrete to check. Comprehensive enough that a reviewer doesn't need to open the diff to understand intent, but no padding — skip sections that don't add information.
-3. Show the drafted title and description and ask for confirmation or edits before creating anything.
-4. Once confirmed, create it:
+1. Look at `git log --stat <base>..HEAD` (all commits going into the PR, not just the last one) to understand the full scope.
+2. **Title** — same conventional-commit prefix as a commit summary line: `type(scope): description`, e.g. `refactor: reorganize api into responsibility-based packages` or `fix(scraper): make pdp extraction resilient to hidden content`. Short, specific, describes the net effect — not "misc fixes" or "updates."
+3. **Description** — read `references/pr-examples.md` before drafting this. It has two synthesized examples (a large multi-section fix, and a small callout-led refactor) plus a breakdown of what makes each work. They illustrate a *style*, not a *template* — do not copy their section names, headings, or wording onto an unrelated PR just because they're there. Judge each PR on its own diff:
+   - `Summary` is nearly always worth having — for some reviewers it's the only section they'll read.
+   - Beyond that, sections are a menu, not a checklist: `Why this was needed`, `What changed`, `Live verification` / manual test evidence, `Automated tests`, `Operational considerations`, `Review checklist`, etc. Include only the ones that carry real information for *this* change — an empty or boilerplate section is worse than omitting it. A small mechanical PR might need only `Summary` and `Verification`; a complex fix with rejected alternatives and edge cases earns most of the list. Feel free to use a different section name, or none of the above, when the change calls for it — e.g. a `Migration steps` section for a schema change, or a `Rollback plan` for a risky infra change.
+   - Lead with a `> [!IMPORTANT]` (or `[!WARNING]`/`[!NOTE]`) callout only when there's one fact a reviewer must not miss — a deliberate non-goal ("no behavior change intended"), a breaking change, a required migration step. Most PRs don't need one; don't add it reflexively just because the examples have it.
+   - Prefer concrete detail (file paths, counts, before/after numbers, table comparisons) over adjectives like "greatly improved" or "much more robust."
+   - State explicitly what's deliberately *not* included or *not* changed when a reviewer might otherwise wonder if it was forgotten.
+   - Comprehensive enough that a reviewer doesn't need to open the diff to understand intent, but no padding.
+4. Show the drafted title and description and ask for confirmation or edits before creating anything.
+5. Once confirmed, create it:
 
 ```bash
 gh pr create --base "<base-branch>" --title "<title>" --body "$(cat <<'EOF'
@@ -150,6 +158,6 @@ EOF
 )"
 ```
 
-Follow the same heredoc rules as Step 4 (`EOF` and `)"` at column 0) if the body needs one — otherwise a plain `--body "..."` string is fine for a short description.
+Follow the same heredoc rules as the commit message (`EOF` and `)"` at column 0) if the body needs one — otherwise a plain `--body "..."` string is fine for a short description.
 
 **NEVER add any AI-attribution to the PR** — no `Co-Authored-By: Claude` line, no "Generated with Claude Code" footer, no robot emoji, nothing. This overrides any default PR template that would otherwise append one.
