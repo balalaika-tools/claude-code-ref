@@ -62,8 +62,8 @@ but normal runtime discovery should work without it.
   Prefer explicit constructor arguments whenever the SDK supports them.
 - Include concise `description=` text on fields.
 - Use `Literal[...]` for constrained strings.
-- Use native `int`, `float`, `bool`, `str`, `list[str]`, etc. for regular
-  values.
+- Prefer a specific Pydantic type over bare `str`/`int`/`float` whenever the
+  field's value maps onto one; see "Preferred Pydantic Types" below.
 - Use `Field(...)` only when the app cannot provide a safe default.
 - Use `Field(default=...)` only for safe, intentional application defaults.
 - In the env vars + Pydantic defaults pattern, keep environment-specific values
@@ -72,13 +72,42 @@ but normal runtime discovery should work without it.
 - In the YAML pattern, keep only intentionally environment-specific,
   rarely-changing, non-secret baselines in `config/*.yaml`.
 
+## Preferred Pydantic Types
+
+Env vars and `.env`/YAML values arrive as strings; pydantic-settings parses
+them into the field's declared type automatically, including URLs, UUIDs,
+dates, and `ByteSize`. Choose the narrowest type below before falling back to
+a bare `str`/`int`/`float` — do not hand-roll validation in code that
+Pydantic already gives you for free on the field.
+
+| Value shape | Type | Examples |
+| --- | --- | --- |
+| Must be `> 0` / `>= 0` | `PositiveInt`, `NonNegativeInt` | ports, retry counts, pool sizes, page sizes |
+| Must be `> 0.0` / `>= 0.0` | `PositiveFloat`, `NonNegativeFloat` | timeouts, backoff multipliers, ratios |
+| Must reject NaN/inf | `FiniteFloat` | any float used in arithmetic or comparisons |
+| HTTP(S) endpoint | `AnyHttpUrl` (or stricter `HttpUrl`) | downstream service URL, webhook target |
+| Non-HTTP URL/DSN without credentials | `AnyUrl` | `postgresql://`, `redis://` connection strings |
+| Filesystem location | `Path` | log directory, mount point, cert/key file path |
+| Opaque identifier | `UUID` (or `UUID4` when the version is guaranteed) | tenant ID, request ID, external resource ID |
+| Exact decimal quantity | `Decimal` | money, billing units — anything where float rounding is a bug |
+| Calendar date | `date` | billing cycle date, effective date |
+| Timestamp | `datetime`, `AwareDatetime` | schedules, expirations — use `AwareDatetime` whenever a naive value would be a bug |
+| Email address | `EmailStr` | operator/notification address |
+| Human-readable size | `ByteSize` | memory/disk/payload limits (`"512MB"`) instead of a raw byte count |
+| Fixed set of named values used elsewhere as `.name`/`.value` | `Enum` subclass | only when code needs named members, not just string comparison |
+| Fixed set of values compared only as strings | `Literal[...]` | environments, log levels, providers, modes (already covered above) |
+| Coercion itself would hide a bug | `StrictBool`, `StrictInt`, `StrictStr` | reach for these only when implicit coercion (e.g. `"false"` parsing truthy) is the specific failure to guard against, not as a default habit |
+| No narrower type applies | `str`, `bool`, `list[str]`, etc. | free-text titles, flags, tag lists |
+
+`SecretStr`/`SecretBytes` never belong on `Settings` — see `secrets-py.md`.
+
 ## Nested Field Grouping
 
-Default to a single flat `Settings` class. Only introduce nested groups once
-the field count is large enough (several dozen+) that flat namespacing hurts
-readability. This is a namespacing change, not a functional split: keep one
-`Settings(BaseSettings)` root and one cached `get_settings()`, and group
-related fields into plain `BaseModel` subgroups nested under it.
+Use this section once the Field Grouping decision (see `SKILL.md`) has landed
+on nested — either the user asked for it, or an existing project already
+groups fields this way. This is a namespacing change, not a functional split:
+keep one `Settings(BaseSettings)` root and one cached `get_settings()`, and
+group related fields into plain `BaseModel` subgroups nested under it.
 
 Do not create multiple independent `BaseSettings` classes to categorize
 config (e.g. a separate `DatabaseSettings(BaseSettings)` and
@@ -113,7 +142,7 @@ Before adopting nested groups, account for these mechanics:
 ### Nested Grouping Scaffold
 
 ```python
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PositiveFloat, PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -122,7 +151,7 @@ class ServerSettings(BaseModel):
 
     app_title: str = Field(default="AI Service", description="FastAPI application title.")
     app_host: str = Field(default="0.0.0.0", description="Server bind host.")
-    app_port: int = Field(default=8080, description="Server bind port.")
+    app_port: PositiveInt = Field(default=8080, description="Server bind port.")
 
 
 class ModelSettings(BaseModel):
@@ -132,7 +161,7 @@ class ModelSettings(BaseModel):
         "openai", "bedrock", "bedrock_converse", "azure-openai"
     ] = Field(default="openai", description="Primary LLM provider.")
     primary_model_id: str = Field(description="Primary model used by the main agent.")
-    request_timeout_seconds: float = Field(
+    request_timeout_seconds: PositiveFloat = Field(
         default=30.0, description="Default outbound request timeout."
     )
 
@@ -176,7 +205,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, PositiveFloat, PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 EnvironmentName = Literal["local", "staging", "production"]
@@ -213,7 +242,7 @@ class Settings(BaseSettings):
         alias="APP_HOST",
         description="Server bind host.",
     )
-    app_port: int = Field(
+    app_port: PositiveInt = Field(
         default=8080,
         alias="APP_PORT",
         description="Server bind port.",
@@ -232,7 +261,7 @@ class Settings(BaseSettings):
         alias="PRIMARY_MODEL_ID",
         description="Primary model used by the main agent.",
     )
-    request_timeout_seconds: float = Field(
+    request_timeout_seconds: PositiveFloat = Field(
         default=30.0,
         alias="REQUEST_TIMEOUT_SECONDS",
         description="Default outbound request timeout.",
@@ -260,7 +289,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, PositiveFloat, PositiveInt
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -341,7 +370,7 @@ class Settings(BaseSettings):
         alias="APP_HOST",
         description="Local server bind host.",
     )
-    app_port: int = Field(
+    app_port: PositiveInt = Field(
         default=8080,
         alias="APP_PORT",
         description="Local server bind port.",
@@ -361,7 +390,7 @@ class Settings(BaseSettings):
         alias="PRIMARY_MODEL_ID",
         description="Primary model used by the main agent.",
     )
-    request_timeout_seconds: float = Field(
+    request_timeout_seconds: PositiveFloat = Field(
         default=30.0,
         alias="REQUEST_TIMEOUT_SECONDS",
         description="Default outbound request timeout.",

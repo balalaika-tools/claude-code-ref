@@ -18,7 +18,12 @@ and non-secret settings follow one clear ownership pattern.
 
 ## Pattern Decision
 
-There are two supported patterns:
+Two independent choices must be resolved before scaffolding or changing
+configuration. If the user has not clearly chosen for either axis, ask before
+proceeding — do not silently pick one. When an existing project already uses
+one pattern consistently, follow that pattern unless the user asks to migrate.
+
+### Non-secret value source
 
 1. **YAML environment baselines**: committed `config/{environment}.yaml` files
    hold non-secret values that rarely change and are intentionally different
@@ -29,10 +34,21 @@ There are two supported patterns:
    use `Field(...)`; `.env` is only a local override file; staging/production
    overrides are provided by real environment variables/Helm.
 
-If the user has not clearly chosen one of these patterns, ask which pattern to
-use before scaffolding or changing configuration. Do not silently pick one.
-When an existing project already uses one pattern consistently, follow that
-pattern unless the user asks to migrate.
+### Field grouping
+
+1. **Flat** (default — recommend this unless the user asks for grouping): a
+   single `Settings` class with all fields at the top level.
+2. **Nested**: one `Settings(BaseSettings)` root with related fields grouped
+   into plain `BaseModel` subgroups (see `references/settings-py.md`,
+   "Nested Field Grouping"). Flag two things when asking: this renames env
+   vars for every grouped field (e.g. `SERVER__APP_PORT` instead of
+   `APP_PORT`) — a breaking change for existing deployments, not a
+   transparent refactor — and it only pays off once field count is large
+   enough (several dozen+) that flat namespacing hurts readability.
+
+If the user gives no preference on either axis, ask explicitly (e.g. "YAML
+baselines or env-vars/defaults only? Flat `Settings` or nested groups?")
+rather than assuming flat/env-vars by default.
 
 ## Target Layout
 
@@ -103,6 +119,13 @@ For a small field addition, read only the affected reference files.
   providers, and modes.
 - Use `SecretStr` for passwords, tokens, API keys, signing keys, and DSNs that
   contain credentials.
+- Prefer Pydantic's specific types over bare `str`/`int`/`float` whenever a
+  field's value has a narrower natural type — ports and limits as
+  `PositiveInt`/`NonNegativeInt`, timeouts as `PositiveFloat`, URLs as
+  `AnyHttpUrl`/`AnyUrl`, filesystem paths as `Path`, IDs as `UUID`, money as
+  `Decimal`, calendar/time values as `date`/`datetime`/`AwareDatetime`, memory
+  or payload sizes as `ByteSize`. See `references/settings-py.md`, "Preferred
+  Pydantic Types" for the full decision list.
 - When using the YAML pattern and `Settings` fields use env-var aliases while
   YAML uses snake_case field names, set `populate_by_name=True`; otherwise
   aliased fields may ignore YAML keys and silently fall back to Python defaults.
