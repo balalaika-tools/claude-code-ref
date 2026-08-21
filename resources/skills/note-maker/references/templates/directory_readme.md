@@ -1,6 +1,9 @@
-# Directory README.md Template
+# Section Index Template
 
-Every directory gets one. Directory READMEs are **intentionally minimal** — just enough to orient the reader within that section. Don't mirror the root's ASCII trees or decorative category dividers.
+Every content directory gets one. Use `index.md` in MkDocs collections and preserve `README.md` in
+existing Markdown-only collections. Section indexes are **intentionally minimal** — just enough to
+orient the reader within that section. Don't mirror the site index's ASCII trees or decorative
+category dividers.
 
 ---
 

@@ -39,7 +39,7 @@ class Secrets(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="ignore",
+        extra="forbid",
     )
 
     database_password: SecretStr = Field(alias="DATABASE_PASSWORD")
@@ -87,7 +87,7 @@ class EnvSecrets(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="ignore",
+        extra="forbid",
     )
 
     database_password: SecretStr = Field(alias="DATABASE_PASSWORD")
@@ -166,6 +166,38 @@ not happen automatically.
 Do not create separate independent `BaseSettings`/`BaseModel` secret classes
 per integration. That duplicates `model_config` and loses the single point
 of validation-at-startup that one root class gives you.
+
+## Environment-Selected Secrets Provider
+
+Use this direction instead of (or alongside) the bypass-flag shape above when
+`Settings` carries `secrets: SecretNames | None` (see `settings-py.md`,
+"Layered YAML Scaffold") — secret *names* are non-secret configuration,
+resolved per environment, and only the values fetched for those names are
+secret. Applies the same way in a single-service repo or a monorepo.
+
+Select the provider from `environment_name` itself rather than a separate
+bypass flag — `local` has no names to look up and always reads process env
+vars; every other environment always resolves through the remote provider
+using the names `Settings.secrets` supplies:
+
+```python
+def build_secrets_provider(settings: Settings) -> SecretsProvider:
+    if settings.environment_name == "local":
+        return EnvSecretsProvider()
+    return RemoteSecretsProvider()  # rename for the chosen backend
+```
+
+Keep two properties in whatever `SecretsProvider.load()` implementations you
+write:
+
+- **All-or-nothing resolution.** Return a fully populated `Secrets` or raise —
+  never a partially populated object a caller might use before noticing a
+  field is missing. A `names` argument of `None` should only ever occur for
+  `local`; reaching the remote provider with no names is a wiring bug, and
+  should raise as one rather than being treated as "nothing to fetch."
+- **Fail naming the secret, never its content.** A fetch failure or a
+  malformed secret document should say which secret or which key inside it
+  failed, never echo the raw response.
 
 ## Provider Notes
 

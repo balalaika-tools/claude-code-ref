@@ -1,6 +1,8 @@
-# Root README.md Template
+# Site Index Template
 
-The landing page for the entire notes repo. Tells readers what it covers, how it's organized, and where to start.
+The canonical landing page for the notes collection. In an MkDocs collection this is
+`docs/index.md`; in a Markdown-only collection it is the root `README.md`. It tells readers what
+the collection covers, how it is organized, and where to start.
 
 For badge hex codes and logo names, see `../badges.md`.
 
@@ -21,7 +23,7 @@ For badge hex codes and logo names, see `../badges.md`.
 ## Structure
 
 \```
-{repo-name}/
+docs/
 │
 │ ── CATEGORY NAME ──────────────────────────────────────
 ├── category/
@@ -79,3 +81,5 @@ For badge hex codes and logo names, see `../badges.md`.
 - One named path is for a first-time reader and reaches a complete useful outcome before production deep dives or references
 - Each path states its audience, working result, and stop point
 - Omit the `*Last updated*` line unless the user requests it — it goes stale immediately
+- In MkDocs mode, write this template to `docs/index.md`; do not duplicate it in the repository
+  `README.md`

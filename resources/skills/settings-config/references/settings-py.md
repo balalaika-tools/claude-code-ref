@@ -31,6 +31,41 @@ YAML environment baselines:
 
 If the user has not chosen between these patterns, ask before implementing.
 
+## Environment Enum
+
+Define the environment `Literal` (or `Enum`) with all four tiers the project
+actually deploys to — typically `Literal["local", "dev", "staging", "prod"]`.
+Dropping a tier the project genuinely has (most commonly `dev`, since it's
+easy to reach for `local`/`staging`/`prod` and forget the tier in between) is
+a silent gap: nothing fails until someone deploys to the missing environment
+and every value falls back to whatever the *next* recognized environment
+resolves to. Cross-check the enum against `config/` (every environment must
+have a file) and against the deployment pipeline's actual environment names
+before treating the enum as final.
+
+Resolve the environment explicitly and fail loudly when it is missing or
+unrecognized — never default silently to `"local"` in this resolution step
+(a `Field(default="local", ...)` on `Settings` itself is fine; that only
+matters for local dev runs with no env var set at all, and still surfaces
+immediately since nothing loads without it):
+
+```python
+def resolve_environment() -> str:
+    raw = os.environ.get("ENVIRONMENT_NAME")
+    recognised = ", ".join(get_args(EnvironmentName))
+    if not raw:
+        raise ConfigurationError(f"ENVIRONMENT_NAME is not set. Set it to one of: {recognised}.")
+    if raw not in get_args(EnvironmentName):
+        raise ConfigurationError(
+            f"ENVIRONMENT_NAME={raw!r} is not recognised. Recognised values: {recognised}."
+        )
+    return raw
+```
+
+An environment guessed wrong is not a cosmetic bug: it points a run's YAML
+overlay, and any environment-selected secrets provider (see `secrets-py.md`),
+at the wrong tier's resources.
+
 ## YAML Discovery
 
 Only add YAML discovery when using the YAML environment-baseline pattern.
@@ -68,7 +103,7 @@ but normal runtime discovery should work without it.
 - Use `Field(default=...)` only for safe, intentional application defaults.
 - In the env vars + Pydantic defaults pattern, keep environment-specific values
   out of Python code and provide them through `.env` locally or deployment env
-  vars in staging/production.
+  vars in dev/staging/prod.
 - In the YAML pattern, keep only intentionally environment-specific,
   rarely-changing, non-secret baselines in `config/*.yaml`.
 
@@ -138,16 +173,25 @@ Before adopting nested groups, account for these mechanics:
   (`server: {app_port: ...}` onto `ServerSettings`), but alias/
   `populate_by_name` precedence gets harder to verify with nesting. Test the
   YAML load path explicitly for every grouped field, not just the flat ones.
+- Set `model_config = ConfigDict(extra="forbid")` on every nested `BaseModel`
+  group too, not just on the root `Settings`. The root's `extra="forbid"`
+  only catches unknown top-level keys; a typo inside a nested map (`server:
+  {app_prot: 8080}`) is only caught if the group itself forbids extras.
 
 ### Nested Grouping Scaffold
 
 ```python
-from pydantic import BaseModel, Field, PositiveFloat, PositiveInt
+from pydantic import BaseModel, ConfigDict, Field, PositiveFloat, PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ServerSettings(BaseModel):
     """HTTP server bind config."""
+
+    # extra="forbid" on every nested group, same as the root: a misspelled
+    # key inside `server:` should fail startup, not sit ignored beside the
+    # field it was meant to override.
+    model_config = ConfigDict(extra="forbid")
 
     app_title: str = Field(default="AI Service", description="FastAPI application title.")
     app_host: str = Field(default="0.0.0.0", description="Server bind host.")
@@ -156,6 +200,8 @@ class ServerSettings(BaseModel):
 
 class ModelSettings(BaseModel):
     """LLM provider config."""
+
+    model_config = ConfigDict(extra="forbid")
 
     model_provider: Literal[
         "openai", "bedrock", "bedrock_converse", "azure-openai"
@@ -173,7 +219,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="ignore",
+        extra="forbid",
         env_nested_delimiter="__",
     )
 
@@ -208,7 +254,7 @@ from typing import Literal
 from pydantic import Field, PositiveFloat, PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-EnvironmentName = Literal["local", "staging", "production"]
+EnvironmentName = Literal["local", "dev", "staging", "prod"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
@@ -219,7 +265,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="ignore",
+        extra="forbid",
     )
 
     environment_name: EnvironmentName = Field(
@@ -347,10 +393,10 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True,
         populate_by_name=True,
-        extra="ignore",
+        extra="forbid",
     )
 
-    environment_name: Literal["local", "staging", "production"] = Field(
+    environment_name: Literal["local", "dev", "staging", "prod"] = Field(
         default="local",
         alias="ENVIRONMENT_NAME",
         description="Deployment environment; selects config/{environment}.yaml.",
@@ -428,3 +474,59 @@ def get_settings() -> Settings:
 
 When adapting this to an existing repo, keep its current environment enum and
 project-specific settings.
+
+## Layered YAML Scaffold
+
+Use this variant of `settings_customise_sources` when the layout is layered
+`config/base.yaml` + `config/{environment}.yaml` + per-service file (see
+`config-yaml.md`, "Layered Composition"). The design is identical whether the
+repo has one deployable or many — a single-service repo just has one entry
+under `config/services/`.
+
+Extend the single-file scaffold's `settings_customise_sources` to resolve a
+list of layers instead of one file, requiring each and merging first-wins
+(most specific first):
+
+```python
+required = [
+    config_dir / "base.yaml",
+    config_dir / f"{environment}.yaml",
+    config_dir / "services" / f"{SERVICE_NAME}.yaml",
+]
+for path in required:
+    if not path.is_file():
+        raise ConfigurationError(f"Missing configuration file: {path}")
+
+# Optional: a per-service, per-environment override. Don't require an empty
+# file to prove an environment needs none.
+optional = config_dir / "services" / f"{SERVICE_NAME}.{environment}.yaml"
+layers = required + ([optional] if optional.is_file() else [])
+
+yaml_sources = tuple(
+    YamlConfigSettingsSource(settings_cls, yaml_file=path)
+    for path in reversed(layers)  # most specific first, so it wins the merge
+)
+return (init_settings, env_settings, *yaml_sources)
+```
+
+Pair it with a `secrets` field that names the secrets this deployable needs
+(never their values) and is required for every environment except `local`,
+checked once after the model is built rather than left for whatever reads
+`secrets` later to notice it's missing:
+
+```python
+class SecretNames(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    database_dsn: str = Field(description="Name/path of the secret holding the DB DSN.")
+
+
+class Settings(BaseSettings):
+    ...
+    secrets: SecretNames | None = None  # None only for `local` — see secrets-py.md
+
+    @model_validator(mode="after")
+    def _secrets_required_outside_local(self) -> "Settings":
+        if self.environment_name != "local" and self.secrets is None:
+            raise ValueError(f"secrets: is required outside local (got {self.environment_name!r}).")
+        return self
+```

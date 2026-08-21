@@ -1,6 +1,6 @@
 ---
 name: note-maker
-description: "Scaffold and write layered technical study notes that teach unfamiliar vocabulary and mechanisms through concrete examples, deliver a minimal correct result before production hardening, and then add operational depth, with structured READMEs, reading paths, examples, and cross-links. Use whenever the user wants to create or extend a knowledge base, study notes, technical reference docs, learning materials, or a documentation repository on any topic."
+description: "Scaffold and write layered technical study notes as a browsable MkDocs site using Material for MkDocs, with concrete examples, learning paths, navigation, search, and production depth. Use whenever the user wants to create or extend a knowledge base, study notes, technical reference docs, learning materials, or a documentation repository on any topic."
 ---
 
 # Technical Notes Scaffold
@@ -9,7 +9,13 @@ You are creating a structured technical knowledge base — a curated collection 
 
 This is not a wiki dump or a flat list of files. It's an opinionated, layered learning resource designed for engineers. Every file should teach something specific, link to prerequisites, and point to what comes next.
 
-If the user already has an existing notes repo and wants to add to it, read the existing README.md first to understand the current structure, then extend it consistently.
+New standalone collections default to a **MkDocs site using Material for MkDocs**. Read
+`references/mkdocs-material.md` before proposing or creating the repository structure. If the user
+explicitly asks for plain Markdown, do not add the site scaffold.
+
+If the user already has an existing notes repo and wants to add to it, read its current landing page
+and `mkdocs.yml` (when present) first, then extend it consistently. Do not migrate an existing
+Markdown-only repository into `docs/` unless the user asks for that migration.
 
 ---
 
@@ -19,19 +25,23 @@ When the user provides a topic:
 
 1. **Decide if a scout is needed** — If native knowledge is sparse or the topic is fast-moving, launch a scout subagent for a brief landscape summary (main sub-areas, versioning notes, recent shifts). Otherwise skip.
 2. **Design the learning ladder** — Define what a first-time reader already knows, the first correct thing they can run or trace, the explanation that lets them restate why it works, and the production concerns that belong later. Order paths **do → understand → harden**; every path reaches a runnable result or concrete worked outcome within its first two entries. Assign each planned file one role: foundation/tutorial, implementation, deep dive, decision guide, or reference. Name the canonical owner of every full schema, implementation, or option set. Build a short internal **example-coverage map**: list the high-leverage mechanisms, mark which ones need a concrete carrier, choose its form, and mark prose-sufficient items explicitly so examples do not become a quota.
-3. **Propose structure** — Show the directory tree and planned files with a one-line reader outcome for each. Include a short first-time path, the working result reached by entry two, and its stop point, then ask: "Does this structure look right? Want to add or remove anything?"
-4. **Create root README.md and directory READMEs** — Write these directly; they're structural learning maps, not merely indexes. Use the templates in `references/templates/`.
+3. **Propose structure** — Show the directory tree and planned files with a one-line reader outcome for each. For a new MkDocs collection, include `mkdocs.yml`, `requirements-docs.txt`, the repository `README.md`, and the `docs/` tree. Include a short first-time path, the working result reached by entry two, and its stop point, then ask: "Does this structure look right? Want to add or remove anything?"
+4. **Create the site scaffold and indexes** — For a new collection, follow `references/mkdocs-material.md` and run `python <skill-directory>/scripts/scaffold_mkdocs.py <target> --site-name "..." --description "..."` after the user confirms the structure. The script safely creates the baseline `mkdocs.yml`, `requirements-docs.txt`, repository `README.md`, and `docs/index.md`; then replace the skeletal landing content, add section `index.md` files, and expand `nav` to match the approved learning ladder. The indexes are structural learning maps, not merely file lists. Use the templates in `references/templates/`. For an existing or non-empty collection, do not run the scaffold script; preserve its dependency and layout conventions.
 5. **Write note files** — Read `references/how-we-write-notes.md` before drafting and use `references/example_note.md` as the concrete shape. When a note teaches policies, configuration, schemas, queries, API payloads, commands, state transitions, precedence, or multi-layer evaluation, also read `references/example-selection.md`. If running in Claude Code with 3+ independent files, launch subagents in parallel (see *Parallelizing with subagents*). Otherwise write files sequentially.
 6. **Run the assembly pass** — Read the first-time path in order as one course. Verify that it delivers a working baseline before hardening, grounds every new term locally, explains each mechanism through the problem it solves, provides useful stop points, and does not repeat canonical reference material across files. Re-run the example-coverage map against the assembled prose: a strong opening does not compensate for a later policy, configuration, state transition, or precedence rule that the reader must simulate without seeing its carrier.
-7. **Verify files and paths** — Check every internal link, run `python <skill-directory>/scripts/validate_notes.py <note paths or directories>`, then complete the manual checklist under *Final verification*. Resolve `<skill-directory>` to the directory containing this `SKILL.md`. A clean mechanical check does not prove that the note teaches.
+7. **Verify files, paths, and the site** — Check every internal link, run `python <skill-directory>/scripts/validate_notes.py <note paths or directories>`, then run `python -m mkdocs build --strict` from the collection root when it has `mkdocs.yml`. If MkDocs is unavailable, report that the site build was not verified; do not silently treat Markdown validation as equivalent. Then complete the manual checklist under *Final verification*. Resolve `<skill-directory>` to the directory containing this `SKILL.md`. A clean mechanical check does not prove that the note teaches.
 
-If the user asks to add a section to an existing repo, read the current README.md, propose where the new content fits, and update all affected READMEs and cross-references.
+If the user asks to add a section to an existing repo, read the current landing page, propose where
+the new content fits, and update all affected indexes, navigation, and cross-references.
 
 ---
 
-## Root README.md
+## Site landing page
 
-When writing a root README, read `references/templates/root_readme.md` for the full template.
+For a MkDocs collection, `docs/index.md` is the canonical learning map. Read
+`references/templates/root_readme.md` for the full template. Keep the repository-level
+`README.md` concise: state the scope, link to `docs/index.md`, and show the local preview commands.
+For a Markdown-only collection, the root `README.md` remains the canonical learning map.
 
 Key rules:
 - ASCII tree with box-drawing characters (`├──`, `└──`, `│`) and inline directory descriptions
@@ -46,11 +56,13 @@ Key rules:
 
 ---
 
-## Directory README.md
+## Section index
 
-Directory READMEs are **intentionally minimal** — just enough to orient the reader within that section. Do not mirror the root's ASCII trees or decorative category dividers.
+In MkDocs collections, every section uses `index.md`. In existing Markdown-only collections, keep
+using `README.md`. These files are **intentionally minimal** — just enough to orient the reader
+within that section. Do not mirror the site's ASCII trees or decorative category dividers.
 
-When writing a directory README, read `references/templates/directory_readme.md` for the template.
+Read `references/templates/directory_readme.md` for the template.
 
 ---
 
@@ -229,6 +241,18 @@ What's specific to authoring:
 - **Prerequisites**: Keep optional background advisory. Put a genuine prerequisite near the audience statement only when the intended reader cannot use the note without it.
 - **Inline links**: `see [Connection Pooling](../database/05_connection_pooling.md)` when referencing concepts from other files
 - Use **relative paths** for all internal links
+- Keep authored links as `.md` paths so they work both in source viewers and in MkDocs. Let MkDocs
+  produce the public URLs; do not hard-code generated site URLs in notes.
+
+### MkDocs navigation
+
+- Treat `nav` in `mkdocs.yml` as a second expression of the learning ladder, not an exhaustive
+  filesystem dump. Put the first-time path first, then deeper or reference material.
+- Add every learner-facing note and section index to `nav`; omit repository-only files.
+- Update `nav` in the same change that adds, removes, renames, or reorders notes.
+- Use short navigation labels; keep the full teaching claim in the page heading.
+- Configure Material, search, code highlighting, admonitions, and tabbed content from the baseline
+  in `references/mkdocs-material.md`. Add plugins or theme features only when the notes use them.
 
 ---
 
@@ -284,15 +308,29 @@ The main agent handles: launching the scout (if needed), designing and proposing
 - Don't repeat a full implementation across overview, architecture, reliability, and operations notes. Choose a canonical owner and cross-link it.
 - Don't call a collection beginner-friendly because each file has an introductory paragraph. Follow the actual first-time path and verify its cumulative complexity.
 - Don't create flat structures. If you have 15+ files, organize into directories.
-- Don't skip the ASCII tree diagram in the root README.
+- Don't skip the ASCII tree diagram in the canonical landing page.
 - Don't forget cross-references. Every file links to its next step; optional background remains advisory, while genuine prerequisites may be stated briefly near the audience contract.
+- Don't add a note without updating `mkdocs.yml` navigation in a MkDocs collection.
+- Don't duplicate the full site landing page in the repository `README.md`; `docs/index.md` is its
+  canonical owner.
 - Don't ship a file that fails any of the three non-negotiables in `references/how-we-write-notes.md`: what breaks first when the reader uses this for real, when *not* to use it, and how they know it's working. The subject-dependent items (limits, cost/security, trade-offs vs. alternatives) can be skipped where they genuinely don't apply — those three can't.
 
 ---
 
 ## Final verification
 
-Run `python <skill-directory>/scripts/validate_notes.py <note paths or directories>` first. Then read each teaching note as a cold reader and check every item below. Anything unchecked is a defect, not a preference.
+Run `python <skill-directory>/scripts/validate_notes.py <note paths or directories>` first. For a
+MkDocs collection, also run `python -m mkdocs build --strict` and inspect the generated navigation
+at least once. Then read each teaching note as a cold reader and check every item below. Anything
+unchecked is a defect, not a preference.
+
+### Per MkDocs site
+
+- [ ] `docs/index.md` is the canonical landing page and every section has an `index.md`.
+- [ ] Every learner-facing Markdown page appears exactly once in `nav`.
+- [ ] Navigation order matches the documented learning paths rather than alphabetical file order.
+- [ ] `python -m mkdocs build --strict` succeeds without broken links, missing nav entries, or config warnings.
+- [ ] The repository `README.md` contains the exact install and preview commands and points to the canonical site index.
 
 ### Per note
 

@@ -28,10 +28,16 @@ one pattern consistently, follow that pattern unless the user asks to migrate.
 1. **YAML environment baselines**: committed `config/{environment}.yaml` files
    hold non-secret values that rarely change and are intentionally different
    per environment. Process env vars and `.env` may still override them, but
-   deployment should not routinely override YAML-owned keys.
+   deployment should not routinely override YAML-owned keys. Once there's a
+   baseline worth sharing across environments and/or a per-service file worth
+   keeping separate from the environment overlay, use the layered variant
+   instead — `config/base.yaml` plus a `config/{environment}.yaml` overlay
+   plus a per-service file under `config/services/`. Same design whether the
+   repo has one deployable or many; see `references/config-yaml.md`, "Layered
+   Composition".
 2. **Env vars + Pydantic field defaults**: no YAML source. Safe application
    defaults live directly in `Field(default=...)`; values with no safe default
-   use `Field(...)`; `.env` is only a local override file; staging/production
+   use `Field(...)`; `.env` is only a local override file; dev/staging/prod
    overrides are provided by real environment variables/Helm.
 
 ### Field grouping
@@ -68,12 +74,16 @@ For the YAML environment-baseline pattern, also include:
 <project-root>/
   config/
     local.yaml
+    dev.yaml
     staging.yaml
-    production.yaml
+    prod.yaml
 ```
 
-Keep existing environment names when a repo already uses them, such as `dev`
-or `prod`.
+Standardize new services on four environments: `local`, `dev`, `staging`,
+`prod`. Keep an existing repo's current environment names (e.g. `production`
+instead of `prod`, or a missing `dev` tier) rather than renaming a live
+project's env values — that changes the `ENVIRONMENT_NAME` contract every
+deployment relies on.
 
 ## Reference Routing
 
@@ -111,6 +121,10 @@ For a small field addition, read only the affected reference files.
   in `.env.example` / env vars, Helm-injected in real deployments. The test: if
   this value would ever differ between two clusters in the *same* environment,
   it must be env-var/Helm-only.
+- Set `extra="forbid"` on every `model_config` — `Settings`, `Secrets`, and any
+  nested `BaseModel` group or section. A misspelled key or a renamed field
+  should fail startup as an unknown key, not silently vanish as an ignored
+  extra while the app runs on an unset default.
 - Put secrets in `secrets.py`, never in YAML and never as `Settings` fields.
 - Always create or update `.env.example`.
 - Use `Field(..., description="...")` for required values and
@@ -157,6 +171,13 @@ for that backend, such as `AwsSsmSecretsProvider`,
 `VaultSecretsProvider`. Prefer async loading; when the SDK is sync-only, wrap
 the remote calls with `asyncio.to_thread`. Local development must still be able
 to bypass the remote provider through `.env` injection.
+
+When `Settings` names secrets rather than hardcoding them (a `secrets:
+SecretNames | None` field, required outside `local`), select the provider by
+environment instead of a bypass flag: `local` always uses the env-backed
+provider, every other environment always resolves through the remote one
+using the names `Settings.secrets` supplies. See `references/secrets-py.md`,
+"Environment-Selected Secrets Provider".
 
 ## Change Checklist
 

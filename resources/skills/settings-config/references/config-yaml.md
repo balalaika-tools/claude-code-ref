@@ -10,7 +10,7 @@ vars + Pydantic field defaults, ask before creating YAML files.
 YAML files hold committed, non-secret operational baselines for each
 environment. They should make runtime behavior auditable without exposing
 credentials. YAML is useful when these values rarely change and the repo should
-show the intended difference between `local`, `staging`, `production`, or the
+show the intended difference between `local`, `dev`, `staging`, `prod`, or the
 project's equivalent environments.
 
 Do not use YAML as a second copy of values that deployment normally provides as
@@ -21,9 +21,10 @@ source of truth and the YAML value is likely to become stale or misleading.
 
 - Keep `config/` at the project root, sibling to `src/` and `pyproject.toml`.
 - Use one YAML file per environment.
-- Prefer `local.yaml`, `staging.yaml`, and `production.yaml` for new services.
-- Preserve existing names such as `dev.yaml` or `prod.yaml` in established
-  repos.
+- Standardize new services on `local.yaml`, `dev.yaml`, `staging.yaml`, and
+  `prod.yaml`.
+- Preserve an established repo's existing environment names (e.g.
+  `production.yaml`, or no `dev` tier) rather than renaming them.
 - Use snake_case YAML keys matching the `Settings` field names.
 - If the matching `Settings` fields use env-var aliases, ensure the settings
   model has `populate_by_name=True`; otherwise these snake_case YAML keys may
@@ -89,7 +90,7 @@ value is correct everywhere an environment's image runs.
 ### Anti-pattern: a stale YAML value silently masked by env-var overrides
 
 Env vars outrank YAML (see `settings-py.md`), so a wrong or stale value
-committed to `config/production.yaml` can sit unnoticed indefinitely as long
+committed to `config/prod.yaml` can sit unnoticed indefinitely as long
 as every real deployment injects its own env var for that key — production
 traffic is never affected, so nothing alerts anyone. The rot surfaces later
 and expensively: a new cluster that forgets to set the env var silently
@@ -123,6 +124,81 @@ Do not put these in YAML:
 - Values that Helm, Kubernetes manifests, CI/CD, or another deployment system
   routinely injects as env vars. Document those in `.env.example` instead.
 
+## Layered Composition
+
+Use this shape instead of one flat file per environment once there's a
+non-secret baseline worth sharing across environments, a per-service file
+worth separating from the environment overlay, or both. The design is the
+same for a single-service repo and a monorepo with many deployables — a
+single-service repo just has one file under `config/services/`; nothing about
+the layering itself changes.
+
+Each layer is a deep merge on top of the one before it, key by key — not a
+whole-file replacement. `prod.yaml` therefore holds only the keys that differ
+from `base.yaml`; any key `prod.yaml` doesn't mention still comes from
+`base.yaml` in the final `Settings`.
+
+Layers, lowest precedence first:
+
+1. `config/base.yaml` — shared by every deployable in the repo.
+2. `config/{environment}.yaml` — that baseline's environment overlay.
+3. `config/services/{service}.yaml` — one deployable's own non-secret file.
+4. `config/services/{service}.{environment}.yaml` — optional, only when that
+   deployable needs a per-environment override; do not create an empty file
+   just to prove an environment needs none.
+5. the process environment.
+
+Each layer must exist for every recognized environment, including `local`
+(only step 4 is optional). `Settings.settings_customise_sources` should fail
+startup naming the missing file rather than silently falling back to a lower
+layer — see `settings-py.md`.
+
+**What never belongs in `base.yaml`, even though it is non-secret:**
+
+- Values that are genuinely environment-owned, such as a downstream host —
+  one per environment, never shared — because a baseline value here is a
+  value every real environment overrides, and the failure mode of a stale
+  baseline default is silent misrouting (a call reaching the wrong
+  environment's system) rather than a startup failure. Put these in each
+  environment's overlay instead, with no default in `base.yaml`.
+- A telemetry/observability endpoint, for the same reason: it is a property of
+  where the deployable runs, not a property shared across environments.
+- Secret *names* (not values — those never belong in YAML at all regardless of
+  layer). A shared secret name in `base.yaml` is the same hazard: two
+  environments naming the same secret-manager entry resolve identical
+  credentials if their execution roles ever share an account. Give each
+  non-`local` environment overlay its own complete secret-names block instead.
+
+**Placeholder convention for not-yet-established hosts.** When an
+environment's real hostname is not yet known (e.g. a downstream service that
+does not exist yet in that environment), use a value under a domain reserved
+by RFC 2606, such as `*.invalid`, rather than guessing a plausible-looking
+hostname. `.invalid` can never resolve, so a run against an unreplaced
+placeholder fails to connect instead of silently succeeding against nothing or
+being routed somewhere unintended. Comment the placeholder with what must
+happen before the environment is enabled.
+
+`config/base.yaml` (excerpt — shared, no environment-owned host or secret name)
+
+```yaml
+downstream_api:
+  request_path: /v1/widgets    # identical everywhere; the host is not — see below
+  timeout_seconds: 30.0
+```
+
+`config/prod.yaml` (excerpt — only the keys that differ from `base.yaml`)
+
+```yaml
+downstream_api:
+  # PLACEHOLDER — real host not established yet; .invalid (RFC 2606) can
+  # never resolve, so an unreplaced value fails to connect instead of
+  # silently reaching the wrong system. Replace before enabling this env.
+  host: https://replace-me-prod-downstream.invalid
+
+secrets:                                 # names only; scoped per environment
+  downstream_api_credential: my-service/prod/downstream-api
+```
+
 ## Examples
 
 `config/local.yaml`
@@ -136,6 +212,20 @@ app_host: 0.0.0.0
 app_port: 8080
 model_provider: openai
 primary_model_id: replace-me-local-model-id
+request_timeout_seconds: 30
+```
+
+`config/dev.yaml`
+
+```yaml
+# Dev non-secret defaults. Do not put secrets in YAML.
+environment_name: dev
+log_level: DEBUG
+app_title: AI Service
+app_host: 0.0.0.0
+app_port: 8080
+model_provider: openai
+primary_model_id: replace-me-dev-model-id
 request_timeout_seconds: 30
 ```
 
@@ -153,16 +243,16 @@ primary_model_id: replace-me-staging-model-id
 request_timeout_seconds: 30
 ```
 
-`config/production.yaml`
+`config/prod.yaml`
 
 ```yaml
-# Production non-secret defaults. Do not put secrets in YAML.
-environment_name: production
+# Prod non-secret defaults. Do not put secrets in YAML.
+environment_name: prod
 log_level: WARNING
 app_title: AI Service
 app_host: 0.0.0.0
 app_port: 8080
 model_provider: openai
-primary_model_id: replace-me-production-model-id
+primary_model_id: replace-me-prod-model-id
 request_timeout_seconds: 30
 ```

@@ -1,4 +1,3 @@
-
 ---
 name: fastapi-ai-service
 description: >
