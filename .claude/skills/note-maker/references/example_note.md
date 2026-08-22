@@ -8,13 +8,53 @@ The example below would live at `python/02_context_managers.md` in a Python note
 
 ## Example: `python/02_context_managers.md`
 
-```markdown
+````markdown
 # Context Managers and the `with` Statement
 
-> **Who this is for**: Python developers who know classes and exceptions but haven't built
-> their own context managers. Assumes you've read [01_decorators.md](01_decorators.md).
+> **Who this is for**: Python developers who know functions and exceptions but have not
+> built their own context managers.
+
+## The short version
+
+Cleanup written after an operation is skipped when that operation raises. A **context
+manager** is an object with two hooks: `__enter__` acquires or prepares something, and
+`__exit__` releases it even when the body fails. Those are the only two pieces because
+every managed lifetime has exactly two boundaries: start and finish.
+
+**What you need (2 things):**
+
+1. An acquisition step — here, printing `acquire` and returning a value.
+2. A release step — here, printing `release` from `__exit__`.
+
+**The code:**
+
+```python
+class Opened:
+    def __enter__(self):
+        print("acquire")
+        return "the resource"
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print("release")
+        return False
+
+with Opened() as resource:
+    print(resource)
+
+# acquire
+# the resource
+# release
+```
+
+**Success signal:** `release` prints after `the resource`, including when the body raises.
+
+**Not handled yet:** [partial acquisition failures](#5-what-breaks-in-practice) and
+[async resource lifetimes](#6-when-not-to-use-one).
 
 ---
+
+For optional background on the decorator syntax used later, see
+[01_decorators.md](01_decorators.md). It is not needed for the baseline above.
 
 ## 1. The Cleanup You Wrote Will Not Run
 
@@ -47,6 +87,9 @@ with open("data.csv") as f:
 
 ## 2. Implement the Protocol: `__enter__` and `__exit__`
 
+> **Core:** a context manager is complete when acquisition happens in `__enter__` and
+> release happens in `__exit__`. Everything else is policy layered on those boundaries.
+
 The minimal version first. This runs, and it is the entire protocol:
 
 ```python
@@ -66,6 +109,9 @@ with Opened() as r:
 # the resource
 # release
 ```
+
+> **Production:** real resources need transaction policy and cleanup when the body fails.
+> The next version adds those concerns; they are not needed to understand the protocol.
 
 Now the hardened version. Each addition is here for one specific failure:
 
@@ -198,6 +244,9 @@ progress while holding a lock some other thread is waiting on.
 `__exit__` never runs and the first resource leaks. Use `ExitStack` inside `__enter__`, or
 acquire in nested `with` blocks so each has its own guarantee.
 
+> **Edge case:** multiple acquisitions need their own cleanup stack because `__exit__`
+> cannot run until `__enter__` has completed successfully.
+
 ```python
 # ❌ If the second connect() raises, the first is never closed
 def __enter__(self):
@@ -209,8 +258,9 @@ def __enter__(self):
 
 ## 6. When Not to Use One
 
-A context manager ties a resource's lifetime to a lexical block. Skip it when that isn't
-the lifetime you want:
+A context manager ties a resource's lifetime to a **lexical block** — the indented code
+whose start and end are visible in the source. Skip it when that is not the lifetime you
+want:
 
 - **The resource outlives the block** — a connection pool or HTTP client held for the
   process lifetime belongs in application startup/shutdown, not a `with`. Wrapping it
@@ -221,6 +271,45 @@ the lifetime you want:
   `async with`; a sync manager wrapping an async resource closes it before the coroutine
   completes.
 
+---
+
+## 7. Prove Cleanup Runs on Both Exit Paths
+
+The protocol matters only if clean and failing bodies both release the resource. This
+small integration check drives the same manager through both paths:
+
+```python
+events = []
+
+class Recorded:
+    def __enter__(self):
+        events.append("acquire")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        events.append("release")
+        return False
+
+with Recorded():
+    events.append("success")
+
+try:
+    with Recorded():
+        events.append("failure")
+        raise ValueError("broken row")
+except ValueError:
+    pass
+
+assert events == [
+    "acquire", "success", "release",
+    "acquire", "failure", "release",
+]
+print("cleanup verified")
+```
+
+**Success signal:** the script prints `cleanup verified`. If the second `release` is
+missing, the exception path bypassed cleanup even though the success path looked correct.
+
 > **Key insight**: the value isn't the cleanup — it's that the cleanup becomes impossible
 > to skip. Any time you write a comment reminding the next person to call something, you've
 > found a context manager.
@@ -228,7 +317,7 @@ the lifetime you want:
 ---
 
 **Next**: [03_generators.md — Iterators and Generator Pipelines](03_generators.md)
-```
+````
 
 ---
 
@@ -236,12 +325,39 @@ the lifetime you want:
 
 | Part of the example | Required move |
 |---|---|
+| Short version | Counted inputs, locally grounded terms, runnable baseline, exact success signal, and linked deferrals before prerequisites |
 | §1 opening paragraph | Lead with the problem — the reader's failure, with the error they'll see, before any definition |
 | §1 `> **The near-miss**` | Name the wrong model before building the right one |
-| §2 two code blocks | Minimal first, hardened second — comments name the failure each addition prevents |
+| §2 `Core` and `Production` markers | Altitude is explicit; a learner can stop before hardening |
+| §2 two code blocks | Baseline first, hardened second — comments name the failure each addition prevents |
 | §2 "How you know it's working" | Success signal, plus the tell for the silent failure |
 | §3 helper table | Navigable enumeration — six entries, default marked in bold, and the default is the one shown in use below it |
 | §5 headers and `⚠️` | Failure modes with the observable symptom; `⚠️` spent only on landmines |
 | §6 | When *not* to use it, with what to reach for instead |
-| §6 `> **Key insight**` | Exactly one per file — transferable and non-obvious |
+| §7 integration check | Separately explained pieces compose on success and failure paths |
+| §7 `> **Key insight**` | Exactly one per file — transferable and non-obvious |
 | All `## N.` headers | Claims, not labels ("The Cleanup You Wrote Will Not Run", not "Introduction") |
+
+---
+
+## Ordering before and after: make JWKS usable before hardening it
+
+This is the canonical example of the ordering rule. In the bad sequence, the reader's
+first encounter with **JWKS** (a JSON document containing an issuer's public keys) is a
+45-line production client: metadata discovery, issuer byte comparison, URL validation,
+`Cache-Control` parsing, bounded caching, and an emergency reload hook. Every concern is
+valid, but the baseline is invisible inside the hardening.
+
+Put the two-line mechanism first:
+
+```python
+# Baseline — fetches the issuer's public keys and picks the right one by `kid`.
+jwks = PyJWKClient("https://auth.example.com/.well-known/jwks.json")
+key = jwks.get_signing_key_from_jwt(token).key
+```
+
+> **Production:** this hard-codes the JWKS path and refetches on every miss. A later
+> section replaces both with metadata discovery and a bounded cache.
+
+The information did not get thinner; its order changed. The reader owns the mechanism
+after two lines, then learns why production needs the other forty-five.

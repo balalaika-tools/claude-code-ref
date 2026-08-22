@@ -1,6 +1,8 @@
-# Root README.md Template
+# Site Index Template
 
-The landing page for the entire notes repo. Tells readers what it covers, how it's organized, and where to start.
+The canonical landing page for the notes collection. In an MkDocs collection this is
+`docs/index.md`; in a Markdown-only collection it is the root `README.md`. It tells readers what
+the collection covers, how it is organized, and where to start.
 
 For badge hex codes and logo names, see `../badges.md`.
 
@@ -21,7 +23,7 @@ For badge hex codes and logo names, see `../badges.md`.
 ## Structure
 
 \```
-{repo-name}/
+docs/
 │
 │ ── CATEGORY NAME ──────────────────────────────────────
 ├── category/
@@ -41,10 +43,10 @@ For badge hex codes and logo names, see `../badges.md`.
 
 [![Tech](https://img.shields.io/badge/Tech-version-COLOR.svg?logo=tech&logoColor=white)](URL)
 
-| Guide | Description |
-|-------|-------------|
-| [Title](category/01_file.md) | What this file covers |
-| [Title](category/02_file.md) | What this file covers |
+| Guide | Role | Reader outcome |
+|-------|------|----------------|
+| [Title](category/01_file.md) | Foundation | What the reader can explain or decide afterward |
+| [Title](category/02_file.md) | Implementation | What the reader can build or verify afterward |
 
 ---
 
@@ -55,8 +57,15 @@ For badge hex codes and logo names, see `../badges.md`.
 
 ### Path Name
 
-1. [Topic](path/to/file.md) — why to read this first
-2. [Topic](path/to/file.md) — builds on the previous
+**For**: {reader starting point and goal}
+
+**Working result by entry 2**: {the command, implementation, or concrete trace the reader can complete}
+
+1. [Do: Topic](path/to/file.md) — produces the first visible result
+2. [Understand: Topic](path/to/file.md) — explains why that result works; may revisit entry 1 explicitly
+3. [Harden: Topic](path/to/file.md) — adds the first production requirement, only if needed
+
+**Stop here if**: {the baseline already meets the reader's need}. Continue to {next path/note} when {specific production or specialist requirement appears}.
 ```
 
 ---
@@ -67,4 +76,10 @@ For badge hex codes and logo names, see `../badges.md`.
 - Category headers in the tree use `── CAPS ──` decorative lines
 - The Contents section groups files by category with a markdown table per group
 - Reading Order has 2–4 named paths for different experience levels or goals
+- Every path reaches a runnable result or concrete worked outcome within its first two entries
+- Paths follow **do → understand → harden**; explicitly label any revisit to an earlier note for greater depth
+- One named path is for a first-time reader and reaches a complete useful outcome before production deep dives or references
+- Each path states its audience, working result, and stop point
 - Omit the `*Last updated*` line unless the user requests it — it goes stale immediately
+- In MkDocs mode, write this template to `docs/index.md`; do not duplicate it in the repository
+  `README.md`
