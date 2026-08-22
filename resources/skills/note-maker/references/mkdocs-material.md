@@ -12,7 +12,11 @@ it unless the user explicitly wants built artifacts versioned.
 notes-repo/
 ├── README.md
 ├── mkdocs.yml
-├── requirements-docs.txt
+├── pyproject.toml
+├── uv.lock
+├── .github/
+│   └── workflows/
+│       └── docs.yml
 └── docs/
     ├── index.md
     ├── assets/
@@ -38,20 +42,32 @@ python <skill-directory>/scripts/scaffold_mkdocs.py <target-directory> \
 ```
 
 The target may be absent or empty. The script refuses a non-empty directory and never overwrites
-files. It creates only the deterministic shell; afterward, replace the skeletal `docs/index.md`
-with the site-index template, add the approved sections and notes, and expand `nav` in learning
-order. Do not use the script to migrate an existing repository.
+files. It creates only the deterministic shell — `mkdocs.yml`, `pyproject.toml`, `README.md`,
+`docs/index.md`, `.github/workflows/docs.yml`, and `.gitignore` — afterward, replace the skeletal
+`docs/index.md` with the site-index template, add the approved sections and notes, and expand `nav`
+in learning order. Do not use the script to migrate an existing repository.
 
-## Dependency file
+## Dependency management: `uv`, not `pip`
 
-Create `requirements-docs.txt` with the direct documentation dependency:
+Manage the documentation dependency with **`uv`**, not `pip` + a `requirements-docs.txt` file.
+Declare it in `pyproject.toml`:
 
-```text
-mkdocs-material
+```toml
+[project]
+name = "{topic-slug}-notes"
+version = "0.1.0"
+description = "{One-sentence scope}"
+requires-python = ">=3.10"
+dependencies = [
+    "mkdocs-material",
+]
 ```
 
-Do not invent a version pin. If the repository already has a dependency-management convention,
-add Material for MkDocs there instead and preserve its locking policy.
+Do not invent a version pin. Run `uv sync` once after scaffolding to create `uv.lock` and the local
+`.venv/`; commit `pyproject.toml` and `uv.lock`, and keep `.venv/` out of version control. If the
+repository already has an established dependency-management convention (an existing `pyproject.toml`
+with Poetry, or another tool the user is already using), add Material for MkDocs there instead of
+introducing a competing setup — but default to `uv` for a new collection.
 
 ## Baseline configuration
 
@@ -95,12 +111,13 @@ nav:
       - "Why it works": fundamentals/02_why_it_works.md
 ```
 
-Add `site_url`, repository links, analytics, extra CSS, or deployment configuration only when the
-user supplies the corresponding values or asks for them. Do not guess a public URL or repository.
+Add `site_url`, repository links, or analytics only when the user supplies the corresponding values
+or asks for them. Do not guess a public URL or repository. Deployment configuration for GitHub
+Pages lives in the workflow below, not in `mkdocs.yml`.
 
 ## Repository README
 
-Keep the commands copyable and aligned with the generated dependency file:
+Keep the commands copyable and aligned with `pyproject.toml`:
 
 ````markdown
 # {Topic} Notes
@@ -110,15 +127,66 @@ The learning content starts at [`docs/index.md`](docs/index.md).
 ## Local preview
 
 ```bash
-python -m pip install -r requirements-docs.txt
-python -m mkdocs serve
+uv sync
+uv run mkdocs serve
 ```
 
 Open the local URL printed by MkDocs. A successful preview reloads after a note is saved.
 ````
 
-If the repository uses `uv`, Poetry, or another established workflow, express the same two actions
-with that tool instead of adding a competing setup.
+If the repository already has an established dependency workflow (Poetry, or another tool the user
+is already using), express the same two actions with that tool instead of adding a competing setup.
+
+## GitHub Pages deployment (required)
+
+Every MkDocs collection this skill scaffolds or migrates gets a GitHub Actions workflow that
+publishes it to GitHub Pages. Write this unconditionally when creating or migrating a collection
+that lives in a Git repository — do not wait for the user to ask for CI/CD. Only skip it when the
+user explicitly says they don't want the site published, or the repository has no relationship to
+GitHub at all (no `.git` remote pointing at GitHub, no `gh` usage, no existing `.github/`).
+
+Create `.github/workflows/docs.yml`:
+
+```yaml
+name: Deploy docs
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run mkdocs gh-deploy --force
+```
+
+Rules for this workflow:
+
+- Trigger on push to the repository's actual default branch (`main` above — confirm the real
+  default branch name rather than assuming it).
+- `permissions: contents: write` is required because `mkdocs gh-deploy` pushes to the `gh-pages`
+  branch using the workflow's own token; do not broaden permissions beyond this.
+- Use `astral-sh/setup-uv` to install `uv` in the runner, then `uv sync` and
+  `uv run mkdocs gh-deploy --force` — the same two local-preview actions, run non-interactively.
+  `--force` is required because `gh-deploy` otherwise refuses to overwrite a `gh-pages` history it
+  does not recognize as its own.
+- If the repository does not use `uv` (see *Dependency management* above), swap the install step for
+  that tool's non-interactive equivalent; keep the rest of the job identical.
+- After adding the workflow, tell the user to enable GitHub Pages for the repository once (Settings
+  → Pages → Source: "Deploy from a branch" → `gh-pages` branch), since the workflow cannot do this
+  itself on a repository's first deploy.
+- Do not invent a custom domain, `site_url`, or CNAME unless the user provides one.
 
 ## Navigation rules
 

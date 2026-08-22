@@ -25,11 +25,11 @@ When the user provides a topic:
 
 1. **Decide if a scout is needed** — If native knowledge is sparse or the topic is fast-moving, launch a scout subagent for a brief landscape summary (main sub-areas, versioning notes, recent shifts). Otherwise skip.
 2. **Design the learning ladder** — Define what a first-time reader already knows, the first correct thing they can run or trace, the explanation that lets them restate why it works, and the production concerns that belong later. Order paths **do → understand → harden**; every path reaches a runnable result or concrete worked outcome within its first two entries. Assign each planned file one role: foundation/tutorial, implementation, deep dive, decision guide, or reference. Name the canonical owner of every full schema, implementation, or option set. Build a short internal **example-coverage map**: list the high-leverage mechanisms, mark which ones need a concrete carrier, choose its form, and mark prose-sufficient items explicitly so examples do not become a quota.
-3. **Propose structure** — Show the directory tree and planned files with a one-line reader outcome for each. For a new MkDocs collection, include `mkdocs.yml`, `requirements-docs.txt`, the repository `README.md`, and the `docs/` tree. Include a short first-time path, the working result reached by entry two, and its stop point, then ask: "Does this structure look right? Want to add or remove anything?"
-4. **Create the site scaffold and indexes** — For a new collection, follow `references/mkdocs-material.md` and run `python <skill-directory>/scripts/scaffold_mkdocs.py <target> --site-name "..." --description "..."` after the user confirms the structure. The script safely creates the baseline `mkdocs.yml`, `requirements-docs.txt`, repository `README.md`, and `docs/index.md`; then replace the skeletal landing content, add section `index.md` files, and expand `nav` to match the approved learning ladder. The indexes are structural learning maps, not merely file lists. Use the templates in `references/templates/`. For an existing or non-empty collection, do not run the scaffold script; preserve its dependency and layout conventions.
+3. **Propose structure** — Show the directory tree and planned files with a one-line reader outcome for each. For a new MkDocs collection, include `mkdocs.yml`, `pyproject.toml` (the `uv`-managed dependency file — see `references/mkdocs-material.md`), the repository `README.md`, `.github/workflows/docs.yml` (the GitHub Pages deploy workflow — required, not optional), and the `docs/` tree. Include a short first-time path, the working result reached by entry two, and its stop point, then ask: "Does this structure look right? Want to add or remove anything?"
+4. **Create the site scaffold and indexes** — For a new collection, follow `references/mkdocs-material.md` and run `python <skill-directory>/scripts/scaffold_mkdocs.py <target> --site-name "..." --description "..."` after the user confirms the structure. The script safely creates the baseline `mkdocs.yml`, `pyproject.toml`, repository `README.md`, `docs/index.md`, and the GitHub Pages deploy workflow at `.github/workflows/docs.yml`; then replace the skeletal landing content, add section `index.md` files, and expand `nav` to match the approved learning ladder. The indexes are structural learning maps, not merely file lists. Use the templates in `references/templates/`. Always write the deploy workflow for a new collection unless the user opts out or the repository has no GitHub relationship (see *GitHub Pages deployment* in `references/mkdocs-material.md`); for an existing or non-empty collection, do not run the scaffold script, but still add the deploy workflow if the collection doesn't already have one. Preserve the existing collection's dependency and layout conventions.
 5. **Write note files** — Read `references/how-we-write-notes.md` before drafting and use `references/example_note.md` as the concrete shape. When a note teaches policies, configuration, schemas, queries, API payloads, commands, state transitions, precedence, or multi-layer evaluation, also read `references/example-selection.md`. If running in Claude Code with 3+ independent files, launch subagents in parallel (see *Parallelizing with subagents*). Otherwise write files sequentially.
 6. **Run the assembly pass** — Read the first-time path in order as one course. Verify that it delivers a working baseline before hardening, grounds every new term locally, explains each mechanism through the problem it solves, provides useful stop points, and does not repeat canonical reference material across files. Re-run the example-coverage map against the assembled prose: a strong opening does not compensate for a later policy, configuration, state transition, or precedence rule that the reader must simulate without seeing its carrier.
-7. **Verify files, paths, and the site** — Check every internal link, run `python <skill-directory>/scripts/validate_notes.py <note paths or directories>`, then run `python -m mkdocs build --strict` from the collection root when it has `mkdocs.yml`. If MkDocs is unavailable, report that the site build was not verified; do not silently treat Markdown validation as equivalent. Then complete the manual checklist under *Final verification*. Resolve `<skill-directory>` to the directory containing this `SKILL.md`. A clean mechanical check does not prove that the note teaches.
+7. **Verify files, paths, and the site** — Check every internal link, run `python <skill-directory>/scripts/validate_notes.py <note paths or directories>`, then run `uv run mkdocs build --strict` (or the equivalent for the repository's dependency tool) from the collection root when it has `mkdocs.yml`. If MkDocs is unavailable, report that the site build was not verified; do not silently treat Markdown validation as equivalent. Confirm `.github/workflows/docs.yml` exists and targets the repository's real default branch. Then complete the manual checklist under *Final verification*. Resolve `<skill-directory>` to the directory containing this `SKILL.md`. A clean mechanical check does not prove that the note teaches.
 
 If the user asks to add a section to an existing repo, read the current landing page, propose where
 the new content fits, and update all affected indexes, navigation, and cross-references.
@@ -314,23 +314,27 @@ The main agent handles: launching the scout (if needed), designing and proposing
 - Don't duplicate the full site landing page in the repository `README.md`; `docs/index.md` is its
   canonical owner.
 - Don't ship a file that fails any of the three non-negotiables in `references/how-we-write-notes.md`: what breaks first when the reader uses this for real, when *not* to use it, and how they know it's working. The subject-dependent items (limits, cost/security, trade-offs vs. alternatives) can be skipped where they genuinely don't apply — those three can't.
+- Don't manage the documentation dependency with `pip` and a `requirements-docs.txt` file for a new collection. Use `uv` and `pyproject.toml` (see `references/mkdocs-material.md`) unless the repository already has an established alternative.
+- Don't scaffold or migrate a MkDocs collection without also writing its GitHub Pages deploy workflow at `.github/workflows/docs.yml`. This is required, not conditional on the user asking for CI/CD — skip it only when the user opts out or the repository has no relationship to GitHub.
 
 ---
 
 ## Final verification
 
 Run `python <skill-directory>/scripts/validate_notes.py <note paths or directories>` first. For a
-MkDocs collection, also run `python -m mkdocs build --strict` and inspect the generated navigation
-at least once. Then read each teaching note as a cold reader and check every item below. Anything
-unchecked is a defect, not a preference.
+MkDocs collection, also run `uv run mkdocs build --strict` (or the repository's established
+dependency tool) and inspect the generated navigation at least once. Then read each teaching note as
+a cold reader and check every item below. Anything unchecked is a defect, not a preference.
 
 ### Per MkDocs site
 
 - [ ] `docs/index.md` is the canonical landing page and every section has an `index.md`.
 - [ ] Every learner-facing Markdown page appears exactly once in `nav`.
 - [ ] Navigation order matches the documented learning paths rather than alphabetical file order.
-- [ ] `python -m mkdocs build --strict` succeeds without broken links, missing nav entries, or config warnings.
+- [ ] `uv run mkdocs build --strict` succeeds without broken links, missing nav entries, or config warnings.
 - [ ] The repository `README.md` contains the exact install and preview commands and points to the canonical site index.
+- [ ] `pyproject.toml` (not `requirements-docs.txt`) declares the `mkdocs-material` dependency, unless the repository has its own established alternative.
+- [ ] `.github/workflows/docs.yml` exists, triggers on push to the repository's real default branch, and deploys with `mkdocs gh-deploy`.
 
 ### Per note
 

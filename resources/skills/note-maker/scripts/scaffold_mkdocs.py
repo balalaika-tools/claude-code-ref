@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -12,6 +13,17 @@ from pathlib import Path
 def yaml_string(value: str) -> str:
     """JSON strings are valid YAML strings and avoid hand-rolled escaping."""
     return json.dumps(value, ensure_ascii=False)
+
+
+def toml_string(value: str) -> str:
+    """JSON strings share TOML's basic-string escaping rules."""
+    return json.dumps(value, ensure_ascii=False)
+
+
+def project_slug(site_name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", site_name.lower()).strip("-")
+    slug = slug or "notes"
+    return slug if slug.endswith("notes") else f"{slug}-notes"
 
 
 def rendered_files(site_name: str, description: str) -> dict[Path, str]:
@@ -47,6 +59,16 @@ nav:
   - Home: index.md
 """
 
+    pyproject = f"""[project]
+name = {toml_string(project_slug(site_name))}
+version = "0.1.0"
+description = {toml_string(description)}
+requires-python = ">=3.10"
+dependencies = [
+    "mkdocs-material",
+]
+"""
+
     readme = f"""# {site_name}
 
 {description}
@@ -56,8 +78,8 @@ The learning content starts at [`docs/index.md`](docs/index.md).
 ## Local preview
 
 ```bash
-python -m pip install -r requirements-docs.txt
-python -m mkdocs serve
+uv sync
+uv run mkdocs serve
 ```
 
 Open the local URL printed by MkDocs. A successful preview reloads after a note is saved.
@@ -73,12 +95,36 @@ The complete learning paths and contents will be defined here after the collecti
 approved.
 """
 
+    workflow = """name: Deploy docs
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run mkdocs gh-deploy --force
+"""
+
     return {
         Path("mkdocs.yml"): config,
-        Path("requirements-docs.txt"): "mkdocs-material\n",
+        Path("pyproject.toml"): pyproject,
         Path("README.md"): readme,
         Path("docs/index.md"): index,
-        Path(".gitignore"): "site/\n",
+        Path(".github/workflows/docs.yml"): workflow,
+        Path(".gitignore"): "site/\n.venv/\n",
     }
 
 
