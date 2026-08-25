@@ -2,8 +2,8 @@
 name: settings-config
 description: >
   Use when creating, extending, or reviewing application configuration for a
-  Python/FastAPI AI service: `src/<package>/core/settings.py`,
-  `src/<package>/core/secrets.py`, root `config/*.yaml`, `.env.example`,
+  Python/FastAPI AI service settings and secrets modules, root `config/*.yaml`,
+  `.env.example`,
   Pydantic/pydantic-settings models, SecretStr usage, environment-specific
   YAML baselines, or secret-manager integration with AWS SSM, Azure Key Vault,
   GCP Secret Manager, Vault, or another SDK. Also use when the user calls
@@ -25,19 +25,16 @@ one pattern consistently, follow that pattern unless the user asks to migrate.
 
 ### Non-secret value source
 
-1. **YAML environment baselines**: committed `config/{environment}.yaml` files
-   hold non-secret values that rarely change and are intentionally different
-   per environment. Process env vars and `.env` may still override them, but
-   deployment should not routinely override YAML-owned keys. Once there's a
-   baseline worth sharing across environments and/or a per-service file worth
-   keeping separate from the environment overlay, use the layered variant
-   instead — `config/base.yaml` plus a `config/{environment}.yaml` overlay
-   plus a per-service file under `config/services/`. Same design whether the
-   repo has one deployable or many; see `references/config-yaml.md`, "Layered
-   Composition".
+1. **YAML application baselines + env deployment contract**: committed
+   `config/{environment}.yaml` files hold stable, application-owned policy that
+   is intentionally different per environment. Deployment-owned topology and
+   resource coordinates have no YAML fallback: `.env` supplies them locally
+   and the deployment system injects them in real environments. Process env
+   vars may still override YAML-owned application settings exceptionally, but
+   deployment should not routinely inject a second copy of a YAML-owned key.
 2. **Env vars + Pydantic field defaults**: no YAML source. Safe application
    defaults live directly in `Field(default=...)`; values with no safe default
-   use `Field(...)`; `.env` is only a local override file; dev/staging/prod
+   use `Field(...)`; `.env` is only a local override file; staging/production
    overrides are provided by real environment variables/Helm.
 
 ### Field grouping
@@ -56,6 +53,50 @@ If the user gives no preference on either axis, ask explicitly (e.g. "YAML
 baselines or env-vars/defaults only? Flat `Settings` or nested groups?")
 rather than assuming flat/env-vars by default.
 
+## Configuration Ownership Contract
+
+When the user selects YAML/config baselines plus `.env`, classify every value
+by ownership before choosing its source. A value gets one authoritative home:
+
+1. **Code invariant** — the application has no legitimate operator choice.
+   Keep it in code, not in settings merely to make it adjustable.
+2. **YAML application policy** — non-secret behavior owned by the application,
+   intentionally auditable in git, and valid for every deployment represented
+   by that baseline. Examples include retry policy, limits, timeouts, feature
+   policy, object-key prefixes generated and interpreted by the application,
+   and service identity.
+3. **Environment-only deployment contract** — topology or a resource
+   coordinate owned by infrastructure/deployment tooling. Examples include
+   regions/zones, resource names created by infrastructure, bucket or queue
+   names, deployment-specific base URLs, hosts, ports, network addresses,
+   runtime identity, and vendor SDK/platform variables. `.env` provides these
+   locally; Terraform, Argo CD, Helm, an ECS
+   task definition, Kubernetes, or the selected deployment system injects them
+   outside local development. Required values have no YAML or Python fallback.
+4. **Secret provider boundary** — credential-bearing values and the stable
+   logical variables used to locate or carry them. These belong in
+   `secrets.py`, never in YAML or ordinary renderable `Settings`.
+
+Do not duplicate an env-only value into YAML as documentation. A stale fallback
+can make a misconfigured deployment appear valid. Document the runtime contract
+in `.env.example` and deployment documentation instead.
+
+Resource names and application namespaces are distinct. An infrastructure-owned
+bucket name belongs to the environment contract; an object-key prefix created,
+validated, and consumed by application code remains YAML policy (or a code
+invariant when operators have no reason to change it).
+
+Network location and API contract are also distinct. A service host, base URL,
+port, or deployment-local address is topology and therefore env-only. A relative
+API route/path such as `/api/v1/items` describes how application code speaks to
+that service; keep it in YAML when it is configurable/auditable application
+policy, or in code when it is a true invariant. Do not move API paths to env
+merely because they are joined to an env-owned base URL at runtime.
+
+Resolve and validate the complete non-secret configuration first, select the
+secret provider from the validated environment/mode, resolve and validate every
+secret, and only then construct SDK clients or perform external I/O.
+
 ## Target Layout
 
 ```text
@@ -68,22 +109,18 @@ rather than assuming flat/env-vars by default.
         secrets.py
 ```
 
-For the YAML environment-baseline pattern, also include:
+For the YAML application-baseline pattern, also include:
 
 ```text
 <project-root>/
   config/
     local.yaml
-    dev.yaml
     staging.yaml
-    prod.yaml
+    production.yaml
 ```
 
-Standardize new services on four environments: `local`, `dev`, `staging`,
-`prod`. Keep an existing repo's current environment names (e.g. `production`
-instead of `prod`, or a missing `dev` tier) rather than renaming a live
-project's env values — that changes the `ENVIRONMENT_NAME` contract every
-deployment relies on.
+Keep existing environment names when a repo already uses them, such as `dev`
+or `prod`.
 
 ## Reference Routing
 
@@ -91,12 +128,14 @@ Load only the reference needed for the file you are creating or changing:
 
 - `references/settings-py.md`: `core/settings.py`, `Settings`, pattern-specific
   source ordering, Pydantic field conventions, and startup validation.
-- `references/secrets-py.md`: `core/secrets.py`, `SecretStr`, env-backed
-  secrets, remote secret providers, async loading, and local bypass.
+- `references/secrets-py.md`: `core/secrets.py`, `SecretStr`, stable logical
+  secret-source variables, provider routing, payload validation, async loading,
+  and local resolution.
 - `references/config-yaml.md`: root `config/*.yaml`, environment baselines,
   YAML key conventions, and non-secret operational parameters.
-- `references/env-example.md`: `.env.example`, required variables, comments,
-  local defaults, and remote-provider bypass variables.
+- `references/env-example.md`: `.env.example`, required deployment-contract
+  variables, local secret sources, useful overrides, advanced overrides, and
+  remote-provider examples.
 
 If scaffolding the YAML environment-baseline pattern, read all four references.
 If scaffolding the env vars + Pydantic defaults pattern, read
@@ -105,26 +144,25 @@ For a small field addition, read only the affected reference files.
 
 ## Core Conventions
 
-- For the YAML environment-baseline pattern, put non-secret operational
+- For the YAML application-baseline pattern, put non-secret operational
   parameters in `config/{environment}.yaml` only when the value rarely changes,
-  is intentionally environment-specific, and is correct for every cluster an
-  environment spans. Do not put a key in YAML when deployment normally injects
-  the same key as an env var; that makes YAML stale documentation with runtime
-  side effects. See `references/config-yaml.md`.
+  is application-owned, and is correct for every deployment represented by the
+  baseline. Do not put a key in YAML when deployment normally injects the same
+  key as an env var; that makes YAML stale documentation with runtime side
+  effects. See `references/config-yaml.md`.
 - For the env vars + Pydantic defaults pattern, put safe application defaults
   directly on the Pydantic fields with `Field(default=...)`. Do not create
   defaults for values that the app cannot safely choose; use `Field(...)` and
   document the required env var in `.env.example`.
-- Operationally/business configurable values, and any value that legitimately
-  differs across environments or clusters (cloud region, a downstream service
-  URL reached at a different cluster-local hostname per cluster, etc.), belong
-  in `.env.example` / env vars, Helm-injected in real deployments. The test: if
-  this value would ever differ between two clusters in the *same* environment,
-  it must be env-var/Helm-only.
-- Set `extra="forbid"` on every `model_config` — `Settings`, `Secrets`, and any
-  nested `BaseModel` group or section. A misspelled key or a renamed field
-  should fail startup as an unknown key, not silently vanish as an ignored
-  extra while the app runs on an unset default.
+- Deployment-owned values, and any value that legitimately differs across
+  environments or deployments (region/zone, a downstream service base URL or
+  host reached through a deployment-local address, etc.), belong in
+  `.env.example` / env vars and are injected in real deployments. The test: if
+  this value would ever differ between two deployments represented by the same
+  environment baseline, it must be env-only.
+- A value created, named, or wired by infrastructure tooling is env-only even
+  when it happens to be identical across current deployments. Do not encode an
+  infrastructure output as an application baseline.
 - Put secrets in `secrets.py`, never in YAML and never as `Settings` fields.
 - Always create or update `.env.example`.
 - Use `Field(..., description="...")` for required values and
@@ -169,22 +207,36 @@ If the user names a backend, create a dedicated provider class in `secrets.py`
 for that backend, such as `AwsSsmSecretsProvider`,
 `AzureKeyVaultSecretsProvider`, `GcpSecretManagerSecretsProvider`, or
 `VaultSecretsProvider`. Prefer async loading; when the SDK is sync-only, wrap
-the remote calls with `asyncio.to_thread`. Local development must still be able
-to bypass the remote provider through `.env` injection.
+the remote calls with `asyncio.to_thread`. Local development must still resolve
+through `.env` without contacting the remote provider.
 
-When `Settings` names secrets rather than hardcoding them (a `secrets:
-SecretNames | None` field, required outside `local`), select the provider by
-environment instead of a bypass flag: `local` always uses the env-backed
-provider, every other environment always resolves through the remote one
-using the names `Settings.secrets` supplies. See `references/secrets-py.md`,
-"Environment-Selected Secrets Provider".
+When local and deployed environments resolve the same logical secrets, prefer
+one stable, neutrally named source variable per logical secret across all
+environments. The selected provider determines how to interpret its value:
+
+- with a direct/env-backed provider, the variable carries the secret payload
+  itself (normally local, but also valid when a deployment system injects final
+  secret values);
+- with a remote provider, the same variable carries that provider's locator,
+  identifier, path, or URI, and the provider fetches the payload.
+
+The payload shape belongs to the logical secret, not to the backend. A
+multi-field credential may use a JSON object such as
+`{"username":"replace-me","password":"replace-me"}` locally and the same
+object schema in the remote store. A scalar API key or token remains a plain
+string locally and a plain-string payload remotely; do not wrap it in JSON just
+to imitate a structured secret. Read source variables inside the secret
+bootstrap boundary, choose the provider only after environment/provider-mode
+validation, and mask payload values immediately. See `references/secrets-py.md`
+for the full contract and failure rules.
 
 ## Change Checklist
 
-When adding a setting under the YAML environment-baseline pattern, update
-`Settings`, every relevant `config/*.yaml`, and `.env.example` if local
-developers commonly override it. Do not add YAML values for keys that
-deployment normally supplies as env vars.
+When adding a setting under the YAML application-baseline pattern, classify its
+ownership first. For YAML policy, update `Settings` and every relevant
+`config/*.yaml`; add it to `.env.example` only when it is a useful override.
+For an env-only deployment input, update `Settings` and `.env.example` but add
+no YAML or Python fallback.
 
 When adding a setting under the env vars + Pydantic defaults pattern, update
 `Settings` and `.env.example` when the setting is required or commonly
@@ -193,3 +245,9 @@ intentional.
 
 When adding a secret, update the secrets model, the env-backed loader, any
 selected remote provider, and `.env.example`.
+
+Test at least the ownership boundaries affected by the change: missing required
+env-only input, process-env precedence, absence of env-only keys and secret
+sources from YAML, local versus deployed provider selection, scalar or
+structured payload validation, redaction in rendering/errors, and the guarantee
+that complete settings and secrets resolve before any external client is used.

@@ -5,8 +5,8 @@ Use this reference when creating or changing the root `.env.example`.
 ## Purpose
 
 `.env.example` documents the environment variables needed for local
-development, CI, deployment overrides, and optional remote-secret-provider
-bypass. It must be safe to commit.
+development, CI, deployment injection, and environment-selected secret
+resolution. It must be safe to commit.
 
 ## Conventions
 
@@ -28,9 +28,33 @@ bypass. It must be safe to commit.
   explaining why they live here instead of YAML. See `config-yaml.md`'s
   "Deployment-Topology Values Are Not YAML Either" for the test that puts a
   value in this category.
-- Include remote-provider variables only for the selected backend, or comment
-  them as examples during scaffolding.
+- Include infrastructure-owned resource names even when they are currently
+  stable; the deployment system, not application YAML, remains their source of
+  truth.
+- Include remote-provider variables only for the selected backend. When local
+  payloads and deployed locators use the same stable logical variable, show the
+  local value active and the deployed form commented as documentation.
 - Never include real credentials.
+
+For YAML/config + `.env`, use prominent separators and this order:
+
+1. **Required — all runtimes**: environment selection and non-secret runtime
+   coordinates with no safe default.
+2. **Required — local only**: logical secret payloads and local-emulator
+   credentials. Use JSON only for structured secret schemas; use a plain string
+   for scalar secrets.
+3. **Deployed only — injected**: commented examples of the same logical secret
+   variables holding remote-provider locators, plus notes on which deployment
+   system owns the values.
+4. **Useful local overrides**: host/base-URL overrides, log level, safety
+   switches, or other settings developers commonly change.
+5. **Advanced/diagnostic overrides**: a small curated commented list with
+   operational warnings where appropriate.
+
+Do not add an exhaustive "all possible overrides" dump. That duplicates the
+typed settings schema and becomes stale. The template is a safe, copyable local
+bootstrap plus a deployment-contract guide; the settings model or generated
+configuration reference remains authoritative for uncommon overrides.
 
 ## Env Vars + Pydantic Defaults Template
 
@@ -49,58 +73,79 @@ APP_HOST=0.0.0.0
 APP_PORT=8080
 REQUEST_TIMEOUT_SECONDS=30
 
-# Deployment-topology values, not application defaults — differ per cluster
-# even within one environment (e.g. eu-central-1 for one cluster vs
-# us-west-2 for the rest of "production"), so they're Helm-injected in every
-# real environment.
-AWS_REGION=us-west-2
-DOWNSTREAM_SERVICE_URL=http://localhost:9000
+# Deployment-topology values, not application defaults. The deployment system
+# injects the real values outside local development.
+PLATFORM_REGION=replace-me-local-region
+DOWNSTREAM_SERVICE_BASE_URL=http://localhost:9000
 
 # Local-development secrets. Replace with safe local/test values only.
 DATABASE_PASSWORD=local-dev-password
 LLM_API_KEY=replace-me
-
-# Remote secret-manager bypass for local debugging.
-BYPASS_REMOTE_SECRETS=true
 ```
 
-## YAML Environment-Baseline Template
+## YAML Application-Baseline + Env Contract Template
 
 Use this template when `config/{ENVIRONMENT_NAME}.yaml` exists and owns
 committed non-secret baselines.
 
 ```dotenv
-# Selects config/{ENVIRONMENT_NAME}.yaml.
+################################################################################
+# REQUIRED — ALL RUNTIMES
+################################################################################
+
+# Selects config/{ENVIRONMENT_NAME}.yaml and the matching secret provider.
 ENVIRONMENT_NAME=local
 
-# Optional local overrides for non-secret settings.
+# Deployment topology has no YAML fallback. Deployment tooling injects the
+# real values; these local values point at developer-owned infrastructure.
+RESOURCE_BUCKET_NAME=local-app-resources
+DOWNSTREAM_SERVICE_BASE_URL=http://127.0.0.1:9000
+
+
+################################################################################
+# REQUIRED — LOCAL ONLY
+################################################################################
+
+# Same logical source variables are used when deployed. Locally they carry
+# payloads. JSON is used only because SERVICE_ACCOUNT_SECRET is structured;
+# the scalar API key remains a plain string.
+DATABASE_SECRET=replace-me-local-dsn
+SERVICE_ACCOUNT_SECRET={"username":"replace-me","password":"replace-me"}
+LLM_API_KEY_SECRET=replace-me
+
+# Credentials for a local emulator only; deployed workloads use runtime identity.
+LOCAL_STORE_ACCESS_KEY=replace-me
+LOCAL_STORE_SECRET_KEY=replace-me
+
+
+################################################################################
+# DEPLOYED ONLY — INJECTED BY THE DEPLOYMENT SYSTEM
+################################################################################
+
+# In a deployed runtime the same variables contain provider-specific locators.
+# Do not uncomment these in the local .env file.
+# DATABASE_SECRET=provider-specific/database-locator
+# SERVICE_ACCOUNT_SECRET=provider-specific/account-locator
+# LLM_API_KEY_SECRET=provider-specific/api-key-locator
+
+
+################################################################################
+# USEFUL LOCAL OVERRIDES
+################################################################################
+
 LOG_LEVEL=DEBUG
 APP_HOST=0.0.0.0
 APP_PORT=8080
 
-# Deployment-topology values, not application defaults — differ per cluster
-# even within one environment (e.g. eu-central-1 for one cluster vs
-# us-west-2 for the rest of "production"), so they're Helm-injected in every
-# real environment rather than owned by config/{ENVIRONMENT_NAME}.yaml.
-AWS_REGION=us-west-2
-DOWNSTREAM_SERVICE_URL=http://localhost:9000
 
-# Local-development secrets. Replace with safe local/test values only.
-DATABASE_PASSWORD=local-dev-password
-LLM_API_KEY=replace-me
+################################################################################
+# ADVANCED / DIAGNOSTIC OVERRIDES
+################################################################################
 
-# Remote secret-manager bypass for local debugging.
-BYPASS_REMOTE_SECRETS=true
-
-# Remote provider settings, if the project uses one. Keep only the variables
-# required by the selected backend.
-# SECRET_BACKEND=aws-ssm
-# AWS_DEFAULT_REGION=us-east-1
-# SECRET_PARAMETER_PREFIX=/my-service/local
-# AZURE_KEY_VAULT_URL=https://example.vault.azure.net/
-# GCP_SECRET_PROJECT_ID=my-gcp-project
-# VAULT_ADDR=http://127.0.0.1:8200
+# REQUEST_TIMEOUT_SECONDS=60
+# DATABASE_TRACING_ENABLED=false
 ```
 
-When adding a new secret, add its env var here even when production uses a
-remote secret manager; `.env` remains the local bypass path.
+When adding a new secret, add its stable logical source variable here even when
+production uses a remote provider. The selected provider changes the variable's
+interpretation; its name and the resolved payload schema stay stable.

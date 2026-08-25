@@ -10,12 +10,71 @@ keep local development easy while making production secret loading explicit.
 ## General Conventions
 
 - Use `SecretStr` for sensitive strings.
-- Keep secret-manager connection details that are not secret in `Settings`.
+- Keep backend-level connection details that are not secret, such as a vault
+  URL or project identifier, in `Settings` when the application consumes them.
+  Keep per-secret source variables inside the secret bootstrap boundary when
+  those same variables carry secret payloads locally.
 - Do not put secrets in `config/*.yaml`.
 - Do not log raw secret values. Use `.get_secret_value()` only at the boundary
   that needs the actual credential.
 - Make missing secrets fail with a message that identifies the env var or
   logical secret key.
+
+## Stable Logical Secret-Source Variables
+
+When runtimes need the same logical secrets, prefer one neutral
+environment-variable name per logical secret in every environment. The
+provider selected from the already validated environment/provider mode
+determines what the variable contains. A common local/remote policy looks like:
+
+```text
+ENVIRONMENT_NAME=local       DATABASE_SECRET=<local payload>
+ENVIRONMENT_NAME=staging     DATABASE_SECRET=<remote-provider locator>
+ENVIRONMENT_NAME=production  DATABASE_SECRET=<remote-provider locator>
+```
+
+This mapping is provider-based, not intrinsically tied to the word `local`.
+When a deployment system injects final secret values, a deployed environment
+can intentionally use the direct/env-backed provider and the variable remains a
+payload. Only a provider that performs a remote lookup interprets it as a
+locator.
+
+Use neutral names such as `DATABASE_SECRET`, `SERVICE_ACCOUNT_SECRET`, or
+`LLM_API_KEY_SECRET`. Do not use `*_ARN`, `*_PATH`, or `*_VALUE` when the same
+variable has different source semantics across environments.
+
+The payload schema is defined by the logical secret, independently of its
+source or backend:
+
+- A structured account credential can be a JSON object locally, for example
+  `{"username":"replace-me","password":"replace-me"}`. The remote provider
+  fetches a document with the same required fields.
+- A scalar API key, token, password, or DSN is a plain string locally. The
+  remote provider fetches a plain string. Do not wrap a scalar in a one-field
+  JSON object merely to make every secret look alike.
+
+This contract is backend-neutral. A remote value might be a cloud secret ID,
+vault path, parameter name, URI, or another provider locator. The application
+does not derive that locator from `ENVIRONMENT_NAME`; deployment tooling injects
+the exact environment-scoped value.
+
+Resolve in this order:
+
+1. Validate non-secret settings and the environment/provider mode.
+2. Select exactly one local or remote provider.
+3. Let that provider read the stable source variables.
+4. Resolve each variable to its raw payload: direct locally, fetched remotely.
+5. Validate the expected scalar or structured payload schema and convert
+   sensitive fields to `SecretStr` immediately.
+6. Construct external clients and begin application I/O only after every
+   required secret has resolved.
+
+Reject missing sources, invalid locators, malformed JSON, missing structured
+fields, unexpected scalar/object shapes, and provider failures before external
+application work. Error messages may name the logical variable and expected
+shape but must never include its raw value. In particular, do not pass these
+source variables through an ordinary renderable `Settings` model: a value that
+is a harmless locator remotely is a credential-bearing payload locally.
 
 ## Env-Backed Model
 
@@ -39,7 +98,7 @@ class Secrets(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="forbid",
+        extra="ignore",
     )
 
     database_password: SecretStr = Field(alias="DATABASE_PASSWORD")
@@ -61,7 +120,7 @@ Manager, Vault, or another SDK. Rename `RemoteSecretsProvider` for the chosen
 backend.
 
 ```python
-"""Secrets with local .env bypass and optional remote provider."""
+"""Secrets with environment-selected local or remote resolution."""
 
 from __future__ import annotations
 
@@ -78,8 +137,8 @@ from .settings import Settings, get_settings
 class Secrets(BaseModel):
     model_config = ConfigDict(frozen=True, populate_by_name=True)
 
-    database_password: SecretStr = Field(alias="DATABASE_PASSWORD")
-    llm_api_key: SecretStr = Field(alias="LLM_API_KEY")
+    database_password: SecretStr
+    llm_api_key: SecretStr
 
 
 class EnvSecrets(BaseSettings):
@@ -87,11 +146,11 @@ class EnvSecrets(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="forbid",
+        extra="ignore",
     )
 
-    database_password: SecretStr = Field(alias="DATABASE_PASSWORD")
-    llm_api_key: SecretStr = Field(alias="LLM_API_KEY")
+    database_password: SecretStr = Field(alias="DATABASE_SECRET")
+    llm_api_key: SecretStr = Field(alias="LLM_API_KEY_SECRET")
 
     def to_secrets(self) -> Secrets:
         return Secrets(
@@ -120,19 +179,32 @@ class RemoteSecretsProvider(SecretsProvider):
     async def load(self) -> Secrets:
         return await asyncio.to_thread(self._load_sync)
 
-    def _load_sync(self) -> Secrets:
-        # Replace with SDK calls and wrap raw strings in SecretStr.
+    @staticmethod
+    def _required_source(variable: str) -> str:
+        value = os.environ.get(variable)
+        if not value:
+            raise ValueError(f"Required secret source {variable!r} is not set.")
+        return value
+
+    def _fetch_scalar(self, source: str) -> str:
+        del source
         raise NotImplementedError
 
-
-def _use_local_bypass(settings: Settings) -> bool:
-    bypass = os.environ.get("BYPASS_REMOTE_SECRETS", "").lower()
-    return settings.environment_name == "local" or bypass in {"1", "true", "yes"}
+    def _load_sync(self) -> Secrets:
+        database = self._fetch_scalar(self._required_source("DATABASE_SECRET"))
+        api_key = self._fetch_scalar(self._required_source("LLM_API_KEY_SECRET"))
+        return Secrets(
+            database_password=SecretStr(database),
+            llm_api_key=SecretStr(api_key),
+        )
 
 
 def build_secrets_provider(settings: Settings | None = None) -> SecretsProvider:
     settings = settings or get_settings()
-    if _use_local_bypass(settings):
+    # Common policy: local reads payloads directly, deployed environments
+    # resolve locators remotely. Use an explicit validated provider mode instead
+    # when deployed environments receive final secret values.
+    if settings.environment_name == "local":
         return EnvSecretsProvider()
     return RemoteSecretsProvider(settings)
 
@@ -167,47 +239,19 @@ Do not create separate independent `BaseSettings`/`BaseModel` secret classes
 per integration. That duplicates `model_config` and loses the single point
 of validation-at-startup that one root class gives you.
 
-## Environment-Selected Secrets Provider
-
-Use this direction instead of (or alongside) the bypass-flag shape above when
-`Settings` carries `secrets: SecretNames | None` (see `settings-py.md`,
-"Layered YAML Scaffold") — secret *names* are non-secret configuration,
-resolved per environment, and only the values fetched for those names are
-secret. Applies the same way in a single-service repo or a monorepo.
-
-Select the provider from `environment_name` itself rather than a separate
-bypass flag — `local` has no names to look up and always reads process env
-vars; every other environment always resolves through the remote provider
-using the names `Settings.secrets` supplies:
-
-```python
-def build_secrets_provider(settings: Settings) -> SecretsProvider:
-    if settings.environment_name == "local":
-        return EnvSecretsProvider()
-    return RemoteSecretsProvider()  # rename for the chosen backend
-```
-
-Keep two properties in whatever `SecretsProvider.load()` implementations you
-write:
-
-- **All-or-nothing resolution.** Return a fully populated `Secrets` or raise —
-  never a partially populated object a caller might use before noticing a
-  field is missing. A `names` argument of `None` should only ever occur for
-  `local`; reaching the remote provider with no names is a wiring bug, and
-  should raise as one rather than being treated as "nothing to fetch."
-- **Fail naming the secret, never its content.** A fetch failure or a
-  malformed secret document should say which secret or which key inside it
-  failed, never echo the raw response.
-
 ## Provider Notes
 
-- AWS SSM: use `AwsSsmSecretsProvider`; keep prefix and region in `Settings`;
-  fetch parameters with decryption.
-- Azure Key Vault: use `AzureKeyVaultSecretsProvider`; keep vault URL in
-  `Settings`; prefer managed identity in deployed environments.
-- GCP Secret Manager: use `GcpSecretManagerSecretsProvider`; keep project ID
-  and secret names or paths in `Settings`.
-- Vault: use `VaultSecretsProvider`; keep address, mount, and path in
+- AWS SSM: use `AwsSsmSecretsProvider`; fetch parameters with decryption.
+- Azure Key Vault: use `AzureKeyVaultSecretsProvider`; keep the vault URL in
+  `Settings` and prefer managed identity in deployed environments.
+- GCP Secret Manager: use `GcpSecretManagerSecretsProvider`; keep a shared
+  project ID in `Settings` when needed.
+- Vault: use `VaultSecretsProvider`; keep the server address and mount in
   `Settings`; do not commit tokens.
+
+In every case, deployment-owned backend coordinates belong to the env-only
+runtime contract. When using stable logical secret-source variables, inject
+each exact per-secret locator through its neutral variable rather than storing
+secret names or paths in YAML or deriving them from the environment name.
 
 For native async SDKs, use the SDK directly instead of `asyncio.to_thread`.
