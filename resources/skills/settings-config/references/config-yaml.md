@@ -1,9 +1,8 @@
 # `config/*.yaml`
 
-Use this reference only when the selected pattern is YAML environment
-baselines and you are creating or changing files under the project-root
-`config/` directory. If the user has not chosen between YAML baselines and env
-vars + Pydantic field defaults, ask before creating YAML files.
+Use this reference by default when creating or changing application
+configuration and files under the project-root `config/` directory. Skip YAML
+only when the user explicitly says they do not want YAML configuration.
 
 ## Purpose
 

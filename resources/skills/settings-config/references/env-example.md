@@ -17,10 +17,10 @@ resolution. It must be safe to commit.
   `Field(default=...)` value.
 - Include common local overrides for settings only when useful; do not copy
   every default from `Settings`.
-- In the env vars + Pydantic defaults pattern, `.env.example` is the main
+- When the user explicitly opts out of YAML, `.env.example` is the main
   operator-facing list of env vars. It should document required values and
   commonly overridden defaults.
-- In the YAML environment-baseline pattern, `.env.example` should avoid
+- In the default YAML environment-baseline pattern, `.env.example` should avoid
   duplicating YAML-owned keys unless local developers commonly override them.
 - Include deployment-topology values — non-secret settings deliberately kept
   out of `config/*.yaml` because they can differ between clusters in the same
@@ -56,7 +56,7 @@ typed settings schema and becomes stale. The template is a safe, copyable local
 bootstrap plus a deployment-contract guide; the settings model or generated
 configuration reference remains authoritative for uncommon overrides.
 
-## Env Vars + Pydantic Defaults Template
+## Env Vars + Pydantic Defaults Template — Explicit YAML Opt-Out Only
 
 Use this template when there are no committed `config/*.yaml` baselines.
 
@@ -83,7 +83,7 @@ DATABASE_PASSWORD=local-dev-password
 LLM_API_KEY=replace-me
 ```
 
-## YAML Application-Baseline + Env Contract Template
+## YAML Application-Baseline + Env Contract Template — Default
 
 Use this template when `config/{ENVIRONMENT_NAME}.yaml` exists and owns
 committed non-secret baselines.

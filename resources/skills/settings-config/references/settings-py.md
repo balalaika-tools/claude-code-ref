@@ -5,23 +5,24 @@ Use this reference when creating or changing `src/<package>/core/settings.py`.
 ## Purpose
 
 `settings.py` owns typed, non-secret operational config. It should not fetch
-remote secrets and should not contain credentials. It either reads values from
-env vars plus Pydantic field defaults, or it additionally knows how to locate
-root `config/*.yaml` files when the user has chosen committed environment
-baselines.
+remote secrets and should not contain credentials. By default it reads YAML
+application baselines and knows how to locate root `config/*.yaml`, while env
+and `.env` sources retain higher precedence. It uses env vars plus Pydantic
+field defaults without YAML only after an explicit user opt-out.
 
 ## Source Order
 
-Use the source order for the selected pattern.
+Use the YAML environment-baseline source order unless the user explicitly opts
+out of YAML configuration.
 
-Env vars + Pydantic field defaults:
+Env vars + Pydantic field defaults (explicit YAML opt-out only):
 
 1. Explicit kwargs for tests.
 2. Process environment variables.
 3. `.env` for local overrides.
 4. Class defaults.
 
-YAML environment baselines:
+YAML environment baselines (default):
 
 1. Explicit kwargs for tests.
 2. Process environment variables.
@@ -29,7 +30,8 @@ YAML environment baselines:
 4. `config/{ENVIRONMENT_NAME}.yaml` for committed environment baselines.
 5. Class defaults.
 
-If the user has not chosen between these patterns, ask before implementing.
+Do not ask the user to choose when they have expressed no preference: use YAML.
+Use the env-only source order only after an explicit request not to use YAML.
 
 ## YAML Discovery
 
@@ -227,9 +229,9 @@ Usage: `settings.server.app_port`, `settings.model.primary_model_id`.
 
 ## Env Vars + Pydantic Defaults Scaffold
 
-Use this scaffold when the selected pattern is env vars + Pydantic field
-defaults. This is the lighter pattern: Python owns safe defaults, `.env` is for
-local overrides, and real deployments inject env vars.
+Use this scaffold only when the user explicitly opts out of YAML. Python then
+owns safe defaults, `.env` is for local overrides, and real deployments inject
+env vars.
 
 ```python
 """Application settings: typed, non-secret operational config."""
@@ -309,9 +311,9 @@ def get_settings() -> Settings:
 
 ## YAML Environment-Baseline Scaffold
 
-Use this scaffold only when the selected pattern is committed YAML environment
-baselines. YAML should own values that rarely change, are intentionally
-environment-specific, and are not normally overridden by deployment env vars.
+Use this scaffold by default. YAML should own values that rarely change, are
+intentionally environment-specific, and are not normally overridden by
+deployment env vars.
 
 ```python
 """Application settings: typed, non-secret operational config."""

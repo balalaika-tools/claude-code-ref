@@ -2,12 +2,11 @@
 name: settings-config
 description: >
   Use when creating, extending, or reviewing application configuration for a
-  Python/FastAPI AI service settings and secrets modules, root `config/*.yaml`,
-  `.env.example`,
-  Pydantic/pydantic-settings models, SecretStr usage, environment-specific
-  YAML baselines, or secret-manager integration with AWS SSM, Azure Key Vault,
-  GCP Secret Manager, Vault, or another SDK. Also use when the user calls
-  /settings-config explicitly.
+  Python/FastAPI AI service settings and secrets modules, YAML application
+  baselines under root `config/*.yaml`, `.env.example`,
+  Pydantic/pydantic-settings models, SecretStr usage, or secret-manager
+  integration with AWS SSM, Azure Key Vault, GCP Secret Manager, Vault, or
+  another SDK. Also use when the user calls /settings-config explicitly.
 ---
 
 # Settings & Secrets
@@ -18,24 +17,37 @@ and non-secret settings follow one clear ownership pattern.
 
 ## Pattern Decision
 
-Two independent choices must be resolved before scaffolding or changing
-configuration. If the user has not clearly chosen for either axis, ask before
-proceeding — do not silently pick one. When an existing project already uses
-one pattern consistently, follow that pattern unless the user asks to migrate.
+Use **YAML application baselines + env deployment contract** by default. Do not
+ask the user to choose a non-secret value source when they have expressed no
+preference. Use the env-vars + Pydantic-defaults-only pattern only when the user
+explicitly says they do not want YAML configuration. This default also applies
+to an existing env-only project when the task is a configuration refactor; keep
+an existing env-only pattern only when the user explicitly asks to preserve it.
+
+For the default YAML pattern, precedence is always: explicit constructor kwargs,
+process environment variables, `.env`, YAML, then class defaults. Process env
+and `.env` must always win over YAML; never configure a YAML source above
+either environment source.
+
+Field grouping remains a separate choice. When an existing project already
+uses flat or nested grouping consistently, preserve it unless the user asks to
+migrate. Otherwise ask before choosing because grouping changes the deployment
+environment-variable contract.
 
 ### Non-secret value source
 
-1. **YAML application baselines + env deployment contract**: committed
+1. **YAML application baselines + env deployment contract (default)**: committed
    `config/{environment}.yaml` files hold stable, application-owned policy that
    is intentionally different per environment. Deployment-owned topology and
    resource coordinates have no YAML fallback: `.env` supplies them locally
    and the deployment system injects them in real environments. Process env
    vars may still override YAML-owned application settings exceptionally, but
    deployment should not routinely inject a second copy of a YAML-owned key.
-2. **Env vars + Pydantic field defaults**: no YAML source. Safe application
-   defaults live directly in `Field(default=...)`; values with no safe default
-   use `Field(...)`; `.env` is only a local override file; staging/production
-   overrides are provided by real environment variables/Helm.
+2. **Env vars + Pydantic field defaults (explicit opt-out only)**: no YAML
+   source. Safe application defaults live directly in `Field(default=...)`;
+   values with no safe default use `Field(...)`; `.env` is only a local
+   override file; staging/production overrides are provided by real environment
+   variables/Helm.
 
 ### Field grouping
 
@@ -49,14 +61,15 @@ one pattern consistently, follow that pattern unless the user asks to migrate.
    transparent refactor — and it only pays off once field count is large
    enough (several dozen+) that flat namespacing hurts readability.
 
-If the user gives no preference on either axis, ask explicitly (e.g. "YAML
-baselines or env-vars/defaults only? Flat `Settings` or nested groups?")
-rather than assuming flat/env-vars by default.
+Do not ask whether to use YAML unless the user has explicitly raised the
+possibility of opting out. Ask only about field grouping when neither the user
+nor the existing repository has selected flat or nested grouping.
 
 ## Configuration Ownership Contract
 
-When the user selects YAML/config baselines plus `.env`, classify every value
-by ownership before choosing its source. A value gets one authoritative home:
+Under the default YAML/config baselines plus `.env` pattern, classify every
+value by ownership before choosing its source. A value gets one authoritative
+home:
 
 1. **Code invariant** — the application has no legitimate operator choice.
    Keep it in code, not in settings merely to make it adjustable.
@@ -137,8 +150,8 @@ Load only the reference needed for the file you are creating or changing:
   variables, local secret sources, useful overrides, advanced overrides, and
   remote-provider examples.
 
-If scaffolding the YAML environment-baseline pattern, read all four references.
-If scaffolding the env vars + Pydantic defaults pattern, read
+For the default YAML environment-baseline pattern, read all four references.
+Only when the user explicitly opts out of YAML, read
 `settings-py.md`, `secrets-py.md`, and `env-example.md`.
 For a small field addition, read only the affected reference files.
 
@@ -238,10 +251,10 @@ ownership first. For YAML policy, update `Settings` and every relevant
 For an env-only deployment input, update `Settings` and `.env.example` but add
 no YAML or Python fallback.
 
-When adding a setting under the env vars + Pydantic defaults pattern, update
-`Settings` and `.env.example` when the setting is required or commonly
-overridden. Add a `Field(default=...)` only when the default is safe and
-intentional.
+Only after an explicit YAML opt-out, when adding a setting under the env vars +
+Pydantic defaults pattern, update `Settings` and `.env.example` when the setting
+is required or commonly overridden. Add a `Field(default=...)` only when the
+default is safe and intentional.
 
 When adding a secret, update the secrets model, the env-backed loader, any
 selected remote provider, and `.env.example`.
