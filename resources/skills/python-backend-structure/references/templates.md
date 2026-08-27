@@ -278,18 +278,11 @@ specialized root boundaries.
 
 ## Test layout
 
-Keep a small service's tests flat until distinct test environments exist. When
-they do, separate by behavior and required infrastructure rather than mirroring
-every source folder mechanically:
+Keep tests beside the service or library that owns them. A small suite with one
+execution profile may remain flat; a suite with distinct infrastructure,
+lifecycle, isolation, or CI needs is organized by execution profile first and
+behavioral owner second. Do not mirror every source file mechanically.
 
-```text
-tests/
-├── unit/                            # Deterministic application/domain and adapter fakes
-├── integration/                     # Database, broker, filesystem, or provider boundary
-├── contract/                        # Deployment, schemas, configuration, entry points
-└── fixtures/                        # Sanitized static inputs
-```
-
-Action-oriented subpackages under `unit/` or `integration/` are useful when test
-names begin colliding or setup differs. Business tests should target public
-application actions and ports; wiring tests should target bootstrap separately.
+Read [testing.md](testing.md) for the canonical test tree, mutually exclusive
+classification rules, fixture and support-code ownership, markers, CI selection,
+and migration guidance.

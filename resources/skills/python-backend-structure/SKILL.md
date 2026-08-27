@@ -7,7 +7,8 @@ description: >-
   Standardize business execution under application, technology-neutral contracts
   under ports, concrete integrations under adapters, and all GenAI code under
   a root genai package, with clear bootstrap, API, persistence, configuration,
-  and observability boundaries. Use when deciding where backend code belongs or
+  observability, and test-suite boundaries. Use when deciding where backend code
+  or its unit, integration, contract, and end-to-end tests belong, or when
   standardizing package layouts. Do not use for uv workspace/Docker organization
   alone or for database-layer mechanics alone.
 ---
@@ -26,7 +27,9 @@ invariants.
 Before proposing or changing a structure:
 
 1. Inspect the actual package tree, entry points, imports, tests, and deployment
-   process. Do not infer architecture from filenames alone.
+   process. For tests, inspect collection configuration, markers, fixture scope,
+   support-module imports, external-resource requirements, and CI selection. Do
+   not infer architecture or test type from filenames alone.
 2. Identify independently meaningful business actions and their outcomes.
 3. Identify process types: HTTP API, long-running worker, queue consumer,
    scheduled batch, CLI, or a combination.
@@ -37,9 +40,10 @@ Before proposing or changing a structure:
 6. Preserve repository conventions unless changing them provides a clear,
    stated benefit. Never reorganize unrelated services merely for symmetry.
 
-Read [references/templates.md](references/templates.md) and
-[references/boundaries.md](references/boundaries.md) for every structural design
-or refactor. Then load only the mode-specific references that apply:
+Read [references/templates.md](references/templates.md),
+[references/boundaries.md](references/boundaries.md), and
+[references/testing.md](references/testing.md) for every structural design or
+refactor. Then load only the mode-specific references that apply:
 
 - Read [references/api-and-workers.md](references/api-and-workers.md) for an HTTP
   API, worker, scheduled process, queue/Kafka/SQS consumer, or hybrid service.
@@ -105,6 +109,9 @@ Use these locations consistently when the responsibility exists:
   decisions.
 - `diagnostics/` or `maintenance/`: explicit operator-facing commands; keep
   them out of runtime business packages.
+- `<member>/tests/`: tests owned by this service or library, beside `src/`
+  rather than inside the import package, and separated by execution profile once
+  the suite has distinct infrastructure or lifecycle needs.
 
 Create only directories used by the current service. A template is a placement
 policy, not a requirement to commit empty folders.
@@ -133,6 +140,30 @@ Flat-first controls growth *within* an owner; it does not justify putting GenAI
 code in `application/` or concrete adapters in `domain/`. It also does not collapse
 the required GenAI definition/setup modules described below: stable semantic
 structure takes precedence over minimizing the raw file count.
+
+## Tests follow execution profile, then ownership
+
+Keep each deployable or library's tests beside that member. A genuinely small
+suite with one execution profile may remain flat. Once different infrastructure,
+lifecycle, isolation, or CI selection exists, use `tests/unit/`,
+`tests/integration/`, `tests/contract/`, and `tests/e2e/` as applicable. These
+categories are not filename decorations: classify a test by the strongest real
+dependency and scope needed to prove its behavior.
+
+Within a profile, group by the production boundary or business capability only
+when several cohesive modules, distinct setup, or naming pressure justify it.
+Do not mechanically mirror every source file, and do not combine unrelated
+owners into files such as `test_domain.py`, `test_contracts.py`, or
+`test_worker_and_telemetry.py`. A test module has one behavioral owner and one
+execution profile.
+
+Keep fixtures and support code at the narrowest shared scope. Root
+`tests/conftest.py` is for lightweight suite-wide fixtures and collection policy;
+database resets, broker lifecycles, model/provider setup, and other expensive or
+destructive resources belong under the profile or capability that uses them.
+Read [references/testing.md](references/testing.md) for the classification
+rules, canonical trees, fixture/support ownership, markers, CI selection, and
+migration sequence.
 
 ## GenAI is always a root boundary
 
@@ -262,13 +293,15 @@ exceptions.
 For a design or review, provide:
 
 1. How the canonical shape applies and any explicit, justified exception.
-2. A target tree containing only relevant directories.
-3. A short dependency map and ownership notes for ambiguous files.
-4. Current violations, migration risks, and the smallest coherent migration
-   sequence.
+2. A target source and test tree containing only relevant directories.
+3. A short dependency map and ownership notes for ambiguous source and test
+   files, including each test's execution profile when it is not obvious.
+4. Current violations, fixture/CI migration risks, and the smallest coherent
+   migration sequence.
 
 For implementation, state how the canonical shape applies before broad file
-movement. Move one coherent boundary or business action at a time, update imports and entry points,
+movement. Move one coherent boundary, business action, or test profile/capability
+at a time; update imports, entry points, fixture scope, markers, and CI selectors;
 and run focused tests after each meaningful slice. Preserve behavior during a
 structure-only refactor; do not mix business redesign into file movement unless
 the user explicitly requests both.
