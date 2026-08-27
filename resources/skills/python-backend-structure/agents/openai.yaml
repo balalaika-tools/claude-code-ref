@@ -1,0 +1,4 @@
+interface:
+  display_name: "Python Backend Structure"
+  short_description: "Choose clear, scalable Python backend layouts"
+  default_prompt: "Use $python-backend-structure to design or review this backend package structure."
