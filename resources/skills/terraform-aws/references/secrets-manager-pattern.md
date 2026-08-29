@@ -4,6 +4,7 @@
 
 - [Rule](#rule)
 - [Model Secret Metadata in Terraform](#model-secret-metadata-in-terraform)
+- [Validate Secret Tags Before Apply](#validate-secret-tags-before-apply)
 - [Terraform-Owned Write-Only Values](#terraform-owned-write-only-values)
 - [Choose the Runtime Integration](#choose-the-runtime-integration)
 - [Grant Least-Privilege Access](#grant-least-privilege-access)
@@ -81,6 +82,49 @@ Do not discover secrets with broad name or tag searches. Avoid
 days. Consider `prevent_destroy` for durable production secret containers only
 with an explicit break-glass removal procedure, and remember that it does not
 protect a resource after its block is removed.
+
+## Validate Secret Tags Before Apply
+
+Secrets Manager delegates tag validation to the AWS tagging service. Validate
+every caller-controlled value that becomes a tag before resource creation; do
+not rely on provider schema validation, because invalid characters can survive
+`terraform plan` and fail only during `CreateSecret`. For the conservative
+ASCII contract used by portable modules, permit letters, digits, spaces, and
+`_ . : / = + @ -`, while rejecting punctuation such as commas and parentheses:
+
+```hcl
+variable "owner" {
+  description = "Role or team that populates the secret value"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9 _.:/=+@-]+$", var.owner))
+    error_message = "owner contains characters that Secrets Manager tags reject."
+  }
+}
+```
+
+Apply the same rule to caller-supplied tag maps, including their keys, and
+enforce the service's tag key/value length limits. Metadata derived from a list
+must use a valid delimiter such as `+`, not a comma:
+
+```hcl
+tags = merge(var.tags, {
+  ExpectedKeys = length(var.expected_keys) == 0 ? "scalar" : join("+", var.expected_keys)
+  Owner        = var.owner
+})
+```
+
+Prefer rejecting invalid semantic input over silently rewriting it. A fixed
+delimiter used only to render informational metadata may be selected explicitly
+as above, provided no consumer parses that display value. Keep the structured
+list in the module's real output or interface rather than treating the tag as a
+data contract.
+
+Tag constraints vary across AWS services and partitions. Confirm the target
+resource API rather than promoting one regex to a universal AWS rule. For every
+module that constructs tags from free text or collections, add a plan test that
+asserts valid rendered tags and an `expect_failures` case for forbidden input.
 
 ## Terraform-Owned Write-Only Values
 

@@ -35,6 +35,16 @@ environments share one local state file.
 
 ## Idempotent Import
 
+If the bootstrap wrapper collects optional Terraform arguments in an array,
+expand that array with the Bash-3.2-safe form from `SKILL.md`:
+
+```bash
+terraform apply ${EXTRA_VARS[@]+"${EXTRA_VARS[@]}"}
+```
+
+This matters for the normal no-role-override path, where `EXTRA_VARS=()` is
+legitimately empty and `set -u` would otherwise abort before Terraform runs.
+
 ```bash
 import_if_exists() {
   local tf_addr="$1" resource_id="$2"
@@ -59,6 +69,27 @@ and it short-circuits before the script spends an API call on a bucket Terraform
 already owns. `head-bucket` returning non-zero also covers "exists but not
 accessible to these credentials", so a permissions problem falls through to
 `apply` and fails there with a clearer message than a failed import would give.
+
+## Rendering Backend Configurations
+
+When Terraform outputs a map of stack names to multi-line partial backend HCL,
+serialize each map entry as exactly one line before feeding it to `read`. A raw
+tab-separated `"\(.key)\t\(.value)"` is incorrect: `jq -r` emits the value's
+newlines, so the shell treats every later HCL line as another record and may use
+content such as `key = "..."` as a filename.
+
+```bash
+terraform output -json "$OUTPUT_NAME" \
+  | jq -r 'to_entries[] | "\(.key)\t\(.value | gsub("\n"; "\\n"))"' \
+  | while IFS=$'\t' read -r stack body; do
+      printf '%b' "$body" > "$BACKEND_DIR/$stack.backend.hcl"
+    done
+```
+
+The `gsub` converts embedded newlines to literal `\n` sequences, keeping each
+entry on one transport line; `printf '%b'` restores the original HCL. Add a
+behavioral test with at least two entries and multi-line values. Verify the exact
+filenames and complete file contents, not only the script's exit status.
 
 ## Why the imperative CLI is correct here
 

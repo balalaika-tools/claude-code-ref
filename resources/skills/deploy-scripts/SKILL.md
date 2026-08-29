@@ -116,6 +116,31 @@ set -euo pipefail
 
 `#!/usr/bin/env bash` picks up whatever `bash` is on `PATH` — macOS ships an ancient `/bin/bash` (3.2). `set -euo pipefail` fails fast on errors, unset vars, and broken pipes.
 
+### Bash 3.2 and Empty Arrays
+
+Every script must remain compatible with the Bash 3.2 shipped by macOS. Under
+`set -u`, expanding an initialized but empty array with `"${items[@]}"` raises an
+unbound-variable error on Bash 3.2 even though it succeeds on newer Bash
+versions. Whenever an array can legitimately be empty, use the conditional
+expansion form:
+
+```bash
+EXTRA_ARGS=()
+[[ -n "${OPTIONAL_VALUE:-}" ]] && EXTRA_ARGS+=(--option "$OPTIONAL_VALUE")
+
+some_command ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
+
+for item in ${ITEMS[@]+"${ITEMS[@]}"}; do
+  process "$item"
+done
+```
+
+The inner quotes preserve each element as a separate argument; the outer
+`${array[@]+...}` expands to nothing when the array is empty. Ordinary
+`"${array[@]}"` remains correct when the script's structure guarantees at least
+one element. Do not rely on Bash 4 features such as associative arrays or
+`mapfile`.
+
 ### Path Resolution
 
 ```bash
@@ -559,6 +584,9 @@ before committing:
   ones with `# shellcheck disable=SCxxxx` plus a reason). It catches unquoted
   expansions, masked exit codes in pipelines, and `read` misuse that
   `pipefail` would otherwise only reveal at runtime.
+- Add a regression contract for every legitimately empty array expanded under
+  `set -u`. CI commonly runs Bash 5, so a successful CI execution and ShellCheck
+  do not prove that the script is safe on macOS Bash 3.2.
 - Run `chmod +x` on new scripts — a non-executable script invoked by an
   orchestrator fails with a confusing permission error.
 - Optionally wire both into a pre-commit hook so they run automatically.

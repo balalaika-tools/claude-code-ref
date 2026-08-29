@@ -64,6 +64,10 @@ tests; Terraform discovers `tests/*.tftest.hcl` inside that configuration.
   explicit default. Do not assert on values a mock invented.
 - Put **module** tests beside the module: input validation, conditional resource
   creation, naming, and the output contract other stacks depend on.
+- Test values transformed for an external API, especially tags assembled from
+  free text or lists. Assert the rendered value and include a failing case for
+  invalid characters or lengths; provider schemas do not necessarily catch the
+  downstream service's constraints during `terraform plan`.
 - Put **stack** tests beside the stack only for root composition, outputs,
   policies, or environment-independent invariants. Do not re-test module behavior
   in every stack that calls the module.
