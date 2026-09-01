@@ -84,6 +84,15 @@ deployment-specific base URLs, hosts, ports, network addresses, regions or
 zones, and runtime identity. `.env` satisfies them locally; the selected
 deployment system injects them elsewhere.
 
+GenAI runtime coordinates follow the same rule even when they are not created
+by Terraform: model IDs, provider deployment names, model/provider endpoints
+or base URLs, regions/projects/resource identifiers, and deployment-owned API
+versions are required env inputs with no YAML or class default. Keep retries,
+timeouts, token limits, prompt/evidence versions, thresholds, and feature
+policy in YAML. With nested settings, derive the env name from the actual field
+path (for example, `classification.model.model_id` becomes
+`CLASSIFICATION__MODEL__MODEL_ID`); do not shorten it to an invented alias.
+
 Do not classify a relative API path as topology. Paths such as token, resource,
 or versioned API routes are integration behavior: keep them in YAML when they
 are application-owned configuration, or in code when they are invariants. A
@@ -422,9 +431,8 @@ class Settings(BaseSettings):
         description="Primary LLM provider.",
     )
     primary_model_id: str = Field(
-        default="replace-me-model-id",
         alias="PRIMARY_MODEL_ID",
-        description="Primary model used by the main agent.",
+        description="Runtime-selected primary model; required from env.",
     )
     request_timeout_seconds: PositiveFloat = Field(
         default=30.0,

@@ -90,6 +90,17 @@ home:
    logical variables used to locate or carry them. These belong in
    `secrets.py`, never in YAML or ordinary renderable `Settings`.
 
+GenAI runtime selection belongs to the environment-only deployment contract,
+not to YAML application policy. Treat model IDs, provider deployment names,
+model/provider base URLs or endpoints, regions, projects, resource names, and
+deployment-owned API versions as required env vars with no YAML or Python
+fallback. This remains true when every current environment happens to use the
+same model: the deployment must choose the runtime model explicitly. Keep
+application-owned GenAI behavior in YAML instead, such as retry/backoff policy,
+timeouts, token limits, confidence thresholds, prompt/evidence versions, and
+feature/safety policy. A provider enum may remain YAML only when it selects an
+application-supported integration rather than a deployment resource.
+
 Do not duplicate an env-only value into YAML as documentation. A stale fallback
 can make a misconfigured deployment appear valid. Document the runtime contract
 in `.env.example` and deployment documentation instead.
@@ -176,6 +187,10 @@ For a small field addition, read only the affected reference files.
 - A value created, named, or wired by infrastructure tooling is env-only even
   when it happens to be identical across current deployments. Do not encode an
   infrastructure output as an application baseline.
+- Always classify GenAI runtime coordinates as deployment-owned: model IDs,
+  provider deployment names, model endpoints/base URLs, regions/projects,
+  resource identifiers, and deployment-owned API versions. Add them to the
+  typed settings contract and `.env.example`, with no YAML or Python fallback.
 - Put secrets in `secrets.py`, never in YAML and never as `Settings` fields.
 - Always create or update `.env.example`.
 - Use `Field(..., description="...")` for required values and

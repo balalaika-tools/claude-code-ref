@@ -472,6 +472,66 @@ supported, but validate each service's uniqueness, length, and syntax rules: S3
 bucket names are globally unique within a partition and length limited, while ECR
 repositories and CloudFront distributions are not.
 
+### Account-Singleton Resources
+
+Some resources may exist only once per account, so a stack that creates one
+unconditionally fails the moment a second project — or an earlier deployment of
+the same one — already owns it. The IAM OIDC provider for a given issuer URL is
+the canonical example; `CreateOpenIDConnectProvider` returns
+`EntityAlreadyExists`, and by then everything before it in the graph has already
+been created. Certificate Manager validation records, account-level S3 Block
+Public Access, Route 53 delegation-set reuse, GuardDuty detectors and
+Organizations-level settings behave the same way.
+
+Do not resolve this with an imperative `terraform import`: whoever created the
+resource still owns its lifecycle, and importing means this stack's `destroy`
+would delete a resource other projects depend on. Take an optional ARN instead
+and adopt it by reference:
+
+```hcl
+variable "github_oidc_provider_arn" {
+  description = <<-EOT
+    ARN of an existing GitHub OIDC provider in this account to reuse. An account
+    holds at most one provider per issuer URL; when another project already
+    created it, name it here and this root neither creates nor manages it.
+    Null creates one.
+  EOT
+  type        = string
+  default     = null
+}
+
+resource "aws_iam_openid_connect_provider" "github" {
+  count = var.github_oidc_provider_arn == null ? 1 : 0
+
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+}
+
+locals {
+  oidc_provider_arn = coalesce(
+    var.github_oidc_provider_arn,
+    one(aws_iam_openid_connect_provider.github[*].arn),
+  )
+}
+```
+
+Every consumer references `local.oidc_provider_arn`, never the resource, so both
+paths are identical downstream and the output stays meaningful either way.
+`one(resource[*].attr)` is the idiomatic way to read a zero-or-one `count`
+resource. Cover both branches in tests: assert that supplying the ARN creates
+nothing (`length(aws_iam_openid_connect_provider.github) == 0`) and that omitting
+it creates exactly one.
+
+Document the discovery command next to the variable — for this case
+`aws iam list-open-id-connect-providers` — because the operator hits the failure
+before they know the ARN, and a good error message costs one apply cycle less.
+
+The same reasoning applies to resources the *customer* owns rather than another
+stack: pre-allocated Elastic IPs whose addresses upstream systems allow-list,
+existing VPCs and subnets, and shared Route 53 resolver rules. Accept their
+identifiers as optional inputs, attach to them, and never let a `destroy` in this
+stack release them.
+
 ## Refactoring and Lifecycle
 
 Use declarative refactoring blocks:

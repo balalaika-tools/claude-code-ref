@@ -86,10 +86,12 @@ Fails the test — keep these deployment-injected env vars, documented in
   the application their owner.
 
 Passes the test — safe to bake into YAML when the value is rarely changed and
-application-owned: log level, model provider, model IDs, retry limits, timeouts,
+application-owned: log level, an application-supported provider enum, retry
+limits, timeouts, token limits, prompt/evidence versions,
 application-generated object-key prefixes, relative API routes/paths, and
 feature policy — when the same value is correct everywhere an environment's
-image runs.
+image runs. Model IDs and provider deployment names never pass this test; they
+are explicit runtime selection and remain env-only.
 
 Do not confuse a resource with the namespace the application owns inside it.
 For example, a deployment-created bucket name is env-only, while a stable key
@@ -123,7 +125,8 @@ that are identical across every deployment represented by the baseline:
 
 - App metadata, safe application bind defaults, and logging behavior.
 - Application-owned namespaces, prefixes, API routes/paths, and feature policy.
-- Model providers, model IDs, retry limits, timeouts, and token limits.
+- Application-supported provider enums, retry limits, timeouts, token limits,
+  prompt/evidence versions, and model feature policy.
 - Database pool, timeout, and retry policy.
 
 Do not put these in YAML:
@@ -139,6 +142,9 @@ Do not put these in YAML:
   deployment system.
 - Resource names and identifiers supplied by infrastructure/deployment tooling,
   even when they are non-secret and currently stable.
+- GenAI runtime coordinates: model IDs, provider deployment names,
+  model/provider endpoints or base URLs, regions/projects/resource names, and
+  deployment-owned API versions.
 - Values that Helm, Kubernetes manifests, CI/CD, or another deployment system
   routinely injects as env vars. Document those in `.env.example` instead.
 
@@ -154,7 +160,6 @@ app_title: AI Service
 app_host: 0.0.0.0
 app_port: 8080
 model_provider: openai
-primary_model_id: replace-me-local-model-id
 request_timeout_seconds: 30
 ```
 
@@ -168,7 +173,6 @@ app_title: AI Service
 app_host: 0.0.0.0
 app_port: 8080
 model_provider: openai
-primary_model_id: replace-me-staging-model-id
 request_timeout_seconds: 30
 ```
 
@@ -182,6 +186,5 @@ app_title: AI Service
 app_host: 0.0.0.0
 app_port: 8080
 model_provider: openai
-primary_model_id: replace-me-production-model-id
 request_timeout_seconds: 30
 ```

@@ -101,32 +101,6 @@ Use plural glob members (`services/*`, `libs/*`) rather than an explicit list.
 An explicit list silently excludes a new service that forgets to update it; a
 glob has no such failure mode.
 
-### Non-Python Deployables Under `services/`
-
-The glob claims every directory under `services/` as a workspace member,
-Python or not. A deployable that ships without its own `pyproject.toml` — a
-prebuilt image plus YAML configs, a static asset bundle, a Terraform-only
-module — breaks every `uv` command in the repository the moment it lands
-under `services/`, because uv expects a `pyproject.toml` at that path and
-fails the whole workspace resolution when it's missing. Add that directory to
-`exclude` under `[tool.uv.workspace]` in the root `pyproject.toml`, with a
-comment stating why it has no `pyproject.toml`:
-
-```toml
-[tool.uv.workspace]
-members = [
-    "services/*",
-    "libs/*",
-]
-# services/otel-collector ships a pinned Collector image and YAML configs
-# only — it is a deployable, not a Python distribution, and has no
-# pyproject.toml. Without this exclusion the services/* glob claims it as a
-# workspace member and every `uv` command in the repository fails.
-exclude = [
-    "services/otel-collector",
-]
-```
-
 ## Choose And Align Toolchain Versions First
 
 Before scaffolding, verify the current stable patch release for the chosen

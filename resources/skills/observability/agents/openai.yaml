@@ -1,0 +1,11 @@
+# Consumed by the Codex/OpenAI skill harness only; Claude Code reads SKILL.md's
+# frontmatter instead and never sees this file. `$observability` is that
+# harness's invocation form, not a Claude Code one.
+#
+# Keep short_description consistent with the first clause of SKILL.md's
+# frontmatter description. Nothing validates that automatically — if you edit
+# one, edit both. Delete this file if the project stops using that harness.
+interface:
+  display_name: "Observability"
+  short_description: "Instrument and repair OpenTelemetry services"
+  default_prompt: "Use $observability to build or repair low-noise, business-aligned OpenTelemetry with explicit boundary ownership."

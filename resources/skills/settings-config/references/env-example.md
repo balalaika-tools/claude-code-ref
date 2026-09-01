@@ -35,6 +35,14 @@ resolution. It must be safe to commit.
   payloads and deployed locators use the same stable logical variable, show the
   local value active and the deployed form commented as documentation.
 - Never include real credentials.
+- Include required GenAI runtime coordinates — model ID/provider deployment
+  name, endpoint/base URL when configurable, region/project/resource name, and
+  deployment-owned API version — under **Required — all runtimes**. Do not rely
+  on a YAML model fallback.
+- Keep `.env.example` as the complete operator and deployment contract even
+  when Docker Compose supplies some or all active local values. Cleanup of a
+  developer's real `.env` must not remove those documented variables from
+  `.env.example`.
 
 For YAML/config + `.env`, use prominent separators and this order:
 
@@ -100,6 +108,10 @@ ENVIRONMENT_NAME=local
 # real values; these local values point at developer-owned infrastructure.
 RESOURCE_BUCKET_NAME=local-app-resources
 DOWNSTREAM_SERVICE_BASE_URL=http://127.0.0.1:9000
+
+# Runtime-selected GenAI coordinates also have no YAML fallback.
+PRIMARY_MODEL_ID=replace-me-model-id
+MODEL_REGION=replace-me-region
 
 
 ################################################################################
