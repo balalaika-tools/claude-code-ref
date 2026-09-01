@@ -230,8 +230,8 @@ Restructure tests without redesigning behavior:
    fixture helpers rather than repository-wide constants.
 6. Replace ambiguous bare test-helper imports with collision-safe imports; do
    not broaden global `pythonpath` to make the move work.
-7. Align markers, pytest configuration, local commands, and CI selectors with
-   the new directories.
+7. Align markers, pytest configuration, pre-commit/pre-push paths or filters,
+   local commands, and CI selectors with the new directories.
 8. Move one profile or capability slice at a time. Run that slice after each
    move, then finish with the full unit, contract, integration, and E2E commands
    that the repository supports.

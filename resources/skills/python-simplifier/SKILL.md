@@ -1,6 +1,6 @@
 ---
 name: python-simplifier
-description: Simplify overly complex Python code. Use when user asks to simplify, refactor, clean up, make more readable, reduce complexity, improve code quality, find code smells, detect duplicates, or analyze coupling in Python code. Triggers on requests like "simplify this code", "this is too complex", "make this more readable", "refactor this", "clean this up", "find issues", "analyze this codebase", or when reviewing code that exhibits complexity anti-patterns. For Django-specific analysis, use the django-simplifier skill instead.
+description: Run a quick, self-contained Python complexity pass on a file, module, or small change — static-analysis scripts plus an idiom/anti-pattern cookbook, no audit/apply governance or review-pipeline integration. Use for a fast local pass triggered by "simplify this code", "this is too complex", "make this more readable", "refactor this", "clean this up", "find code smells", "detect duplicates", or "analyze coupling" on a bounded piece of Python code. For repository-wide or governed simplification — audit/apply modes, safety gates, verification, and integration with `review-code` / `auto-review-code` — use `simplify-code` instead.
 ---
 
 # Python Code Simplifier

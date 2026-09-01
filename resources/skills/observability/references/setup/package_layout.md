@@ -38,6 +38,12 @@ Pick the second when the service has GenAI instrumentation, more than one bounda
 
 ## What belongs in the shared package
 
+Within one service, "shared package" below means its common observability
+module. When extracting a workspace library consumed by several deployables,
+read `shared_library.md`; it adds the reuse threshold, dependency boundary,
+explicit lifecycle, shared-logging contract, and consumer-by-consumer migration
+rules.
+
 Only generic, framework-agnostic SDK wiring:
 
 - the `Resource`
@@ -45,7 +51,8 @@ Only generic, framework-agnostic SDK wiring:
 - exporters and span/metric/log processors
 - propagator configuration
 - SDK initialization and shutdown, or the managed-runtime force-flush lifecycle
-- shared helper functions — a `set_usage_attributes()`, an `app.outcome` enum, a duration-measuring context manager
+- shared helper functions — a `set_usage_attributes()`, a stable cross-service
+  outcome enum when one genuinely exists, or a duration-measuring context manager
 
 ---
 

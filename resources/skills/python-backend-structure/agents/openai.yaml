@@ -1,4 +1,4 @@
 interface:
   display_name: "Python Backend Structure"
-  short_description: "Structure Python backends and their tests"
-  default_prompt: "Use $python-backend-structure to design or review this backend package and test-suite structure."
+  short_description: "Structure Python services and shared libraries"
+  default_prompt: "Use $python-backend-structure to design or review this Python service or internal-library structure and its tests."

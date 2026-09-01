@@ -1,6 +1,6 @@
 ---
 name: simplify-code
-description: Inspect and simplify Python-first codebases by removing accidental complexity, redundant abstractions, verbose control or data flow, duplication, and unnecessary indirection while preserving observable behavior. Use for code cleanup, clarity refactors, overengineering audits, complexity reduction, changed-code simplification, or repository-wide simplification planning and implementation. Apply the language-independent structural rubric to non-Python code without claiming framework-specific expertise.
+description: Inspect and simplify Python-first codebases by removing accidental complexity, redundant abstractions, verbose control or data flow, duplication, and unnecessary indirection while preserving observable behavior, under explicit audit/apply modes with safety gates and verification. Use for code cleanup, clarity refactors, overengineering audits, complexity reduction, changed-code simplification, or repository-wide simplification planning and implementation, including integration with `review-code` / `auto-review-code`. Apply the language-independent structural rubric to non-Python code without claiming framework-specific expertise. For a quick, ungoverned single-file or single-module Python pass instead, use `python-simplifier`.
 ---
 
 # Simplify Code

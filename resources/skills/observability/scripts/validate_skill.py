@@ -1431,6 +1431,7 @@ LINE_CAPS = {
     "references/setup/sdk_bootstrap.md": 380,
     "references/setup/resource_ecs.md": 230,
     "references/setup/package_layout.md": 240,
+    "references/setup/shared_library.md": 240,
     "references/setup/auto_instrumentation.md": 200,
     "references/tracing/async_handoffs.md": 90,
     "references/tracing/queue_messaging.md": 300,

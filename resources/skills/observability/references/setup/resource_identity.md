@@ -169,9 +169,9 @@ Sibling components may share a `service.version` when they were built from the
 same commit; they remain distinct because `service.name` differs. Each replica
 receives its instance ID from Kubernetes, Docker, or ECS using the rules above.
 
-Repository-specific mappings maintained alongside this skill live in
-`references/local/` — see `../local/pdma_identity.md`, which applies **only**
-when the target repository is PDMA.
+Repository-specific mappings live in `references/local/`, loaded only when the
+target repository matches. None are defined yet; add one there and route it
+from `SKILL.md` when a repository needs a concrete mapping.
 
 ---
 

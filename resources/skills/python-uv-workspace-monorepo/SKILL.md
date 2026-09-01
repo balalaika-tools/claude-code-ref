@@ -4,24 +4,24 @@ description: >-
   Structure or review a multi-service Python monorepo with a virtual uv
   workspace root, one `pyproject.toml` per deployable under `services/`, one
   per internal library under `libs/` or `packages/`, and workspace sources for
-  internal dependencies. Standardize centralized Ruff, pytest, coverage, and
-  mypy tooling; exact Python and uv versions across local development, CI, and
-  Docker; one shared lockfile; scoped per-service installs; and lean
-  multi-stage production images. Use when deciding whether each service needs
-  its own `pyproject.toml`, splitting root dependencies, scaffolding or
-  reviewing uv workspaces and Dockerfiles, sharing internal packages, or
-  preventing sibling-service dependencies and dev tools from entering an
-  image.
+  internal dependencies. Standardize centralized Ruff, pytest, coverage, mypy,
+  and pre-commit/pre-push tooling; exact Python and uv versions across local
+  development, CI, and Docker; one shared lockfile; scoped per-service installs;
+  and lean multi-stage production images. Use when deciding whether each service
+  needs its own `pyproject.toml`, splitting root dependencies, creating or
+  reviewing `.pre-commit-config.yaml`, scaffolding uv workspaces and Dockerfiles,
+  deciding whether code earns a shared internal package, wiring shared packages,
+  or preventing sibling-service dependencies and dev tools from entering an image.
 ---
 
 # Python Monorepo: uv Workspaces Across Services
 
 Apply this rule first; everything else in this skill follows from it:
 
-> **Independently deployable = its own `pyproject.toml`. Shared internal code =
-> its own `pyproject.toml`. The root `pyproject.toml` declares the workspace and
-> repo-wide development tooling, but no runtime dependencies any service
-> ships.**
+> **Independently deployable = its own `pyproject.toml`. Genuinely reusable
+> internal code = its own `pyproject.toml`. The root `pyproject.toml` declares
+> the workspace and repo-wide development tooling, but no runtime dependencies
+> any service ships.**
 
 This applies once a repository holds more than one independently built artifact
 (more than one Dockerfile, more than one Lambda, more than one deployed
@@ -43,12 +43,46 @@ getting right before laying out the repo:
   it's still a deployable service unit. Don't introduce an `apps/` directory
   alongside it; every "things that get built and deployed on their own"
   member lives under `services/`.
-- **`libs/`** or **`packages/`** — reusable internal code with no deployable
-  of its own: consumed by other members via `{ workspace = true }`, never has
-  its own `Dockerfile`. Pick one of the two names and use it consistently.
+- **`libs/`** or **`packages/`** — cohesive reusable internal code with no
+  deployable of its own: consumed by other members via `{ workspace = true }`,
+  never has its own `Dockerfile`. A directory does not become a library merely
+  by being placed here; apply the admission test below. Pick one top-level name
+  and use it consistently.
 
 The rest of this skill illustrates the setup with `services/api` and
 `services/worker` because that's the common case for a Python workspace.
+
+## Before Creating A Shared Library
+
+A workspace member adds a public contract, dependency edge, test surface, and
+migration cost. Create one only when the code has one cohesive meaning outside
+any single deployable and there is concrete reuse: normally at least two current
+consumers, or an independently valuable protocol/client/schema boundary with a
+concrete compatibility or dependency-isolation reason. Hypothetical reuse alone
+is not enough.
+
+Check all of these before adding `libs/<name>`:
+
+- the candidate removes duplicated behavior or publishes one stable contract,
+  not merely similar syntax;
+- its inputs and outputs can be expressed without importing a service's private
+  settings, application, domain, bootstrap, or tests;
+- its dependencies are appropriate for every consumer and do not pull one
+  service's framework or vendor stack into unrelated images;
+- it has one reason to change and will not become a `common`, `shared`, `utils`,
+  or organisation-wide dumping ground;
+- consumers can migrate independently through an additive API when an atomic
+  move is unsafe;
+- owning it as a package improves consistency, dependency direction, testing,
+  or release safety enough to justify the boundary.
+
+Good candidates include a stable vendor client, shared wire/schema contracts,
+database model metadata consumed by several members, and generic observability
+plumbing. An observability library may coherently own provider lifecycle, span
+helpers, propagation, trace/log correlation, redaction, and shared structured-
+logging processors when those policies are common. Service span names, business
+metrics, event vocabulary, and outcome decisions remain service-local. Use the
+`observability` skill for that package's API and lifecycle.
 
 ## Why Not One Root `pyproject.toml`
 
@@ -94,6 +128,11 @@ repo/
         ├── pyproject.toml
         └── src/
             └── company_observability/
+                ├── __init__.py
+                ├── config.py
+                ├── providers.py
+                ├── spans.py
+                ├── propagation.py
                 └── logging.py
 ```
 
@@ -157,6 +196,7 @@ members = [
 [dependency-groups]
 dev = [
     "mypy>=2.3.0,<3",
+    "pre-commit>=4.6.1,<5",
     "pytest>=9.1.1,<10",
     "pytest-cov>=7.1.0,<8",
     "ruff>=0.16.3,<0.17",
@@ -195,6 +235,20 @@ by only one member in that member's own dependency group.
 Do not add root `[project]`, root `[project.dependencies]`, or a root
 `[build-system]` merely to express Python compatibility. Put
 `requires-python` on every installable workspace member instead.
+
+## Pre-commit And Pre-push
+
+Read [references/pre-commit.md](references/pre-commit.md) whenever creating or
+reviewing `.pre-commit-config.yaml`, changing a repo-wide tool version, adding or
+moving a workspace member/root, changing quality commands in CI, or diagnosing
+hooks that pass locally but fail in a scoped or clean environment.
+
+The configuration is root-owned development tooling. Keep fast, filename-based
+checks in the `pre-commit` stage and reserve workspace-wide type/test checks for
+`pre-push` or CI. Local hooks that need the uv environment run through
+`uv run --locked`; hook versions, root tool pins, CI, and Docker must not drift.
+Discover the repository's actual service and internal-library roots rather than
+assuming the example `services/` and `libs/` names.
 
 ## Service `pyproject.toml`
 
@@ -256,6 +310,9 @@ name = "company-observability"
 version = "0.1.0"
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "opentelemetry-api",
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp-proto-http",
     "structlog",
 ]
 
@@ -267,7 +324,29 @@ build-backend = "hatchling.build"
 A shared library is a workspace member exactly like a service — it gets its
 own `pyproject.toml`, its own dependencies, and is consumed by
 `{ workspace = true }` from whichever services import it. It does not need to
-know which services depend on it.
+know which services depend on it. The observability dependency list above is an
+example, not a default for other libraries; every member declares only what its
+own source imports.
+
+## Internal Library Layout
+
+This skill owns the workspace boundary and installation mechanics, not a rigid
+internal architecture. Every library still uses `src/<import_package>/`, keeps
+tests beside the member, exposes a small intentional public API, and starts with
+the fewest cohesive modules. Do not copy a deployable's `main.py`, `bootstrap/`,
+`application/`, `adapters/`, and `config/` shell into a non-deployable library.
+
+Keep a small package flat. Introduce a subpackage only when one narrower
+capability has several cohesive modules, changes independently, needs distinct
+test setup, or causes real naming pressure. Avoid file-per-class layouts,
+one-file subpackages, speculative registries/factories, and generic `common`,
+`shared`, `utils`, or `core` packages.
+
+Use the `python-backend-structure` skill's shared-library guidance for detailed
+module ownership, dependency direction, public exports, tests, and
+consumer-by-consumer modularization. Use the domain-specific skill as well when
+the library has one—for example, `observability` determines the internals of a
+shared telemetry and logging package.
 
 ## One Lockfile, Scoped Installs
 
@@ -336,10 +415,13 @@ After adapting the template, run all of these from the repository root:
 uv python install
 uv lock --check
 uv sync --frozen
+uv run --locked pre-commit install
+uv run --locked pre-commit run --all-files --hook-stage pre-commit
 uv run ruff check .
 uv run ruff format --check .
 uv run mypy services libs
 uv run pytest
+uv run --locked pre-commit run --all-files --hook-stage pre-push
 uv sync --frozen --no-dev --package <service>
 docker build --pull -f services/<service>/Dockerfile .
 ```
@@ -362,27 +444,34 @@ The final expected ownership is:
 
 ## Adding a Service or Library
 
-1. Create `services/<name>/` (or `libs/<name>/` — see
+1. For a proposed library, apply [Before Creating A Shared Library](#before-creating-a-shared-library)
+   and keep the code service-local if it does not earn the boundary.
+2. Create `services/<name>/` (or `libs/<name>/` — see
    [Naming The Top-Level Directory](#naming-the-top-level-directory-services-vs-libspackages)
    above) with `src/<package>/` and a `pyproject.toml` declaring only that
    member's own dependencies.
-2. If it consumes a shared library, add the library by name to `dependencies`
+3. If it consumes a shared library, add the library by name to `dependencies`
    and add `<library> = { workspace = true }` under `[tool.uv.sources]`.
-3. Confirm it's picked up: `services/*` and `libs/*` globs cover it
+4. Confirm it's picked up: `services/*` and `libs/*` globs cover it
    automatically; an explicit `members` list needs a new line.
-4. Run `uv lock` at the root to fold it into the shared lockfile, then `uv sync
-   --package <name>` to verify it installs on its own with the dependencies
-   you expect and nothing from a sibling service.
-5. Add its `Dockerfile` following `references/docker-builds.md`.
+5. Inspect `.pre-commit-config.yaml` and CI for explicit paths or filters; update
+   them for the new member/root without broadening unrelated hooks.
+6. Run `uv lock` at the root to fold it into the shared lockfile, then `uv sync
+   --package <name>` for the new member and each consumer to verify the expected
+   dependency closures without sibling-service leakage.
+7. Run the library's own tests independently, then the focused contract and
+   startup/lifecycle tests of each migrated consumer.
+8. Add a Dockerfile only for a deployable. A `libs/*` member is included through
+   each consumer's workspace-root build context and never has its own image.
 
 ## When Not To Split
 
-Two services that always deploy together as one release unit, or a library so
-small and single-consumer it will never be reused, don't need the separation.
-Merging them into one `pyproject.toml` is a legitimate simplification — the
-workspace is a tool for isolating independent release units, not a mandate to
-maximize the package count. If a "shared" library only ever has one consumer,
-consider whether it's actually shared or just misplaced service code.
+Two services that always deploy together as one release unit, or candidate
+library code with one consumer and no independent stable contract, do not need
+the separation. Similar code that carries different business semantics should
+also remain duplicated until a real common contract emerges. Keeping it inside
+its owning service is a legitimate simplification—the workspace is not a
+mandate to maximize package count.
 
 ## Related Skills
 
@@ -395,3 +484,8 @@ boundary and packaging (ZIP vs. container), see `terraform-aws`'s
 `references/python-lambda.md`; a Lambda that shares code with other functions
 through a uv workspace follows this skill for the workspace layout and that
 reference for the AWS-specific packaging step.
+
+Use `python-backend-structure` for the internal modularization of services and
+shared libraries. Use `observability` for the API, lifecycle, logging policy,
+and migration of a shared observability package; this skill owns only whether
+it earns a workspace member and how consumers install it.

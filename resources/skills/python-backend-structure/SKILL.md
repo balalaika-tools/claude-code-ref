@@ -2,8 +2,9 @@
 name: python-backend-structure
 description: >-
   Design, scaffold, refactor, or review the internal folder structure of a
-  Python backend service, including FastAPI applications, workers, event
-  consumers, scheduled jobs, business workflows, and AI-enabled services.
+  Python backend service or reusable internal library, including FastAPI
+  applications, workers, event consumers, scheduled jobs, business workflows,
+  AI-enabled services, and packages under `libs/` or `packages/`.
   Standardize business execution under application, technology-neutral contracts
   under ports, concrete integrations under adapters, and all GenAI code under
   a root genai package, with clear bootstrap, API, persistence, configuration,
@@ -15,12 +16,10 @@ description: >-
 
 # Python Backend Structure
 
-Apply the canonical structure in this skill consistently across backend services.
-Omit categories that the service does not use, but do not substitute competing
-folder schemes merely because the service is small. Deviate only when the
-canonical category genuinely has no coherent meaning, and state the reason
-before implementation. Dependency direction and ownership remain the primary
-invariants.
+Apply the canonical service structure consistently across backend deployables.
+Reusable internal libraries use the lighter shared-library structure routed
+below; do not copy a deployable shell into a non-deployable package. Dependency
+direction and ownership remain the primary invariants in both shapes.
 
 ## Required discovery
 
@@ -28,22 +27,30 @@ Before proposing or changing a structure:
 
 1. Inspect the actual package tree, entry points, imports, tests, and deployment
    process. For tests, inspect collection configuration, markers, fixture scope,
-   support-module imports, external-resource requirements, and CI selection. Do
-   not infer architecture or test type from filenames alone.
-2. Identify independently meaningful business actions and their outcomes.
-3. Identify process types: HTTP API, long-running worker, queue consumer,
-   scheduled batch, CLI, or a combination.
-4. Identify external effects and process-lifecycle resources: database, HTTP
-   clients, object storage, queues, browser, files, LLMs, telemetry, and clocks.
-5. Trace current dependency direction and locate business code that imports a
-   concrete external implementation.
+   support-module imports, external-resource requirements, pre-commit/pre-push
+   scopes, and CI selection. Do not infer architecture or test type from
+   filenames alone.
+2. Classify the member as an independently deployable service or a
+   non-deployable internal library; do not infer that from its current folder.
+3. For a service, identify meaningful business actions, outcomes, and process
+   types. For a library, identify its public capability, current consumers, and
+   compatibility contract.
+4. Identify external effects and lifecycle resources owned by the member:
+   database, HTTP clients, storage, queues, browser, files, LLMs, telemetry, and
+   clocks. A library should own only effects intrinsic to its published capability.
+5. Trace current dependency direction and locate service-private imports,
+   concrete external implementations, and consumer reach-through into private
+   library modules.
 6. Preserve repository conventions unless changing them provides a clear,
    stated benefit. Never reorganize unrelated services merely for symmetry.
 
-Read [references/templates.md](references/templates.md),
+For a deployable service design or refactor, read
+[references/templates.md](references/templates.md),
 [references/boundaries.md](references/boundaries.md), and
-[references/testing.md](references/testing.md) for every structural design or
-refactor. Then load only the mode-specific references that apply:
+[references/testing.md](references/testing.md). For an internal library, read
+[references/shared-libraries.md](references/shared-libraries.md) and
+[references/testing.md](references/testing.md) instead. Then load only the
+additional references that apply:
 
 - Read [references/api-and-workers.md](references/api-and-workers.md) for an HTTP
   API, worker, scheduled process, queue/Kafka/SQS consumer, or hybrid service.
@@ -52,6 +59,12 @@ refactor. Then load only the mode-specific references that apply:
 - Read [references/modularization.md](references/modularization.md) when splitting
   existing modules, migrating an established service, or reviewing structure
   that has grown unclear.
+- Keep [references/shared-libraries.md](references/shared-libraries.md) loaded
+  when extracting service code into `libs/*` or reorganizing an existing library.
+
+The canonical business and application-shell sections below describe
+deployables. For an internal library, `references/shared-libraries.md` is the
+authority wherever the service shape would otherwise imply extra folders.
 
 ## Canonical business execution
 
@@ -115,6 +128,12 @@ Use these locations consistently when the responsibility exists:
 
 Create only directories used by the current service. A template is a placement
 policy, not a requirement to commit empty folders.
+
+This application shell does not apply wholesale to an internal library. A
+library has no `main.py` or `bootstrap/` unless it is actually deployable, and
+it does not acquire `application/`, `domain/`, `ports/`, or `adapters/` merely
+for symmetry. Use [references/shared-libraries.md](references/shared-libraries.md)
+for its lighter capability-based structure.
 
 ## Flat first, with the fewest cohesive modules
 
@@ -281,8 +300,11 @@ exceptions.
   beside their domain, application, adapter, or GenAI owner; prefer enums, literals,
   or value objects when they express the concept better. Values that can vary by
   environment or deployment belong in `config/`, not constants.
-- Promote code to `shared/` only after real reuse exists and the abstraction has
-  one stable meaning. Shared code must still have a precise subpackage name.
+- Promote code to an internal library only after real reuse exists and the
+  abstraction has one stable, cohesive meaning. Apply the admission and
+  modularization rules in
+  [references/shared-libraries.md](references/shared-libraries.md); do not create
+  service-local `shared/` or `common/` catch-alls as a substitute.
 - A deployable service must not import another deployable's private package.
   Move truly shared contracts or deterministic logic into an internal library.
 - Keep external names consistent across distribution, directory, import
@@ -299,18 +321,21 @@ For a design or review, provide:
 4. Current violations, fixture/CI migration risks, and the smallest coherent
    migration sequence.
 
-For implementation, state how the canonical shape applies before broad file
-movement. Move one coherent boundary, business action, or test profile/capability
-at a time; update imports, entry points, fixture scope, markers, and CI selectors;
-and run focused tests after each meaningful slice. Preserve behavior during a
-structure-only refactor; do not mix business redesign into file movement unless
-the user explicitly requests both.
+For implementation, state how the service or library shape applies before broad
+file movement. Move one coherent boundary, business action, library capability,
+or test profile at a time; update imports, entry points, consumers, fixture
+scope, markers, pre-commit paths/filters, and CI selectors; and run focused tests
+after each meaningful slice. Preserve behavior during a structure-only refactor;
+do not mix business redesign into file movement unless the user explicitly
+requests both.
 
 ## Related skills
 
-- Use `python-uv-workspace-monorepo` for repository members, `pyproject.toml`,
-  workspace dependency isolation, lockfiles, and Docker build layout.
+- Use `python-uv-workspace-monorepo` to decide whether shared code earns a
+  workspace member and for `pyproject.toml`, dependency isolation, lockfiles,
+  scoped installs, root pre-commit/pre-push tooling, and Docker build layout.
 - Use `settings-config` for detailed settings/secrets implementation.
 - Use `sqlmodel-alembic-db-layer` for SQLModel, repositories, sessions, and
   Alembic structure.
-- Use `observability` for actual OpenTelemetry implementation or audit.
+- Use `observability` for actual OpenTelemetry implementation or audit,
+  including the lifecycle and logging contract of a shared observability library.

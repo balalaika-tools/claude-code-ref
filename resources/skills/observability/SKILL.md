@@ -1,11 +1,11 @@
 ---
 name: observability
-description: "Add, audit, repair, upgrade, or troubleshoot OpenTelemetry tracing, metrics, and structured logging in an existing Python application or service — FastAPI/HTTP APIs, background workers, queue consumers, DB-backed state machines, scheduled jobs, AWS Lambda functions, LangChain/LangGraph agents, and direct provider-SDK LLM code — including GenAI semantic conventions, token and TTFC capture, trace propagation across queues and durable database handoffs, allowlisted baggage, an OpenTelemetry Collector component, and OTLP-first backend routing. Use whenever the user wants to instrument a service, fix or review existing telemetry, investigate missing or duplicate signals, or update an observability implementation."
+description: "Add, audit, repair, upgrade, or troubleshoot OpenTelemetry tracing, metrics, and structured logging in a Python application, service, or shared internal observability library — FastAPI/HTTP APIs, background workers, queue consumers, DB-backed state machines, scheduled jobs, AWS Lambda functions, LangChain/LangGraph agents, and direct provider-SDK LLM code — including GenAI semantic conventions, token and TTFC capture, trace propagation across queues and durable database handoffs, allowlisted baggage, an OpenTelemetry Collector component, and OTLP-first backend routing. Use whenever the user wants to instrument a service, consolidate reusable telemetry/logging, fix or review existing signals, investigate missing or duplicate signals, or update an observability implementation."
 ---
 
 # Observability Implementation
 
-You are adding OpenTelemetry to a service that already works. The code exists; your job is to make its behaviour visible without changing what it does.
+You are adding or consolidating OpenTelemetry in software that already works. The code exists; your job is to make its behaviour visible without changing what it does.
 
 This file is a router. It holds the rules that apply to every implementation and tells you which reference files to read. **Do not read the whole `references/` tree.** Load only the files the routing table sends you to — unrelated reference material contaminates the implementation.
 
@@ -13,9 +13,11 @@ This file is a router. It holds the rules that apply to every implementation and
 
 ## Scope
 
-**One service at a time.** Instrument exactly the service the user named. In a monorepo, do not touch sibling services, even when they share a telemetry package. If shared code must change, say so and keep the change additive so other services keep working unchanged.
+**One service at a time by default.** Instrument exactly the service the user named. In a monorepo, do not touch sibling services merely for symmetry. If shared code must change, say so and keep the change additive so other services keep working unchanged.
 
-If the user has not named a service and the repo contains more than one, ask which one before editing anything.
+**Shared-library exception.** When the user explicitly requests a shared observability package or a cross-service consolidation, inspect every current consumer for compatibility, but extract and migrate one coherent capability and one consumer at a time. The shared package must earn its boundary through stable reuse; it is not permission to redesign unrelated services.
+
+If the user has named neither a service nor an explicit shared-library scope and the repo contains more than one service, ask which one before editing anything.
 
 **Python, and FastAPI for HTTP.** Every code sample here is Python, and the HTTP framework hooks are FastAPI's. The routing, conventions, retention policy, and Collector material are language-neutral — for another runtime use those and skip `setup/`, `tracing/genai/`, and `logging/`, whose code does not transfer.
 
@@ -23,7 +25,7 @@ If the user has not named a service and the repo contains more than one, ask whi
 
 ## Step 0 — Which kind of work is this?
 
-The description covers five modes and they do not need the same files. Pick one before loading anything else:
+The description covers six modes and they do not need the same files. Pick one before loading anything else:
 
 | Mode | Load |
 | --- | --- |
@@ -32,6 +34,7 @@ The description covers five modes and they do not need the same files. Pick one 
 | **Troubleshoot** a specific symptom — missing, duplicated, orphaned, or zero-valued signals | `references/troubleshooting.md` only, then the single file it points at |
 | **Upgrade** a package, convention revision, or Collector image | `references/compatibility.md` only, then the files its checklist names |
 | **Collector-only** change | `references/collector/*`, plus `references/tracing/production_policy.md` if production retention is involved |
+| **Shared observability library** | `references/setup/shared_library.md`, then the setup, logging, testing, and verification files it routes |
 
 Only the first mode runs the whole workflow below. A one-line fix does not need a 23k-token intake, and an audit does not need `setup/`.
 
@@ -104,7 +107,7 @@ references/
   compatibility.md    tested versions + upgrade checks
   conventions/        naming.md + errors.md
   setup/              resource_identity + runtime-specific identity,
-                      package_layout, sdk_bootstrap + startup variants,
+                      package_layout, shared_library, sdk_bootstrap + startup variants,
                       auto_instrumentation
   tracing/            production_policy, http_service, async_handoffs, queue_messaging,
                       durable_work, scheduled_jobs, worker_runtime,
@@ -152,12 +155,6 @@ service; they describe decisions that were already made.
 | `references/setup/resource_identity.md` | Service namespace/name/version/instance identity contract; runtime identity is routed separately |
 | `references/setup/package_layout.md` | Where the observability modules go and how config/env vars are wired |
 | `references/setup/auto_instrumentation.md` | Which instrumentation packages to install, which to deliberately leave off |
-
-### Repository-specific
-
-| Condition | Add |
-| --- | --- |
-| The target repository is PDMA | `references/local/pdma_identity.md` |
 
 ### Resource identity, by deployment runtime
 

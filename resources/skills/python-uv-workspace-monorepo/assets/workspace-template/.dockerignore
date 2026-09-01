@@ -36,6 +36,7 @@ tmp
 docs
 
 # Container-development files are not copied into image layers.
+.pre-commit-config.yaml
 **/Dockerfile*
 compose*.yml
 docker-compose*.yml

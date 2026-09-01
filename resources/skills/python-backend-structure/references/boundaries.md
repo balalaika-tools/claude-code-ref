@@ -198,6 +198,12 @@ and SDK integrations. Application and domain packages may call a narrow telemetr
 helper when instrumentation cannot be automatic, but observed data must not
 control business decisions. Avoid importing application actions into observability.
 
+When several deployables share the same generic provider lifecycle,
+propagation, redaction, or structured-logging policy, that stable mechanics may
+move to an internal observability library. Service vocabulary, instruments,
+business event names, outcomes, and instrumentation adapters remain local. See
+`shared-libraries.md` and use the `observability` skill for the shared API.
+
 ## Context versus state
 
 When immutable execution context is genuinely shared across boundaries, use
