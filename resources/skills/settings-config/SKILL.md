@@ -133,6 +133,14 @@ secret, and only then construct SDK clients or perform external I/O.
         secrets.py
 ```
 
+In a multi-service repository (a uv workspace with `services/*`), every deployable
+service directory owns its own `.env.example` describing that service's complete
+runtime contract, and the repository-root `.env.example` documents only what the
+deployment tool (Compose, Helm, Terraform) consumes and passes through. Add a
+contract test per service that parses the service file and compares each section
+with the settings class, so the file cannot drift. See `references/env-example.md`,
+"Per-Service Files and Section Taxonomy".
+
 For the YAML application-baseline pattern, also include:
 
 ```text
@@ -192,7 +200,20 @@ For a small field addition, read only the affected reference files.
   resource identifiers, and deployment-owned API versions. Add them to the
   typed settings contract and `.env.example`, with no YAML or Python fallback.
 - Put secrets in `secrets.py`, never in YAML and never as `Settings` fields.
-- Always create or update `.env.example`.
+- Always create or update `.env.example`. In a multi-service repository, create
+  or update the service-local `services/<name>/.env.example` as well; the root
+  file never replaces it.
+- Treat the environment selector `ENVIRONMENT_NAME` as an environment-only,
+  required deployment input under both configuration patterns. Declare it with
+  `Field(...)`; never give it a YAML or Python default. List it first in the
+  REQUIRED section of every service `.env.example`.
+- Structure every service `.env.example` as exactly three sections: REQUIRED
+  (deployment contract with no default; startup fails naming the variable; the
+  environment selector `ENVIRONMENT_NAME` is always required and always listed
+  first), OVERRIDABLE (every YAML policy key, commented out, with its baseline
+  value), and OPTIONAL (the rare runtime-only knobs such as an instance id, a
+  config-dir escape hatch, or a diagnostic switch). A value with a safe default
+  is YAML policy, not an optional variable.
 - Use `Field(..., description="...")` for required values and
   `Field(default=..., description="...")` only for sensible, safe defaults.
 - Use `Literal[...]` for constrained values such as environments, log levels,

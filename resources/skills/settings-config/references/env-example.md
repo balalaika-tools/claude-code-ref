@@ -10,8 +10,10 @@ resolution. It must be safe to commit.
 
 ## Conventions
 
-- Include the environment selector/name used by the service, such as
-  `ENVIRONMENT_NAME=local` or `APP_ENV=local`.
+- Always treat the environment selector/name used by the service, such as
+  `ENVIRONMENT_NAME` or `APP_ENV`, as required. It must have no YAML or Python
+  default and must be listed first in the REQUIRED section (for example,
+  `ENVIRONMENT_NAME=local`).
 - Include all required local secret env vars with fake values.
 - Include required non-secret settings when the app has no safe
   `Field(default=...)` value.
@@ -63,6 +65,79 @@ Do not add an exhaustive "all possible overrides" dump. That duplicates the
 typed settings schema and becomes stale. The template is a safe, copyable local
 bootstrap plus a deployment-contract guide; the settings model or generated
 configuration reference remains authoritative for uncommon overrides.
+
+## Per-Service Files and Section Taxonomy
+
+A repository with several deployables (a uv workspace with `services/*`) has two
+kinds of `.env.example`, and they answer different questions:
+
+| File | Question it answers | Content |
+| --- | --- | --- |
+| `<repo-root>/.env.example` | What does the deployment tool need to render and start the stack? | Secrets, image pins, credential passthrough, and the deployment coordinates Compose or Helm injects into containers |
+| `services/<name>/.env.example` | What does this process read at startup, whatever starts it? | The service's complete settings contract, in the three sections below |
+
+The root file never substitutes for the service file: a service can be started by
+`uv run`, a test, or another orchestrator, and the person doing that must find the
+complete contract beside the code. Keep the two consistent; the service file is
+authoritative for names and defaults.
+
+Structure every service file as exactly these three sections, in this order,
+with a one-line comment per variable:
+
+```dotenv
+################################################################################
+# REQUIRED — the service fails at startup, naming the variable, when any is missing
+################################################################################
+# Selects config/<service>/<name>.yaml. Always required; there is no implicit environment.
+ENVIRONMENT_NAME=local
+DATABASE_URL=postgresql+psycopg://app:replace-me@127.0.0.1:5432/app
+PRIMARY_MODEL_ID=
+MODEL_REGION=
+
+################################################################################
+# OVERRIDABLE — application policy baselined in config/<service>/<environment>.yaml
+# Setting one here overrides the YAML key for this process only. Values shown are
+# the baseline defaults.
+################################################################################
+# DB_POOL_SIZE=5
+# REQUEST_TIMEOUT_SECONDS=30
+# LOG_LEVEL=INFO
+
+################################################################################
+# OPTIONAL — rare runtime-only variables for specific situations
+################################################################################
+# Resource identity; the container hostname is used when unset.
+SERVICE_INSTANCE_ID=
+# Escape hatch when the baseline is not discoverable beside the package.
+<SERVICE>_CONFIG_DIR=
+```
+
+Classification rules:
+
+- **REQUIRED** always starts with `ENVIRONMENT_NAME`: the environment selector
+  has no default, because an implicit environment is how a production process
+  ends up reading a local baseline. It then holds the rest of the deployment
+  contract with no safe default: resource coordinates, secrets or their
+  locators, GenAI runtime coordinates. Credential
+  passthrough variables read by an SDK chain rather than by settings are listed
+  here too, marked as such, because the process cannot work without them.
+- **OVERRIDABLE** lists every key of the YAML policy baseline, commented out,
+  with its baseline value. Anything that has a safe application default belongs
+  in YAML and therefore here, including endpoints or paths whose default is
+  correct for every deployment represented by the baseline. Nothing in this
+  section is uncommented in a fresh copy.
+- **OPTIONAL** is deliberately small: variables that exist for a specific
+  runtime situation and are rarely set, such as a per-instance identity supplied
+  by the platform, a configuration-directory escape hatch, or a diagnostic
+  switch. It is
+  not the home of "values with a default"; those are OVERRIDABLE.
+
+Add a contract test that reads the service file, splits it on the three headers,
+and asserts: REQUIRED equals the aliases of the settings fields without a default
+(plus any documented passthrough), OVERRIDABLE equals the aliases of the YAML
+policy allowlist, and OPTIONAL equals the remaining fields plus the documented
+escape hatches. The test is what keeps the file honest after the next setting is
+added.
 
 ## Env Vars + Pydantic Defaults Template — Explicit YAML Opt-Out Only
 

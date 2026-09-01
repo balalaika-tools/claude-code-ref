@@ -163,7 +163,9 @@ and drifts out of sync over time. A nested `BaseModel` group under the single
 root avoids this: it is still resolved by the root's one source order.
 
 Keep environment-selection fields (`environment_name`, `log_level`) at the
-top level, ungrouped. In the YAML pattern, `_env_name()` reads
+top level, ungrouped. `environment_name` is required with no default in every
+pattern; resolve it from the process environment or `.env` before choosing the
+YAML file, and fail startup naming `ENVIRONMENT_NAME` when it is absent. In the YAML pattern, `_env_name()` reads
 `ENVIRONMENT_NAME` directly from `env_settings`/`dotenv_settings` before
 `Settings` is constructed, so it must stay a flat, unaliased top-level key.
 
@@ -202,9 +204,9 @@ class ServerSettings(BaseModel):
 class ModelSettings(BaseModel):
     """LLM provider config."""
 
-    model_provider: Literal[
-        "openai", "bedrock", "bedrock_converse", "azure-openai"
-    ] = Field(default="openai", description="Primary LLM provider.")
+    model_provider: Literal["openai", "bedrock", "bedrock_converse", "azure-openai"] = Field(
+        default="openai", description="Primary LLM provider."
+    )
     primary_model_id: str = Field(description="Primary model used by the main agent.")
     request_timeout_seconds: PositiveFloat = Field(
         default=30.0, description="Default outbound request timeout."
