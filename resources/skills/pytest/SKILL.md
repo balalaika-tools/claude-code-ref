@@ -1,5 +1,5 @@
 ---
-name: production-pytest
+name: pytest
 description: >-
   Design, write, refactor, or review high-value pytest suites for production
   Python backends, especially FastAPI APIs, async code, workers and task
@@ -11,7 +11,7 @@ description: >-
   for non-Python test frameworks or load and performance testing alone.
 ---
 
-# Production Pytest
+# Pytest
 
 Write the smallest maintainable test portfolio that would stop a credible
 production regression. Tests are executable risk controls, not proof that lines
