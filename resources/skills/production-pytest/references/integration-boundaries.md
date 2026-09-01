@@ -1,0 +1,118 @@
+# Framework-neutral integration boundaries
+
+Use this reference for a Python backend that reaches databases, filesystems,
+processes, or remote services without a more specific FastAPI, worker, or
+LangGraph reference, and for cross-cutting suite selection or CI design.
+
+## Keep profiles complementary
+
+Use cheap deterministic tests where behavior can be isolated, real integration
+tests for production boundaries whose semantics the application relies on, and
+a small number of broad tests for wiring and critical journeys. This is a risk
+portfolio, not a required ratio.
+
+- Push exhaustive decision tables down to pure or application tests.
+- Test adapter request construction and error translation with a transport or
+  SDK fake, then use a smaller real-infrastructure test for encoding, lifecycle,
+  configuration wiring, and compatibility.
+- Keep E2E scenarios outcome-focused. If an E2E failure exposes a branch not
+  covered below, add the narrow regression and retain the E2E case only when it
+  still proves distinct wiring.
+- Do not call a test unit merely because it uses mocks or integration merely
+  because it imports a framework. Classify executed dependencies.
+
+## Databases
+
+- Use an explicitly test-scoped disposable database and make destructive setup
+  refuse ordinary production or developer service URLs.
+- Test repositories, constraints, migrations, transaction isolation, locking,
+  and dialect-specific SQL on the production database family.
+- Apply real migrations to an empty database. `metadata.create_all()` cannot
+  prove the migration chain.
+- A connection plus outer transaction/savepoint can make same-connection tests
+  fast, but it does not isolate a worker, process, or second connection. It can
+  also hide commit visibility and locking defects.
+- Use committed setup plus a unique database, schema, tenant, or explicit reset
+  for multi-connection, worker, outbox, and concurrency tests.
+- Re-read final state through a fresh session when identity-map caching could
+  satisfy the assertion.
+- Use one SQLAlchemy `Session` per thread and one `AsyncSession` per async task.
+
+SQLite is valid evidence when production is SQLite or the test deliberately
+proves dialect-independent application behavior. It is not evidence for
+PostgreSQL transactions, constraints, locking, types, or migrations.
+
+## HTTP and external services
+
+At an owned adapter boundary, cover only the request and response behavior the
+application relies on:
+
+- method, URL, selected headers, auth, timeout, encoding, and correlation or
+  idempotency key;
+- schema-tolerant parsing and application-owned error translation;
+- retry classification for timeout, cancellation, selected 4xx/5xx responses,
+  and malformed payloads;
+- absence of accidental public network in the default suite.
+
+A transport fake or disposable local protocol endpoint is usually more stable
+than patching client-library internals. Add an opt-in provider contract or live
+smoke only for compatibility a local substitute cannot prove. Bound calls,
+time, cost, and data; redact recordings. A cassette proves the recorded response,
+not the provider's current behavior.
+
+For independently deployed services, consumer-driven contracts can complement
+provider integration. Include only fields the consumer depends on and verify the
+contract against the provider; do not turn a full payload snapshot into a false
+compatibility guarantee.
+
+## Filesystems, subprocesses, and CLIs
+
+- Use `tmp_path` or another isolated disposable root and assert externally
+  observable files, permissions, exit codes, stdout/stderr contracts, and
+  cleanup.
+- Do not patch file I/O when atomic rename, locking, path encoding, permissions,
+  or crash recovery is the behavior under test.
+- Bound subprocess execution, capture output, and terminate descendants during
+  teardown. Avoid relying on the developer's current working directory, shell
+  aliases, or global environment.
+- Contract-test installed entry points and package resources through the same
+  installation shape used in CI or deployment.
+
+## Markers, skips, xfails, warnings, and CI
+
+These are review and design criteria. Do not modify pytest configuration or CI
+unless the user's requested scope includes those files; otherwise report the
+specific change required.
+
+- Register custom markers and enable the strict validation supported by the
+  locked pytest version.
+- Mark by execution cost or prerequisite (`integration`, `e2e`, `live`,
+  `slow`), not by business package.
+- A selected infrastructure job must fail when its prerequisite is absent.
+  Silent all-skipped success is a broken job.
+- `skip` means the test cannot apply in the selected environment. `xfail` means
+  a precise known defect or dependency limitation; include a reason or issue,
+  narrow condition and failure type, and strict XPASS behavior.
+- Assert intentional warnings with `pytest.warns`. Do not hide project or
+  dependency deprecations behind broad filters.
+- Keep a direct reproducible command for each profile. Preserve counts and
+  useful artifacts such as service logs, request/correlation IDs, and minimized
+  Hypothesis examples.
+- Favor deterministic tests and proportionate disposable integration in PR
+  feedback. Put destructive recovery, broad process topology, long property
+  profiles, and live-provider checks in explicit jobs.
+
+Do not require parallel CI for a serial project. Tests should still avoid order
+dependence and uncontrolled global state; add xdist-specific resource isolation
+when parallel execution is used or planned.
+
+## Primary references
+
+- [pytest good integration practices](https://docs.pytest.org/en/stable/explanation/goodpractices.html)
+- [pytest markers and strict marker validation](https://docs.pytest.org/en/stable/how-to/mark.html)
+- [pytest skips and expected failures](https://docs.pytest.org/en/stable/how-to/skipping.html)
+- [pytest temporary paths](https://docs.pytest.org/en/stable/how-to/tmp_path.html)
+- [SQLAlchemy external-transaction recipe](https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#joining-a-session-into-an-external-transaction-such-as-for-test-suites)
+- [SQLAlchemy session concurrency](https://docs.sqlalchemy.org/en/20/orm/session_basics.html#is-the-session-thread-safe-is-asyncsession-safe-to-share-in-concurrent-tasks)
+- [Testcontainers for Python with PostgreSQL](https://testcontainers.com/guides/getting-started-with-testcontainers-for-python/)
+- [Pact contracts](https://docs.pact.io/getting_started/how_pact_works)

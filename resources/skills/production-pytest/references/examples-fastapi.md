@@ -1,0 +1,111 @@
+# FastAPI pytest examples
+
+These are adaptable patterns. Inspect the repository's installed FastAPI,
+Starlette, client, AnyIO or pytest-asyncio, SQLAlchemy, and lifespan APIs first.
+
+## Sync client with restored dependency overrides
+
+Configure the app before lifespan. Preserve prior override state even when
+startup or the request fails.
+
+```python
+from collections.abc import Iterator
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from app.api.dependencies import get_submit_order
+from app.bootstrap.app_factory import create_app
+from tests.support.orders import RecordingSubmitOrder
+
+
+@pytest.fixture
+def api_client() -> Iterator[tuple[TestClient, RecordingSubmitOrder]]:
+    app: FastAPI = create_app(environment="test")
+    submit_order = RecordingSubmitOrder()
+    previous_overrides = app.dependency_overrides.copy()
+    app.dependency_overrides[get_submit_order] = lambda: submit_order
+
+    try:
+        with TestClient(app) as client:
+            yield client, submit_order
+    finally:
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(previous_overrides)
+
+
+def test_submit_order_returns_accepted_and_forwards_identity(
+    api_client: tuple[TestClient, RecordingSubmitOrder],
+) -> None:
+    client, submit_order = api_client
+
+    response = client.post(
+        "/orders",
+        headers={"Idempotency-Key": "order-op-7"},
+        json={"customer_id": "customer-3", "sku": "sku-9", "quantity": 2},
+    )
+
+    assert response.status_code == 202
+    assert response.json() == {"operation_id": "order-op-7", "status": "accepted"}
+    assert submit_order.requests[0].operation_id == "order-op-7"
+    assert submit_order.requests[0].quantity == 2
+```
+
+The interaction assertions are justified because translating public HTTP
+identity and quantity is the router's contract. Keep the business decision
+matrix in direct application tests.
+
+## Async client with explicit lifespan
+
+Use this only when the test must await resources on the same loop. This example
+pins AnyIO to asyncio because the illustrative SQLAlchemy stack is asyncio-only;
+omit or parameterize that fixture when the application deliberately supports
+other AnyIO backends.
+
+```python
+from collections.abc import AsyncIterator
+
+import httpx
+import pytest
+from asgi_lifespan import LifespanManager
+
+from app.bootstrap.app_factory import create_app
+from app.db.models import Job
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
+
+
+@pytest.fixture
+async def async_client() -> AsyncIterator[httpx.AsyncClient]:
+    app = create_app(environment="test")
+
+    async with LifespanManager(app) as manager:
+        transport = httpx.ASGITransport(app=manager.app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://test",
+        ) as client:
+            yield client
+
+
+@pytest.mark.anyio
+async def test_create_job_commits_visible_state(
+    async_client: httpx.AsyncClient,
+    async_session_factory,
+) -> None:
+    response = await async_client.post("/jobs", json={"source": "inbox-12"})
+
+    assert response.status_code == 201
+    job_id = response.json()["id"]
+    async with async_session_factory() as verification_session:
+        saved = await verification_session.get(Job, job_id)
+    assert saved is not None
+    assert saved.status == "queued"
+```
+
+The verification session is deliberately fresh. Ensure the app and test
+factory point at the same disposable database while using separate sessions.
