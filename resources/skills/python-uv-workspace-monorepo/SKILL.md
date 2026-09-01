@@ -207,7 +207,10 @@ line-length = 100
 target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "TID252"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 [tool.pytest.ini_options]
 addopts = ["-ra", "--strict-config", "--strict-markers"]
@@ -224,6 +227,13 @@ skip_covered = true
 python_version = "3.13"
 strict = true
 ```
+
+`TID252` with `ban-relative-imports = "all"` rejects every relative import
+(`from .foo import bar`, `from ..core import baz`) in favor of absolute
+imports rooted at the package name (`from api.core import baz`). Absolute
+imports stay unambiguous and grep-able regardless of which module does the
+importing, and they don't silently need updating when a module moves to a
+different nesting depth.
 
 uv supports a root with no `[project]` table at all — this is a "virtual"
 workspace root: nothing is built or installed for the root itself, it only
