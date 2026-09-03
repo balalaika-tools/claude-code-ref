@@ -116,7 +116,7 @@ Useful internal shapes depend on what the library publishes:
 - An observability library may own generic providers, spans, propagation,
   resource helpers, structured-logging processors, redaction, and trace/log
   correlation. Business span names, metrics, log events, and outcomes remain
-  with each service. Use the `otelp-observability` skill for the exact lifecycle and
+  with each service. Use the `otel-observability` skill for the exact lifecycle and
   logger contract.
 
 Do not mix unrelated horizontal concerns into one organisation library. A

@@ -203,7 +203,7 @@ When several deployables share the same generic provider lifecycle,
 propagation, redaction, or structured-logging policy, that stable mechanics may
 move to an internal observability library. Service vocabulary, instruments,
 business event names, outcomes, and instrumentation adapters remain local. See
-`shared-libraries.md` and use the `otelp-observability` skill for the shared API.
+`shared-libraries.md` and use the `otel-observability` skill for the shared API.
 
 ### `diagnostics/` or `maintenance/`
 

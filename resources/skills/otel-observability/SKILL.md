@@ -1,5 +1,5 @@
 ---
-name: otelp-observability
+name: otel-observability
 description: "Add, audit, repair, upgrade, or troubleshoot OpenTelemetry tracing, metrics, and structured logging in a Python application, service, or shared internal observability library — FastAPI/HTTP APIs, background workers, queue consumers, DB-backed state machines, scheduled jobs, AWS Lambda functions, LangChain/LangGraph agents, and direct provider-SDK LLM code — including GenAI semantic conventions, token and TTFC capture, trace propagation across queues and durable database handoffs, allowlisted baggage, an OpenTelemetry Collector component, and OTLP-first backend routing. Use whenever the user wants to instrument a service, consolidate reusable telemetry/logging, fix or review existing signals, investigate missing or duplicate signals, or update an observability implementation."
 ---
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic validation for the otelp-observability skill package."""
+"""Deterministic validation for the otel-observability skill package."""
 
 from __future__ import annotations
 
@@ -1966,7 +1966,7 @@ def main() -> int:
     except ValidationError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
-    print("PASS: otelp-observability skill validation")
+    print("PASS: otel-observability skill validation")
     for note in notes:
         print(f"NOTE: {note}")
     if not args.collector_image:

@@ -148,5 +148,5 @@ requests both.
 - Use `settings-config` for detailed settings/secrets implementation.
 - Use `sqlmodel-alembic-db-layer` for SQLModel, repositories, sessions, and
   Alembic structure.
-- Use `otelp-observability` for actual OpenTelemetry implementation or audit,
+- Use `otel-observability` for actual OpenTelemetry implementation or audit,
   including the lifecycle and logging contract of a shared observability library.
