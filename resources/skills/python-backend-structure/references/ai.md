@@ -42,148 +42,238 @@ construct trusted identity or authorization context from its prompt.
 LangGraph's mutable execution state is different and belongs in
 `genai/<agent>/graph/state.py`.
 
-## Full multi-agent shape
+## Standard agent shape
 
 ```text
 <package>/
 └── genai/
-    ├── shared/                     # Create only after demonstrated reuse
-    │   ├── prompts/                # Stable shared prompt fragments
-    │   ├── tools/                  # Tools used by multiple agents
-    │   ├── middleware/             # Shared limits, tracing, retry, fallback
-    │   ├── llms/                   # Shared provider/model factories
-    │   └── schemas/                # Reused AI-specific typed contracts
-    │
-    ├── pricing_agent/
-    │   ├── graph/
-    │   │   ├── graph.py            # Build and compile StateGraph
-    │   │   ├── nodes.py            # Node implementations
-    │   │   ├── state.py            # Mutable graph execution state
-    │   │   └── routing.py          # Conditional edges and routing
-    │   ├── prompts/
-    │   │   ├── system.py
-    │   │   └── pricing.py
-    │   ├── tools/
-    │   │   ├── products.py
-    │   │   └── pricing.py
-    │   ├── middleware/
-    │   │   ├── retry.py
-    │   │   ├── tracing.py
-    │   │   └── stack.py
-    │   ├── schemas/
-    │   │   ├── input.py
-    │   │   ├── output.py
-    │   │   └── tool_schemas.py
-    │   ├── contracts.py            # GenAI-private contracts, when needed
-    │   ├── mcp.py                  # MCP setup only when used
-    │   ├── checkpointer.py         # Persistence only when graph needs it
-    │   ├── llm.py                  # Model construction/binding only
-    │   ├── agent.py                # Agent init: builds and exports the harness
-    │   │                           # (configured model + tools + middleware)
-    │   └── pricer.py               # Capability-named port implementation
-    │
-    └── resolution_agent/
-        ├── graph/
-        │   ├── graph.py
-        │   ├── nodes.py
-        │   ├── state.py
-        │   └── routing.py
-        ├── prompts/
-        │   └── system.py
-        ├── tools/
-        │   └── exceptions.py
-        ├── schemas/
-        │   ├── input.py
-        │   ├── output.py
-        │   └── tool_schemas.py
-        ├── contracts.py
-        ├── middleware.py           # File is enough when behavior is simple
-        ├── llm.py
-        ├── agent.py
-        └── resolver.py             # Capability-named port implementation
+    └── pricing_agent/
+        ├── llm.py                  # Model construction/binding factory
+        ├── schemas.py              # Agent input/output and response schemas
+        ├── prompts.py              # Prompt definitions/builders, when used
+        ├── tools.py                # A few cohesive tools, when used
+        ├── middleware.py           # A few custom middleware, when used
+        ├── agent.py                # Agent harness factory
+        └── pricer.py               # Pricer port implementation
 ```
 
-This is a destination for a genuinely complex AI application, not starter
-boilerplate. Do not create `graph/`, `tools/`, `middleware/`, `mcp.py`, or
-`checkpointer.py` when the GenAI task does not use them.
+This is the ordinary shape for an agent built with `create_agent`. Keep
+`agent.py` setup-only. Every application-facing GenAI capability keeps
+invocation, input/output translation, and port-error translation in a separate
+capability-named port implementation such as `pricer.py`, `resolver.py`, or
+`classifier.py`. If a GenAI component is not exposed to `application/` and is
+invoked only by another GenAI capability, do not manufacture an application
+port or capability adapter for it. Use generic `adapter.py` only when that is an
+established repository convention.
 
-## Simple structured-model task
+Create `prompts.py`, `tools.py`, and `middleware.py` only when those
+responsibilities exist. A LangChain agent created with `create_agent()` does not
+by itself justify a project-owned `graph/` package. Add `graph/` only when the
+application explicitly defines LangGraph state, nodes, routing, or edges.
 
-Most backend AI integrations should start smaller:
+## Expanded multi-agent shape
 
 ```text
-genai/
-└── email_classification/
-    ├── prompts.py                  # Prompt definitions/builders
-    ├── schemas.py                  # AI-facing input/output schemas
-    ├── llm.py                      # Model construction/binding only
-    └── classifier.py               # EmailClassifier implementation
+<package>/
+└── genai/
+    ├── shared/                         # Only demonstrated multi-agent reuse
+    │   ├── middleware/
+    │   │   ├── tracing.py
+    │   │   └── limits.py
+    │   ├── prompts/
+    │   │   └── safety.py
+    │   ├── schemas/
+    │   │   └── citations.py
+    │   ├── tools/
+    │   │   └── knowledge_search.py
+    │   └── retrieval/
+    │       ├── retriever.py
+    │       ├── reranking.py
+    │       └── context.py
+    │
+    ├── pricing_agent/                  # Standard create_agent agent
+    │   ├── llm.py
+    │   ├── schemas.py
+    │   ├── prompts.py
+    │   ├── tools/
+    │   │   ├── products.py
+    │   │   └── discounts.py
+    │   ├── middleware.py
+    │   ├── agent.py
+    │   └── pricer.py
+    │
+    ├── resolution_agent/               # Custom graph; uses shared retrieval
+    │   ├── llm.py
+    │   ├── schemas.py
+    │   ├── prompts.py
+    │   ├── tools.py
+    │   ├── agent.py
+    │   ├── graph/
+    │   │   ├── graph.py
+    │   │   ├── state.py
+    │   │   ├── nodes.py
+    │   │   └── routing.py
+    │   ├── checkpointer.py         # Only when graph persistence is needed
+    │   └── resolver.py
+    │
+    └── support_agent/                  # Uses shared retrieval through a tool
+        ├── llm.py
+        ├── schemas.py
+        ├── prompts.py
+        ├── tools/
+        │   └── ticket_lookup.py
+        ├── middleware.py
+        ├── mcp.py                      # Only when MCP tools are loaded
+        ├── agent.py
+        └── supporter.py
 ```
 
-These four modules are the stable baseline for a structured-model capability;
-do not merge them to reduce file count. Keep them flat while small. Split
-`prompts.py` into `prompts/system.py` and task-specific modules, or `schemas.py`
-into `schemas/input.py`, `output.py`, and `tool_schemas.py`, only after the
-narrower area has several real files. Apply this flat-first growth rule
-throughout `genai/`.
+This expanded view illustrates variations, not required symmetry. The pricing
+agent does not own a graph, the resolution agent does, and the resolution and
+support agents reuse knowledge retrieval through the shared tool and retrieval
+modules. Keep retrieval local to one agent until another agent actually reuses
+the same tool contract, retrieval, reranking, or context semantics; promote only
+the reused pieces to `genai/shared/`. `shared/` is not a staging area for code
+expected to become reusable later.
 
-## `llm.py` and optional `agent.py`
+## Simple structured-output capability
+
+A small structured-output capability commonly starts with:
+
+```text
+<package>/
+└── genai/
+    └── email_classification/
+        ├── llm.py                  # Model construction/binding factory
+        ├── schemas.py              # Provider-facing structured output
+        ├── prompts.py              # When owned prompts justify a module
+        └── classifier.py           # EmailClassifier port implementation
+```
+
+Keep model construction in `llm.py` and typed provider-facing output in
+`schemas.py`. Add `prompts.py` when the task owns non-trivial, reusable, or
+versioned prompts. An application-facing capability keeps a capability-named
+port implementation such as `classifier.py` for invocation, translation, and
+failure mapping. Do not force unused extension modules.
+
+## Schema ownership
+
+Keep a Pydantic model used only as one tool's argument or result schema beside
+that tool. Promote it to `schemas/tools.py` only when multiple tools reuse the
+same contract. Agent-level input, output, and structured-response contracts stay
+in `schemas.py` or `schemas/`; business contracts stay in `ports/` or `domain/`.
+Do not create a generic `tool_schemas.py` collection by default.
+
+## Progressive module splitting
+
+When a module approaches 300–350 lines, review it for separable responsibilities.
+Line count alone does not require converting it into a package. Convert
+`tools.py`, `middleware.py`, `prompts.py`, or `schemas.py` into a same-named
+package when it contains multiple cohesive responsibilities, independently
+changing implementations, or distinct test concerns. A long but cohesive module
+may remain a file; a shorter mixed-responsibility module may need to split
+earlier. Preserve its public imports through `__init__.py` when a file-to-package
+migration would otherwise cause unnecessary churn.
+
+Do not create shared Python modules merely to represent model roles such as
+primary, fast, cheap, or summarizer. When provider, model, and role differences
+are configuration only, keep them in `config/`. The task-level `llm.py` factory
+accepts the resolved, allowlisted construction values and applies task-specific
+structured output, tools, timeouts, and other binding.
+
+Extract `genai/shared/llm.py` only after multiple task-level modules duplicate
+meaningful construction policy beyond an `init_chat_model` call and ordinary
+configuration plumbing. Introduce `genai/shared/llms/` only when several real,
+independently changing implementations justify a package. Provider variability
+alone does not. If model/provider selection remains configurable at invocation
+time, enumerate only the intended configurable fields; never expose unrestricted
+provider, API-key, or base-URL overrides to untrusted callers.
+
+## `llm.py`, optional `agent.py`, and bootstrap wiring
 
 Every GenAI task has `llm.py`; never move model construction into the capability
-implementation. A bare model task invokes the handle exported by `llm.py`. An
-agent task additionally has `agent.py`, which imports that configured model and
-builds the agent harness. Never name model construction `model.py` or
-`models/`—those read as domain entities.
+implementation. It exports a construction/binding factory, not a module-global
+model handle. An agent task additionally has `agent.py`, which exports a harness
+factory. Never name model construction `model.py` or `models/`—those read as
+domain entities.
 
-`llm.py` initializes the provider model for every GenAI task and binds what makes
-it callable—structured output, tools, timeouts, and limits—then exports the bound
-model:
+`llm.py` accepts explicit, resolved construction values or a narrow typed
+task-settings object and binds what makes the model callable—structured output,
+tools, timeouts, and limits:
 
 ```python
 # llm.py
 from langchain.chat_models import init_chat_model
 
-from .schemas import ClassificationOutput
+from my_service.genai.email_classification.schemas import ClassificationOutput
 
-model = init_chat_model(
-    model="gpt-5.4",
-    model_provider="openai",
-).with_structured_output(ClassificationOutput)
+
+def build_model(*, model_name: str, model_provider: str):
+    return init_chat_model(
+        model=model_name,
+        model_provider=model_provider,
+    ).with_structured_output(ClassificationOutput)
 ```
 
-`agent.py` is added when the GenAI task is an agent. It imports the configured
-models from `llm.py` and wires them into a harness with tools, response format,
-and middleware, then exports the compiled agent:
+`agent.py` is added when the task is an agent. Its factory accepts already
+constructed models and explicit tool dependencies, then returns the harness:
 
 ```python
 # agent.py
 from langchain.agents import create_agent
 from langchain.agents.middleware import SummarizationMiddleware
 
-from .llm import model, summary_model
-from .schemas.output import AgentOutput
-from .tools import get_product_price
+from my_service.config.settings import PricingAgentSettings
+from my_service.genai.pricing_agent.schemas.output import AgentOutput
 
-agent = create_agent(
-    model=model,
-    tools=[get_product_price],
-    response_format=AgentOutput,
-    middleware=[
-        SummarizationMiddleware(
-            model=summary_model,
-            trigger=("tokens", 4000),
-            keep=("messages", 20),
-        ),
-    ],
+
+def build_agent(*, model, summary_model, tools, settings: PricingAgentSettings):
+    return create_agent(
+        model=model,
+        tools=tools,
+        response_format=AgentOutput,
+        middleware=[
+            SummarizationMiddleware(
+                model=summary_model,
+                trigger=("tokens", settings.summary_trigger_tokens),
+                keep=("messages", settings.summary_keep_messages),
+            ),
+        ],
+    )
+```
+
+`bootstrap/` owns when these factories run and supplies settings-derived values,
+narrow typed settings objects, and runtime dependencies. Pass only the settings
+slice owned by the task, not the application's entire settings object:
+
+```python
+# bootstrap/runtime.py
+model = build_model(
+    model_name=settings.classification_model,
+    model_provider=settings.model_provider,
+)
+classifier = LLMEmailClassifier(model=model)
+classify_email = ClassifyEmail(classifier=classifier)
+
+pricing_agent = build_agent(
+    model=pricing_model,
+    summary_model=summary_model,
+    tools=pricing_tools,
+    settings=settings.pricing_agent,
 )
 ```
 
-Both are setup-only modules. The response schema comes from `schemas.py` (or
-`schemas/output.py`), the tools from `tools/`, and prompts from `prompts.py`.
-`llm.py` constructs models; `agent.py` constructs the harness from those models
-and never initializes a provider model itself. Shared factories may live in
-`genai/shared/llms/` after demonstrated reuse, but every task still keeps its own
-`llm.py` as the task-level construction/binding entry point.
+Do not import global settings or construct a model, agent, MCP client,
+checkpointer, or other runtime handle at module import time. `config/` loads and
+validates settings; `bootstrap/` resolves the selected values and performs the
+construction; `llm.py` and `agent.py` own the task-specific construction logic.
+This keeps provider selection, overrides, tests, and resource lifecycle under
+the composition root.
+
+The response schema comes from `schemas.py` (or `schemas/output.py`), tools from
+`tools/`, and prompts from `prompts.py`. `agent.py` never initializes a provider
+model itself. Extract a shared constructor only after meaningful construction
+policy, rather than model IDs or role configuration, is duplicated across tasks.
 
 Neither setup module is an application entry point, and neither invokes the
 model or agent. A sibling capability module such as `classifier.py`,
@@ -227,8 +317,8 @@ business decisions and effects sequencing stay in `application/`.
 API/adapter consumer -> application/email_classification.py
 application/email_classification.py -> ports/email_classifier.py
 genai/email_classification/classifier.py -> ports/email_classifier.py
-genai/email_classification/classifier.py -> llm.py -> provider schemas
-bootstrap -> application action + concrete EmailClassifier implementation
+bootstrap -> llm.py factory -> configured model
+bootstrap -> concrete EmailClassifier implementation -> application action
 ```
 
 The application action is the public business entry point. It accepts typed business
@@ -239,10 +329,10 @@ message objects, LangGraph internal state, raw JSON, callbacks, or SDK exception
 An LLM boundary especially merits a port because it is remote,
 nondeterministic, costly, and failure-prone. Put the application Protocol, typed
 result, and failure taxonomy in root `ports/`. Let `llm.py` build and bind the
-provider model; when present, let `agent.py` build the harness from that model.
-The capability-named sibling implements the port and translates provider
-failures. Application actions and deterministic evaluators can then be tested with
-small fakes.
+provider model through a factory; when present, let `agent.py` expose the harness
+factory. `bootstrap/` calls both and injects the resulting handle into the
+capability-named port implementation. Application actions and deterministic
+evaluators can then be tested with small fakes.
 
 ## Prompts
 
@@ -270,6 +360,24 @@ Agent tools are adapters over application ports and application actions:
 factories may move to `genai/shared/` after reuse exists. Never let tool discovery
 silently broaden the permissions granted by the calling application.
 
+## Retrieval and RAG
+
+Treat RAG as a collaboration of owned responsibilities, not as a mandatory
+top-level folder. An agent-facing knowledge-search tool stays in that agent's
+`tools.py` or `tools/` while it is local, and calls a public application action
+or technology-neutral retrieval port rather than a vector database directly.
+When multiple agents genuinely share the same tool contract, promote that tool
+to `genai/shared/tools/`.
+
+Keep model-specific retrieval, embedding, reranking, and context-assembly code
+inside the owning GenAI task. Promote only behavior with identical semantics to
+`genai/shared/retrieval/`. Application-owned ingestion and index-refresh
+workflows remain in `application/`; retrieval and vector-index contracts remain
+in `ports/`; concrete index persistence remains in `db/` or the repository's
+appropriate concrete integration boundary. If retrieval is a standalone GenAI
+capability with its own port and lifecycle, prefer a sibling capability such as
+`genai/knowledge_retrieval/` over forcing it into `shared/`.
+
 ## Middleware and observability
 
 AI middleware owns cross-call mechanics such as attempt budgets, timeout,
@@ -288,8 +396,9 @@ Test separately:
 - prompt assembly and versioning;
 - schema validation and rejection of unexpected output;
 - deterministic logic without a provider;
-- model construction/binding, and caller-side error translation, with a fake
-  model handle;
+- model and agent factories without global configuration or import-time handles;
+- capability invocation and caller-side error translation with a fake model
+  handle;
 - graph routing and nodes with fake ports;
 - bootstrap wiring independently from application and GenAI behavior;
 - authorization/context propagation into tools without prompt-derived trust.

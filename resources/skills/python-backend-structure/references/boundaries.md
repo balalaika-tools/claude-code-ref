@@ -28,10 +28,11 @@ schema, or private helper. Keep small definitions with their owner and extract
 them only after they develop independent weight. Conversely, do not combine
 unrelated responsibilities into a catch-all to optimize file count. Root
 boundaries such as `application/`, `adapters/`, and mandatory `genai/` still express
-ownership even when they each contain only one module. GenAI tasks are the
-explicit stable-structure exception: keep separate `prompts.py`, `schemas.py`,
-and `llm.py`, plus a capability implementation when needed. Do not collapse
-those responsibilities merely to reduce `.py` count.
+ownership even when they each contain only one module. Within a GenAI task, keep
+model construction, schemas, prompts, harness assembly, and capability
+invocation separate when those responsibilities exist. Every application-facing
+GenAI capability keeps its port implementation separate; do not collapse these
+responsibilities merely to reduce `.py` count.
 
 ## When a port earns its cost
 
@@ -202,7 +203,13 @@ When several deployables share the same generic provider lifecycle,
 propagation, redaction, or structured-logging policy, that stable mechanics may
 move to an internal observability library. Service vocabulary, instruments,
 business event names, outcomes, and instrumentation adapters remain local. See
-`shared-libraries.md` and use the `observability` skill for the shared API.
+`shared-libraries.md` and use the `otelp-observability` skill for the shared API.
+
+### `diagnostics/` or `maintenance/`
+
+Contains explicit operator-facing commands and repair workflows. Keep these out
+of runtime business packages, and require the same dependency and authorization
+boundaries as any other process entry point.
 
 ## Context versus state
 
@@ -268,6 +275,20 @@ When a helper becomes genuinely reused, extract a precisely named module or
 package such as `email_normalization.py`, `trace_propagation.py`, or
 `country_matching.py`.
 
+## External naming
+
+Keep externally visible names consistent across the distribution, directory,
+import package, CLI, runtime service, container configuration, and telemetry.
+
+## Absolute imports only
+
+Use absolute imports through the full import-package path everywhere: production
+modules, tests, migrations, scripts, diagnostics, and test support. Never use
+single-dot or multi-dot relative imports, even between siblings in the same
+package. For example, use
+`from my_service.genai.pricing_agent.schemas import AgentOutput`. Imports that
+begin with one or more dots are forbidden.
+
 ## Dependency audit
 
 Before accepting a structure, search imports and verify:
@@ -283,8 +304,11 @@ Before accepting a structure, search imports and verify:
 - bootstrap is the composition root and is not imported by business code;
 - no concrete broker implementation exists in a root `messaging/` package;
 - every LLM, agent, prompt, AI schema, tool, or graph lives below root `genai/`;
-- every GenAI task keeps separate prompt, schema, and model-construction modules,
-  with capability implementations free of those definitions;
+- every GenAI task keeps model construction in an `llm.py` factory, with
+  separate prompt and schema modules when those responsibilities exist;
+- bootstrap calls GenAI factories with resolved configuration and dependencies;
+  GenAI modules do not construct runtime handles or import global settings at
+  module import time;
 - no root or `core/constants.py` mixes values from unrelated boundaries, and
   deployment-varying values live in `config/`;
 - no root, `core/errors.py`, or `common/errors.py` centralizes failures from
@@ -292,5 +316,6 @@ Before accepting a structure, search imports and verify:
 - small packages remain flat across every boundary, without speculative
   file-per-class or one-file subpackages;
 - no deployable imports another deployable's private package;
+- no Python file uses a relative import;
 - tests can replace costly boundaries with small typed fakes without patching
   SDK internals.
