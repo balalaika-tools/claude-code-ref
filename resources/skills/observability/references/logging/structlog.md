@@ -252,6 +252,17 @@ except TimeoutError as exc:
 
 Logging at every level produces one incident with six stack traces and no way to tell which one is the cause.
 
+### Backend size limits on the traceback attribute
+
+A log backend can cap the size of structured metadata per record — Grafana Loki, for example, rejects a whole line once its structured metadata exceeds `max_structured_metadata_size`. The rendered traceback is unbounded; a deep stack or an `ExceptionGroup` can exceed that cap easily. When it does, the backend does not truncate the field — it drops the **entire record**, so the one owning exception log for the failure disappears along with `trace_id`, `error.type`, and everything else on it.
+
+This is a different failure than the Collector-side deletion `../collector/production.md` warns about: that removes only the stack trace and the record still arrives. Confirm the log backend's per-record limit before shipping full-traceback logging anywhere it applies. Two mitigations, in order of preference:
+
+- Keep the traceback as a bounded attribute and truncate it to a fixed size safely under the backend's cap — never drop the field silently.
+- If the backend's log body has no comparable limit, carry the rendered traceback there instead of in `attributes`: pop `event_dict["exception"]` (written by `format_exc_info`) before building the attributes dict, and fold it into `body`. Bounded, searchable fields (`error.type`, `workflow_run_id`, …) stay attributes either way — only the unbounded text moves.
+
+Verify with a synthetic exception whose rendered traceback exceeds the backend's cap and confirm exactly one record still arrives.
+
 ## Named OpenTelemetry events (optional)
 
 A correlated JSON log is not automatically an OpenTelemetry **Event**. In the OTel data model an Event is a `LogRecord` whose top-level `event_name` is non-empty — an `event.name` *attribute* is not the same thing and backends may not treat it as one.

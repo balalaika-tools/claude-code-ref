@@ -77,7 +77,17 @@ These hold regardless of service type. They are short on purpose; the reasoning 
 5. **One owner per boundary.** A request, Lambda invocation, queue message, durable state transition, or model call gets exactly one span from exactly one source. Automatic instrumentation, a framework integration, a gateway, and your own code are all candidates — pick one and disable or skip the others. Two owners means duplicated spans and doubled token and cost analytics.
 6. **New environment variables go into the app's existing config object** — `config.py`, `settings.py`, or whatever the service already uses. Never read `os.environ` from instrumentation code scattered through the codebase.
 7. **Generic SDK setup and framework-specific instrumentation live in different modules.** A LangChain callback never belongs in the file that builds the `TracerProvider`.
-8. **Content capture is off by default.** Prompts, completions, tool arguments, and tool results are captured only when `CAPTURE_AI_CONTENT` is true. Everything else — model, usage, latency, errors — is captured either way.
+8. **Content capture is off by default.** Prompts, completions, tool arguments, and tool results are captured only when `CAPTURE_AI_CONTENT` is true. Everything else — model, usage, latency, errors — is captured either way. When capture is enabled, preserve the provider/API request boundary: system instructions sent separately from chat history belong only in `gen_ai.system_instructions`; actual history belongs in `gen_ai.input.messages`. Never duplicate the instructions across both attributes. This telemetry split must not alter provider-reported token usage or trigger local re-tokenization; see `references/tracing/genai/content_capture.md` and `references/tracing/genai/token_usage.md`.
+   Never infer provider serialization from generic framework names or backend rendering.
+   Inspect the locked adapter source/current official docs and protect raw callback and export
+   shapes with provider fixtures; see `references/tracing/genai/langchain/provider_compatibility.md`.
+   Keep the standard `{role, parts}` attributes as the portable source of truth. When a backend
+   needs a different shape for readable rendering, emit a content-gated `app.gen_ai.observation.*`
+   presentation value and map it to the vendor namespace only in that backend's Collector branch.
+   A presentation projection may omit provider-generated `reasoning` parts only when their
+   normalized content is exactly empty; retain every non-empty reasoning or non-text part and
+   always preserve the complete canonical envelope.
+   Never deform `gen_ai.*` to satisfy one UI.
 9. **Exception detail is environment-scoped.** When exception logs may contain sensitive or external content, use one typed logging setting independent of log level: local, dev, and staging emit the full exception traceback for debugging; production emits only a safe authored message, bounded `error.type` and failure/reason code, and trace/span correlation. Credential and token redaction stays active in every environment. Enforce the policy in the shared logging processor, never with scattered environment checks at call sites. Full contract: `references/conventions/errors.md`.
 10. **Metrics are not derived from sampled traces.** They are emitted independently, with bounded attributes only.
 11. **Instrument boundaries, not functions, and make auto-instrumentation earn its volume.** HTTP request, queue publish/consume, durable work claim/state transition, external call, LLM call, tool call, agent invocation, and business phase. Keep database-query spans only when query-level visibility has demonstrated operational value. If database/ORM spans scale with rows, candidates, flushes, or transactions and overwhelm the business shape, leave them off or make them a diagnostic mode; preserve a few business spans, independent metrics, and correlated structured failure logs without recreating O(N) repository spans or per-query logs. Read `references/setup/high_volume_database_tracing.md`. Not every helper is a boundary.
@@ -85,6 +95,9 @@ These hold regardless of service type. They are short on purpose; the reasoning 
 13. **OTLP push is the default.** Applications send traces, metrics, and logs over OTLP to the Collector, which pushes them to their backends.
     Collector self-metrics use a bounded periodic OTLP reader to independent monitoring. Do not add Prometheus pull readers, scrape endpoints, or scrape verification.
     A backend-specific push exporter such as Prometheus remote write is allowed only when the selected backend requires it.
+14. **A GenAI backend is a view of the same bounded trace, not a second application trace.**
+    For one bounded execution, use one `TracerProvider`, root, and ordinary parentage. The main backend gets the complete operational tree with verbose GenAI payloads removed; the GenAI backend gets the same trace ID as a rooted, ancestor-closed projection containing GenAI spans, the entry root, and meaningful business ancestors.
+    Mark projection members with `app.telemetry.category="genai"` and retain every parent to the root. Do not create another provider or detached roots for routing. Rule 12 still governs delayed, durably handed-off, or independently retried work. Full contract: `references/collector/genai_projection.md`.
 
 ### Material to load conditionally
 
@@ -219,7 +232,7 @@ Start at `references/tracing/genai/attributes.md`; it is the entry point for eve
 | — recording token counts | `references/tracing/genai/token_usage.md` — the normalized shape and every provider adapter |
 | — capturing prompts or payloads | `references/tracing/genai/content_capture.md` |
 | Direct provider SDK (OpenAI, Anthropic, Bedrock, Azure, Vertex/Gemini) | `references/tracing/genai/provider_sdk.md` |
-| LangChain or LangGraph | `references/tracing/genai/langchain/architecture.md` first, then only the layers you are building |
+| LangChain or LangGraph | `references/tracing/genai/langchain/architecture.md` first; also read `references/tracing/genai/langchain/provider_compatibility.md` for a provider/adapter integration or version change, then only the layers you are building |
 | — model spans, TTFC | `references/tracing/genai/langchain/model_callback.md` |
 | — tool spans, retry middleware, summarization | `references/tracing/genai/langchain/tools_and_middleware.md` |
 | — outer agent span, streaming, conversation correlation | `references/tracing/genai/langchain/streaming_and_agent_span.md` |
@@ -245,7 +258,7 @@ label drift the shared module exists to prevent.
 
 | File | When |
 | --- | --- |
-| `references/collector/component.md` | Always, for layout, image pinning, backend routing, and the Collector self-telemetry/alerting contract |
+| `references/collector/component.md` | Always, for layout, image pinning, backend routing, and Collector self-telemetry; add `references/collector/genai_projection.md` when a GenAI backend needs a noise-reduced view of the same trace |
 | `references/collector/dev_staging.md` | Writing the dev/staging configs |
 | `references/collector/production.md` | Writing the production config: sampling, redaction, resilience |
 

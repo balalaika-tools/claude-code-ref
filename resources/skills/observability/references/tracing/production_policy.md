@@ -107,6 +107,13 @@ can orphan children and correlated logs, so use a span filter only for verified
 leaf or self-contained telemetry. Preserve failed probe traces whenever they
 add diagnostic value; never let a broad probe-drop rule override error retention.
 
+A destination-specific GenAI projection is the deliberate exception to the leaf-only rule, not
+a retention policy. It may remove whole operational subtrees from only the GenAI backend after
+the complete trace has made its sampling decision, provided the retained root, GenAI spans, and
+meaningful business ancestors form an explicitly classified, ancestor-closed tree. The main
+trace backend still receives the complete retained trace. See
+`../collector/genai_projection.md`.
+
 ---
 
 ## Capacity and cost
@@ -178,7 +185,8 @@ Before rollout:
 
 - validate the config against the exact pinned Collector image;
 - exercise success, failure, slow, timeout, cancellation, retry, fallback, and shutdown;
-- verify one complete golden trace in every destination;
+- verify one complete golden trace in the main trace backend and the same trace ID as the
+  configured connected projection in each specialized trace destination;
 - run canary-secret and malformed-carrier tests;
 - load-test SDK queues, sampling memory, decision caches, and exporters.
 

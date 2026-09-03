@@ -269,6 +269,24 @@ The one thing staging must share with production is **redaction**. A staging con
 
 Use separate backend credentials per environment, and keep environments visually separated on dashboards by `deployment.environment.name`.
 
+### GenAI destination views are not sampling
+
+"No unnecessary filtering" does not mean every trace backend must receive identical spans and
+attributes. When a lower environment includes a GenAI backend, keep the same destination contract
+as production while removing only retention sampling:
+
+- the main trace backend receives the complete request/job trace with verbose GenAI payloads and
+  neutral presentation copies removed;
+- the GenAI backend receives the same trace ID as a rooted, ancestor-closed projection containing
+  the entry root, GenAI spans, and their meaningful business ancestors;
+- universal secret redaction applies to both branches, while approved captured GenAI context is
+  retained only on the GenAI branch;
+- no `tail_sampling` processor is present.
+
+Use the marker and filter from `component.md`, and exercise them in development and staging so a
+missing root or business ancestor is found before production. Do not replace this with a second
+application provider or detached GenAI roots.
+
 ---
 
 ## Metrics are never sampled like traces

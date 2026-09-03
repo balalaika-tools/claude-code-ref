@@ -98,13 +98,14 @@ dashboards that each miss three quarters of the data, so the domains are fixed:
 
 | Domain | Owns | Examples |
 | --- | --- | --- |
-| `app.gen_ai.*` | model- and provider-level facts with no standard `gen_ai.*` equivalent | `app.gen_ai.usage.input_token_details`, `app.gen_ai.stream.chunk_count`, `app.gen_ai.input.capture_mode`, `app.gen_ai.request.attempt`, `app.gen_ai.upstream_provider`, `app.gen_ai.estimated_cost_usd` |
+| `app.gen_ai.*` | model- and provider-level facts with no standard `gen_ai.*` equivalent | `app.gen_ai.usage.input_token_details`, `app.gen_ai.stream.chunk_count`, `app.gen_ai.input.capture_mode`, `app.gen_ai.observation.input`, `app.gen_ai.observation.output`, `app.gen_ai.request.attempt`, `app.gen_ai.upstream_provider`, `app.gen_ai.estimated_cost_usd` |
 | `app.agent.*` | facts about one agent **run**, not one model call | `app.agent.time_to_first_chunk`, `app.agent.step_count`, `app.agent.stop_reason`, `app.agent.fallback.used` |
 | `app.workflow.*` | a durable or multi-step run | `app.workflow.name`, `app.workflow.run.id`, `app.workflow.version` |
 | `app.job.*`, `app.worker.*`, `app.message.*` | scheduled, worker, and queue work | `app.job.type`, `app.worker.jobs`, `app.message.attempt` |
 | `app.gen_ai.tool.*` | tool facts with no standard `gen_ai.tool.*` equivalent | `app.gen_ai.tool.requested_name`, `app.gen_ai.tool.result_size_bytes` |
 | `app.retrieval.*`, `app.embedding.*`, `app.guardrail.*` | RAG and policy stages | `app.retrieval.result_count`, `app.guardrail.blocked` |
 | `app.tenant.*`, `app.feature.*`, `app.experiment.*` | bounded request segmentation, including anything baggage propagates | `app.tenant.tier`, `app.feature.name`, `app.experiment.variant` |
+| `app.telemetry.*` | bounded application-owned routing and projection facts; spans only | `app.telemetry.category="genai"` |
 | `app.<business-domain>.*` | everything the service's own domain owns | `app.pricing.product_count`, `app.exception.rule` |
 | `app.outcome`, `app.response.time_to_first_chunk` | deliberately flat, because they belong to no single domain | — |
 
@@ -115,6 +116,11 @@ Two rules follow from the table:
 - **The tenant tier is `app.tenant.tier` everywhere** — span attribute, metric
   label, baggage key, and whatever a Collector transform maps it into. A second
   key for the same fact is not a namespace decision, it is a silent data split.
+- **`app.telemetry.category="genai"` means that a span belongs to the rooted GenAI
+  backend projection.** It does not turn an HTTP, job, or business span into a
+  `gen_ai.operation`; never invent GenAI semantic attributes merely to retain a
+  structural ancestor. Keep this marker off metrics and do not propagate it as
+  baggage merely for Collector routing.
 
 ---
 
@@ -155,7 +161,7 @@ allowed    service.name, deployment.environment.name, http.route, http.request.m
 
 forbidden  user.id, session.id, gen_ai.conversation.id, request_id, trace_id,
            order_id, document_id, gen_ai.response.id, raw URLs, exception messages,
-           prompt or response text, tool arguments
+           prompt or response text, tool arguments, app.telemetry.category
 ```
 
 This is the list the metrics files defer to — `../metrics/service.md` and `../metrics/genai.md` add only the traps specific to their domain.

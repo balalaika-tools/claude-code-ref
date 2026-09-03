@@ -298,18 +298,55 @@ def validate_serializer_fixtures(skill_root: Path) -> None:
     namespace: dict[str, object] = {}
     exec(compile(blocks[0], str(document), "exec"), namespace)
 
-    captured, batch_size = namespace["serialize_chat_model_input"](
+    system, captured, batch_size = namespace["serialize_chat_model_input"](
         [
             [{"role": "user", "content": "first"}],
             [{"role": "user", "content": "second"}],
-        ]
+        ],
+        separate_system_instructions=False,
     )
+    require(system is None, "ordinary chat history produced separate system instructions")
     require(batch_size == 2, "batched input size is incorrect")
     captured_messages = json.loads(captured)
     require(
         len(captured_messages) == 1
         and captured_messages[0]["parts"][0]["content"] == "first",
         "batched input merged independent conversations",
+    )
+
+    system, captured, batch_size = namespace["serialize_chat_model_input"](
+        [
+            {"role": "system", "content": "extract entities"},
+            {"role": "user", "content": "actual chunk"},
+            {"role": "assistant", "content": "prior answer"},
+            {"role": "tool", "tool_call_id": "call-1", "content": "prior result"},
+        ],
+        separate_system_instructions=True,
+    )
+    require(batch_size == 1, "single conversation has an incorrect batch size")
+    require(
+        json.loads(system or "[]")
+        == [{"type": "text", "content": "extract entities"}],
+        "separate system instructions do not use the standard parts schema",
+    )
+    captured_messages = json.loads(captured)
+    require(
+        [message["role"] for message in captured_messages]
+        == ["user", "assistant", "tool"],
+        "system instructions were duplicated in the captured chat history",
+    )
+
+    system, captured, _ = namespace["serialize_chat_model_input"](
+        [
+            {"role": "system", "content": "stay in history"},
+            {"role": "user", "content": "hello"},
+        ],
+        separate_system_instructions=False,
+    )
+    require(system is None, "chat-history system message produced a separate attribute")
+    require(
+        [message["role"] for message in json.loads(captured)] == ["system", "user"],
+        "chat-history system message was removed for an API without a separate field",
     )
 
     first_message = SimpleNamespace(
@@ -325,7 +362,7 @@ def validate_serializer_fixtures(skill_root: Path) -> None:
         type="ai",
         content="choice two",
         tool_calls=[],
-        response_metadata={"finish_reason": "stop"},
+        response_metadata={"stopReason": "stop"},
     )
     response = SimpleNamespace(
         generations=[
@@ -346,6 +383,126 @@ def validate_serializer_fixtures(skill_root: Path) -> None:
     require(
         all(output.get("finish_reason") for output in outputs),
         "an output message omitted its schema-required finish reason",
+    )
+
+    native_json_message = SimpleNamespace(
+        type="ai",
+        content_blocks=[
+            {
+                "type": "non_standard",
+                "value": {"type": "json", "json": {"entities": []}},
+            }
+        ],
+        tool_calls=[],
+        response_metadata={"finishReason": "end_turn"},
+    )
+    native_json_response = SimpleNamespace(
+        generations=[[SimpleNamespace(message=native_json_message, generation_info={})]]
+    )
+    native_json_output = json.loads(namespace["serialize_llm_result"](native_json_response))[0]
+    require(
+        native_json_output["finish_reason"] == "end_turn"
+        and native_json_output["parts"]
+        == [{"type": "json", "json": {"entities": []}}],
+        "provider finish-reason casing or native JSON block was lost",
+    )
+
+    observation_input = json.loads(
+        namespace["serialize_observation_input"](
+            [
+                {"role": "system", "content": "extract entities"},
+                {"role": "user", "content": "source text"},
+            ]
+        )
+    )
+    require(
+        observation_input
+        == [
+            {"role": "system", "content": "extract entities"},
+            {"role": "user", "content": "source text"},
+        ],
+        "text-only observation input is not projected to role/content",
+    )
+    structured_text_message = SimpleNamespace(
+        type="ai",
+        content='{"entities": []}',
+        tool_calls=[],
+        response_metadata={"finish_reason": "stop"},
+    )
+    structured_text_response = SimpleNamespace(
+        generations=[
+            [SimpleNamespace(message=structured_text_message, generation_info={})]
+        ]
+    )
+    require(
+        json.loads(
+            namespace["serialize_observation_output"](
+                structured_text_response, "json"
+            )
+        )
+        == {"entities": []},
+        "structured text output is not projected to its decoded JSON object",
+    )
+    empty_reasoning_message = SimpleNamespace(
+        type="ai",
+        content=[
+            {"type": "reasoning", "content": ""},
+            {"type": "text", "text": '{"entities": []}'},
+        ],
+        tool_calls=[],
+        response_metadata={"finish_reason": "stop"},
+    )
+    empty_reasoning_response = SimpleNamespace(
+        generations=[
+            [SimpleNamespace(message=empty_reasoning_message, generation_info={})]
+        ]
+    )
+    canonical_with_empty_reasoning = json.loads(
+        namespace["serialize_llm_result"](empty_reasoning_response)
+    )
+    require(
+        canonical_with_empty_reasoning[0]["parts"][0]
+        == {"type": "reasoning", "content": ""},
+        "empty provider reasoning was lost from the canonical output",
+    )
+    require(
+        json.loads(
+            namespace["serialize_observation_output"](
+                empty_reasoning_response, "json"
+            )
+        )
+        == {"entities": []},
+        "empty reasoning prevented structured backend presentation",
+    )
+    nonempty_reasoning_message = SimpleNamespace(
+        type="ai",
+        content=[
+            {"type": "reasoning", "content": "material"},
+            {"type": "text", "text": '{"entities": []}'},
+        ],
+        tool_calls=[],
+        response_metadata={"finish_reason": "stop"},
+    )
+    nonempty_reasoning_response = SimpleNamespace(
+        generations=[
+            [SimpleNamespace(message=nonempty_reasoning_message, generation_info={})]
+        ]
+    )
+    require(
+        json.loads(
+            namespace["serialize_observation_output"](
+                nonempty_reasoning_response, "json"
+            )
+        )
+        == json.loads(namespace["serialize_llm_result"](nonempty_reasoning_response)),
+        "non-empty reasoning did not force canonical backend fallback",
+    )
+    require(
+        json.loads(
+            namespace["serialize_observation_output"](native_json_response, "json")
+        )
+        == [native_json_output],
+        "non-text observation output did not fall back to the canonical envelope",
     )
 
     fallback_output = json.loads(namespace["serialize_text_output"]("done", None))
@@ -883,12 +1040,14 @@ def validate_compatibility(skill_root: Path) -> list[str]:
             f"({review_by.group(1)}); every version-sensitive example is unverified"
         )
     for required in (
-        "2026-08-21",
+        "2026-09-02",
         "1.44",
         "1.44.0",
         "eaefa142a94cefe5d199d47e4a73727dfbd825df",
-        "1.3.16",
-        "1.6.0",
+        "1.3.18",
+        "1.6.1",
+        "langchain-aws 1.7.4",
+        "stopReason",
         "1.2.11",
         "0.159.0",
         "opentelemetry-instrumentation-aws-lambda",
@@ -1419,12 +1578,12 @@ def validate_routing_contract(skill_root: Path) -> None:
 # reference cannot grow unbounded just by not being in the table.
 DEFAULT_LINE_CAP = 400
 LINE_CAPS = {
-    "SKILL.md": 290,
+    "SKILL.md": 300,
     "references/discovery.md": 320,
     "references/troubleshooting.md": 160,
     "references/testing.md": 260,
-    "references/verification.md": 320,
-    "references/compatibility.md": 80,
+    "references/verification.md": 340,
+    "references/compatibility.md": 90,
     "references/conventions/naming.md": 220,
     "references/conventions/errors.md": 240,
     "references/setup/resource_identity.md": 220,
@@ -1441,10 +1600,11 @@ LINE_CAPS = {
     "references/tracing/lambda_functions.md": 300,
     "references/tracing/production_policy.md": 240,
     "references/tracing/genai/retrieval.md": 140,
-    "references/tracing/genai/langchain/model_callback.md": 520,
+    "references/tracing/genai/content_capture.md": 440,
+    "references/tracing/genai/langchain/model_callback.md": 550,
     "references/collector/production.md": 610,
     "references/metrics/genai.md": 400,
-    "references/logging/structlog.md": 400,
+    "references/logging/structlog.md": 420,
 }
 # The set loaded on every invocation, whatever the task. This is the number
 # that actually governs per-invocation cost, so it is capped as a whole.
@@ -1598,6 +1758,17 @@ def validate_review_regressions(skill_root: Path) -> None:
         and 'getattr(call, "id", "")' not in content,
         "content serializer violates required finish-reason or optional-ID schema",
     )
+    require_phrases(
+        content,
+        (
+            "app.gen_ai.observation.input",
+            "app.gen_ai.observation.output",
+            "langfuse.observation.input",
+            "langfuse.observation.output",
+            "portable OpenTelemetry source of truth",
+        ),
+        context="backend presentation projection contract",
+    )
     token_usage = (
         skill_root / "references/tracing/genai/token_usage.md"
     ).read_text(encoding="utf-8")
@@ -1624,6 +1795,20 @@ def validate_review_regressions(skill_root: Path) -> None:
             'x-langfuse-ingestion-version: "4"' in text,
             f"{relative} lacks the Langfuse v4 header",
         )
+
+    collector = (skill_root / "references/collector/component.md").read_text(
+        encoding="utf-8"
+    )
+    require_phrases(
+        collector,
+        (
+            "attributes/langfuse_observation_io",
+            "from_attribute: app.gen_ai.observation.input",
+            "from_attribute: app.gen_ai.observation.output",
+            "action: delete",
+        ),
+        context="Langfuse Collector presentation mapping",
+    )
 
     for relative in (
         "references/tracing/genai/langchain/model_callback.md",

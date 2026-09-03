@@ -114,7 +114,8 @@ APM / general trace backend   trace shape, durations, error types, models,
                               token counts — no prompts or outputs
 Metrics backend               aggregates only; no IDs or content
 Log backend                   application logs, correlated, masked
-Langfuse                      prompts, outputs, sessions, scores — when policy allows
+GenAI backend / Langfuse      rooted GenAI view, prompts, outputs, sessions, scores
+                              — when policy allows
 ```
 
 Fanning one pipeline out to two exporters is simple but coarse: both destinations get identical data. When they need different data, use separate pipelines.
@@ -129,7 +130,7 @@ service:
 
     traces/langfuse:
       receivers: [otlp]
-      processors: [memory_limiter, transform/langfuse, batch]
+      processors: [memory_limiter, filter/genai_projection, transform/langfuse, batch]
       exporters: [otlphttp/langfuse]
 ```
 
@@ -138,9 +139,40 @@ service:
 - Langfuse ingests over **OTLP/HTTP** only. An OTLP/gRPC exporter pointed at it fails.
 - Name pipeline exporters `otlphttp/...` or `otlp_grpc/...` explicitly. A bare `otlp` exporter (as opposed to the `otlp` receiver, which is still the correct name) is a deprecated alias for `otlp_grpc` on 0.159.0 and logs a startup warning: `"otlp" alias is deprecated; use "otlp_grpc" instead`.
 - Authentication is HTTP Basic with base64 of `public_key:secret_key`. Build it without a trailing newline and inject it from a secret store.
-- Send **complete traces**, not just the spans containing `gen_ai.request.model`. Filtering to model leaves discards the root, HTTP, retrieval, and tool spans and produces orphaned, unreadable agent traces.
+- Send either a complete trace or the rooted, ancestor-closed GenAI projection defined below.
+  Never send only model leaves: Langfuse needs the entry root and every retained span's parent
+  chain to build a readable trace.
 - Langfuse is a trace backend. Operational metrics go to the metrics backend.
-- `langfuse.*` attributes are added in the Langfuse pipeline by a `transform` processor, never in application code.
+- `langfuse.*` attributes are added in the Langfuse pipeline by a destination-specific
+  `attributes` or `transform` processor, never in application code.
+
+When the portable `{role, parts}` GenAI envelope is valid but Langfuse needs its native
+display shape, let the application emit content-gated
+`app.gen_ai.observation.input` / `output` alongside the canonical `gen_ai.*` values.
+Project and consume those neutral attributes only on this branch:
+
+```yaml
+processors:
+  attributes/langfuse_observation_io:
+    actions:
+      - key: langfuse.observation.input
+        from_attribute: app.gen_ai.observation.input
+        action: upsert
+      - key: langfuse.observation.output
+        from_attribute: app.gen_ai.observation.output
+        action: upsert
+      - key: app.gen_ai.observation.input
+        action: delete
+      - key: app.gen_ai.observation.output
+        action: delete
+```
+
+Put this processor before `batch`. General trace-backend branches must delete both
+neutral presentation keys together with the standard prompt/output attributes. The
+Langfuse branch retains the canonical `gen_ai.*` values for protocol fidelity but
+deletes the neutral sources after projection so they do not also appear as metadata.
+Do not simply rename or flatten `gen_ai.input.messages` / `gen_ai.output.messages`:
+those remain the portable source of truth.
 
 ```yaml
 exporters:
@@ -158,20 +190,18 @@ when upgrading the compatibility contract in `../compatibility.md`.
 
 ---
 
-## Routing GenAI traces without breaking them
+## One trace, two destination views
 
-To send only GenAI workflows to Langfuse while everything goes to the APM backend, route by **complete trace**, never by individual span attributes.
+For one bounded operation, the application emits one trace. The main backend receives its
+complete operational tree with verbose GenAI content removed. The GenAI backend receives the
+same trace ID as a rooted, ancestor-closed projection: GenAI spans plus their entry root and
+meaningful business ancestors, with approved captured context retained. Universal secret
+redaction still applies to both branches, and routing must not rewrite span identity or status.
 
-Two workable approaches:
-
-1. **Separate receivers.** GenAI services send to a second OTLP receiver on different ports; only that receiver feeds the Langfuse pipeline.
-2. **A neutral trace-wide marker.** Set `app.telemetry.category="genai"` on
-   every span and evaluate it in a trace-aware component after assembly. Use
-   baggage for this only when the user explicitly requested the cross-service
-   value and `../tracing/baggage.md` was loaded; otherwise prefer separate
-   receivers or a service-owned resource/span enrichment rule.
-
-A span-level filter on `gen_ai.request.model` looks correct and is not: it keeps the model calls and drops everything that explains them.
+This is not a model-leaf filter. Application-side classification, the
+`app.telemetry.category="genai"` contract, business-span example, durable-work exception,
+Collector filter, and verification invariants live in `genai_projection.md`. Load that file
+whenever a specialized GenAI trace destination is configured or reviewed.
 
 ---
 

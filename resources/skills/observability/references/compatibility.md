@@ -4,7 +4,7 @@ Read this before copying version-sensitive examples. The GenAI conventions, Lang
 
 ## Reviewed version set
 
-Review date: **2026-08-21**. Review by: **2027-02-21**.
+Review date: **2026-09-02**. Review by: **2027-03-02**.
 
 Past the review-by date, treat every version-sensitive example here as unverified and say so in your report. `validate_skill.py` warns but does not fail: a stale contract is a prompt to re-check, not a broken package.
 
@@ -14,7 +14,8 @@ Past the review-by date, treat every version-sensitive example here as unverifie
 | AWS Lambda instrumentation | `opentelemetry-instrumentation-aws-lambda==0.65b0`; this line adds SQS context propagation, while the AWS Lambda semantic conventions remain development-status |
 | Resource semantic conventions | OpenTelemetry semantic conventions `1.44.0`; service identity is stable, platform resource conventions are at the status stated there |
 | GenAI semantic conventions | Dedicated `open-telemetry/semantic-conventions-genai` repository at commit `eaefa142a94cefe5d199d47e4a73727dfbd825df` (2026-08-21) |
-| LangChain | `>=1.3,<1.4`; examples were reviewed against `1.3.16` and `langchain-core 1.6.0` |
+| LangChain | `>=1.3,<1.4`; examples were reviewed against `1.3.18` and `langchain-core 1.6.1` |
+| LangChain AWS | Bedrock Converse examples were reviewed against `langchain-aws 1.7.4`; its response metadata preserves the provider's camel-case `stopReason`, and its request conversion moves `SystemMessage` content into Bedrock's top-level `system` field |
 | LangGraph | `>=1.2,<1.3`; examples were reviewed against `1.2.11` and use the v2 `StreamPart` schema |
 | Collector | Contrib distribution `otel/opentelemetry-collector-contrib:0.159.0` |
 | Langfuse | OTLP/HTTP ingestion v4; send `x-langfuse-ingestion-version: "4"` |
@@ -36,6 +37,8 @@ These are compatibility bounds for the templates, not a demand to downgrade a se
   default and switches to a new task trace with a link only when code-based
   activation passes `use_span_links=True`.
 - LangChain `stream()` and `astream()` examples pass `version="v2"` and consume `StreamPart` dictionaries with `type`, `ns`, and `data`. Do not mix them with the v1 tuple shape.
+- LangChain provider adapters do not promise one metadata casing or content-block representation.
+  Re-run provider fixtures and inspect installed adapter source on every adapter upgrade.
 - Lambda examples distinguish the community `/opt/otel-handler` wrapper from
   the AWS-managed ADOT wrapper used by the selected layer. Layer ARNs are not
   pinned here because they vary by region, architecture, runtime, and release.
@@ -50,7 +53,15 @@ These are compatibility bounds for the templates, not a demand to downgrade a se
   a warning. Internal logs remain at `INFO` and go to `stderr`; internal traces
   are experimental and opt-in. Periodic OTLP readers pin a measured timeout;
   `5000` ms is the reviewed 30-second-budget example, not a universal value.
-- Langfuse receives complete traces over OTLP/HTTP and the v4 ingestion header. The endpoint remains configurable for region and self-hosting.
+- Langfuse receives either complete traces or rooted, ancestor-closed GenAI projections over
+  OTLP/HTTP with the v4 ingestion header. A projected trace retains the application root and every
+  parent of every retained span; the pinned Collector's span filter does not infer those ancestors.
+  The endpoint remains configurable for region and self-hosting.
+- Langfuse-readable input/output is a destination projection, not the portable wire contract:
+  keep `gen_ai.system_instructions` / `gen_ai.input.messages` / `gen_ai.output.messages`
+  canonical, emit content-gated `app.gen_ai.observation.input` / `output` only when a
+  lossless presentation is available, and map those to `langfuse.observation.input` /
+  `output` in the Langfuse Collector branch.
 
 ## Upgrade checklist
 
@@ -62,7 +73,7 @@ Before changing any version above:
    `xray-lambda` rules, wrapper path, layer compatibility, and end-of-invocation
    force-flush behaviour against the selected instrumentation release.
 4. Run capture-on and capture-off streaming tests against the real LangChain/LangGraph stream shape. Cover an empty stream, cancellation, and an error after the first chunk.
-5. Re-run model/provider metadata fixtures so `gen_ai.request.model` can never become a model type such as `chat` or `llm`.
+5. Re-run model/provider metadata fixtures so `gen_ai.request.model` can never become a model type such as `chat` or `llm`; verify finish-reason casing, system-field ownership, structured-output type, and provider content blocks at the same time.
 6. Validate **every** Collector YAML block under `references/collector/` with the exact candidate image and inspect its `components` output for renamed or removed components.
 7. Re-check internal-telemetry schema, stability, names, logs, traces,
    resources, periodic readers, backend delivery, and alerts. For a
@@ -71,6 +82,8 @@ Before changing any version above:
 8. Confirm whether the `batch` **processor** is still the recommended batching mechanism at the candidate version, or whether exporter-level `sending_queue.batch` supersedes it. If batching moves into the exporter, the "`batch` last, after `tail_sampling`" ordering advice in `collector/production.md` changes with it.
 9. Re-check every `gen_ai.*` attribute this skill uses against the pinned convention revision, not only the metric names. `validate_skill.py` pins the attribute set as an allowlist, so a convention change shows up as a validation failure with the exact key — resolve each one deliberately rather than widening the allowlist.
 10. Re-check backend authentication, endpoints, required headers, and whether trace ingestion remains real-time.
+    Also send a text-only and a native structured-output canary and inspect the stored observation
+    input/output, not only the raw span attributes; backend parsing and UI renderers evolve separately.
 11. Run `python scripts/validate_skill.py` (add `--collector-image` in CI), then perform the exported-telemetry checks in `verification.md`. The script runs without any external toolchain; `--official-validator` additionally requires the Codex skill-creator validator.
 
 Record the new version set, convention tag or commit, and review date in this file in the same change.

@@ -170,7 +170,30 @@ Deterministic logic, not the SDK. Do not test that OpenTelemetry creates spans.
 | Linked-consumer path | `context=None` where `Context()` was meant — asserted as `span.parent is None` plus one link |
 | Retry of the same work item | A regenerated carrier breaking the causal link |
 | Redaction canary through the serializer | A secret reaching a span attribute |
+| GenAI projection membership on a mixed business/GenAI/operational tree | An orphaned model leaf, a missing business ancestor, or DB/HTTP noise selected for Langfuse |
 | Both success and failure paths of every recorder | An error rate with a denominator that excludes errors |
+
+---
+
+For GenAI projection classification, test the application-owned marking before
+testing Collector routing. Build a realistic mixed tree, for example
+`run ingestion -> index document -> invoke_workflow -> embeddings`, with an
+unrelated database or HTTP-client sibling. For the spans carrying
+`app.telemetry.category="genai"`, assert all of these invariants:
+
+- exactly one marked span is the trace root;
+- every marked span with an in-trace parent has a marked parent;
+- the workflow, GenAI leaves, and real business ancestors are marked;
+- unrelated operational siblings are not marked; and
+- structural ancestors do not gain fabricated `gen_ai.operation.name` values.
+
+That unit test proves classification, not destination behavior. An exported-
+telemetry acceptance test must still send the mixed trace through the pinned
+Collector config and confirm that the main backend/capture has the complete
+tree without verbose GenAI payloads, while the GenAI backend/capture has the
+same trace ID, unchanged retained span identities, and only the connected
+projection. Do not recreate the Collector filter in application test code and
+mistake that for an integration test.
 
 ---
 

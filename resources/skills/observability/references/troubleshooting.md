@@ -63,6 +63,8 @@ Two things first, because they explain a surprising share of reports:
 | `gen_ai.invoke_agent.inference_calls` never appears | One of the three counter wiring edits is missing; the failure is silent | `metrics/genai.md`, "Counting fan-out per invocation" |
 | Agent TTFC equals model TTFC | Agent TTFC was computed from `"updates"`, which is step-granular | `tracing/genai/langchain/streaming_and_agent_span.md` |
 | Prompts present with `CAPTURE_AI_CONTENT` unset | A capture path is not gated on the setting | `tracing/genai/content_capture.md` |
+| Structured JSON appears as an expandable object inside a text part in Langfuse | Often correct: Langfuse parsed a JSON string for display. Inspect the raw exported `gen_ai.output.messages` before changing the serializer | `tracing/genai/content_capture.md`, "Backend rendering is not the wire shape" |
+| `finish_reason` is `unknown`, system instructions are duplicated, or provider content blocks are empty | The callback assumed generic field names instead of the locked provider adapter's actual metadata and request conversion | `tracing/genai/langchain/provider_compatibility.md` |
 | No embedding or retrieval spans in a RAG service | Nothing instruments the retriever automatically; those spans are hand-written | `tracing/genai/retrieval.md` |
 
 ## Resource identity is wrong
@@ -84,6 +86,7 @@ Two things first, because they explain a surprising share of reports:
 | Worker logs carry the producer's trace ID | The linked producer context was copied into the log's `trace_id` | `logging/structlog.md` |
 | Logs reference a trace the backend does not have | Normal: tail sampling drops traces, not logs | `logging/structlog.md`, "Trace sampling does not sample logs" |
 | Exception has no stack trace in the log backend | The Collector's logs pipeline deletes `exception.stacktrace` | `collector/production.md` |
+| The exception log record is missing entirely, not just its stack trace | Backend structured-metadata size limit rejected the whole record; the traceback attribute exceeded it | `logging/structlog.md`, "Backend size limits on the traceback attribute" |
 | One incident, six stack traces | Logging at every call depth instead of at the owning boundary | `conventions/errors.md` |
 | Every histogram value in `+Inf` | Default buckets are sub-second; long operations need explicit `View` boundaries | `setup/sdk_bootstrap.md` |
 | Error rate falls as the service degrades | The metric is recorded only on the success path | `metrics/service.md` |
@@ -95,7 +98,9 @@ Two things first, because they explain a surprising share of reports:
 | --- | --- | --- |
 | Collector refuses to start | A component or key that does not exist in the pinned image — validate the exact config against the exact image | `collector/component.md` |
 | `401` from Langfuse | The base64 auth string carries a trailing newline | `collector/production.md` |
-| Langfuse shows orphaned model leaves | A span-level filter kept `gen_ai.*` spans and dropped everything explaining them | `collector/component.md` |
+| Langfuse shows orphaned model leaves or no request/job root | A retained GenAI span's root or parent chain was not marked with `app.telemetry.category="genai"`; the span filter does not infer ancestors | `collector/genai_projection.md` |
+| Langfuse contains database, HTTP-client, or persistence noise | The GenAI projection filter is missing, or operational siblings were marked as projection members | `collector/genai_projection.md` |
+| The main trace backend contains prompts, outputs, or duplicated presentation payloads | The main branch does not delete canonical verbose content and `app.gen_ai.observation.*` / `langfuse.observation.*` copies | `collector/production.md` |
 | Retained percentage does not match the configured one | Tail-sampling policies OR together and overlap; measure the effective ratio | `collector/production.md` |
 | Sampler memory twice the estimate | `tail_sampling` named in two pipelines is two processor instances | `collector/production.md` |
 | Export counters flat while receive counters climb | Backend rejecting or credentials wrong; watch `otelcol_exporter_send_failed_*` | `collector/component.md` |

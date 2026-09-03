@@ -1,8 +1,15 @@
 # Scheduled Jobs and CLI Batches
 
-Always start a new root trace, one per run. There is no upstream queue or
-durable carrier to extract unless the job is separately launched from such a
-transport. The primary telemetry risk is flushing before the process exits.
+Always start a new root trace, one per bounded run. There is no upstream queue
+or durable carrier to extract unless the job is separately launched from such
+a transport. The primary telemetry risk is flushing before the process exits.
+
+Do not stretch "one per run" across an unbounded daemon, a durable backfill, or
+batch items that can be delayed and retried independently. Those are durable
+execution boundaries: start a bounded trace per independently owned attempt,
+carry the stable `app.workflow.run.id`, and connect it to the producer or prior
+attempt with a `Span Link` as described in `async_handoffs.md` and
+`durable_work.md`.
 
 ```python
 from opentelemetry import trace

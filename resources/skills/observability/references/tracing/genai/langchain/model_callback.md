@@ -21,7 +21,8 @@ module**, not standalone programs. Before using them, copy
 serializers from `../content_capture.md`; the callback fragments list those
 dependencies explicitly.
 
----
+For provider- and version-specific message or metadata shapes, first read
+`provider_compatibility.md` and complete its compatibility gate.
 
 ## Resolving model identity
 
@@ -89,8 +90,6 @@ def resolve_provider(metadata: dict[str, Any] | None) -> str:
 
 Verify the values on a real call before trusting the mapping — print `metadata` once from `on_chat_model_start` and check what your provider integration actually sends.
 
----
-
 ## Reading the `LLMResult`
 
 `on_llm_end` receives an `LLMResult`, not a message, so both the usage and the response metadata need digging out of the generations list.
@@ -118,9 +117,8 @@ def extract_response_metadata(response: Any) -> dict[str, Any]:
             if response_id and "response_id" not in result:
                 result["response_id"] = response_id
 
-            reason = metadata.get("finish_reason") or (
-                getattr(generation, "generation_info", None) or {}
-            ).get("finish_reason")
+            generation_info = getattr(generation, "generation_info", None) or {}
+            reason = resolve_finish_reason(metadata, generation_info)
             if reason:
                 finish_reasons.append(reason)
 
@@ -130,8 +128,6 @@ def extract_response_metadata(response: Any) -> dict[str, Any]:
 ```
 
 `getattr` with defaults throughout, deliberately. Instrumentation must not be the thing that crashes a request because a provider stopped populating a field.
-
----
 
 ## The callback
 
@@ -151,21 +147,29 @@ from opentelemetry.trace import Status, StatusCode
 from core.config import get_settings
 from observability.agent_counters import current_counters
 from observability.genai_attributes import (
+    APP_OBSERVATION_INPUT,
+    APP_OBSERVATION_OUTPUT,
     APP_INPUT_CAPTURE_MODE,
     ERROR_TYPE,
     GENAI_FINISH_REASONS,
     GENAI_INPUT_MESSAGES,
     GENAI_OPERATION_NAME,
     GENAI_OUTPUT_MESSAGES,
+    GENAI_OUTPUT_TYPE,
     GENAI_PROVIDER_NAME,
     GENAI_REQUEST_MODEL,
     GENAI_REQUEST_STREAM,
     GENAI_RESPONSE_ID,
     GENAI_RESPONSE_MODEL,
+    GENAI_SYSTEM_INSTRUCTIONS,
 )
 from observability.genai_content import (
+    resolve_finish_reason,
     serialize_chat_model_input,
     serialize_llm_result,
+    serialize_observation_input,
+    serialize_observation_output,
+    serialize_observation_text_output,
     serialize_text_output,
 )
 from observability.genai_metrics import (
@@ -188,8 +192,16 @@ class OTelModelCallback(AsyncCallbackHandler):
     stream actually produces is observed, not assumed.
     """
 
-    def __init__(self, *, streaming: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        streaming: bool = False,
+        separate_system_instructions: bool = False,
+    ) -> None:
         self._streaming = streaming
+        # Set from the concrete provider adapter's wire contract. For example,
+        # Bedrock Converse sends system instructions separately from messages.
+        self._separate_system_instructions = separate_system_instructions
         # Keyed by run_id: LangChain runs model calls concurrently.
         self._runs: dict[Any, dict[str, Any]] = {}
 
@@ -219,6 +231,16 @@ class OTelModelCallback(AsyncCallbackHandler):
         if model:
             attributes[GENAI_REQUEST_MODEL] = model
 
+        # Resolve this from the actual callback/provider request shape. Native
+        # `json_schema` or `json_object` requests set `gen_ai.output.type=json`;
+        # tool calling is not mislabeled as JSON merely because arguments are JSON.
+        invocation_params = kwargs.get("invocation_params") or {}
+        response_format = invocation_params.get("response_format") or {}
+        output_type = None
+        if response_format.get("type") in {"json_schema", "json_object"}:
+            output_type = "json"
+            attributes[GENAI_OUTPUT_TYPE] = output_type
+
         # start_span (not start_as_current_span): the callback returns before
         # the model call finishes, so this span cannot be a context manager.
         # Its parent is whatever span is current right now — the agent span.
@@ -228,7 +250,6 @@ class OTelModelCallback(AsyncCallbackHandler):
             attributes=attributes,
         )
 
-        invocation_params = kwargs.get("invocation_params") or {}
         for attribute, key in (
             ("gen_ai.request.temperature", "temperature"),
             ("gen_ai.request.max_tokens", "max_tokens"),
@@ -238,8 +259,14 @@ class OTelModelCallback(AsyncCallbackHandler):
                 span.set_attribute(attribute, invocation_params[key])
 
         if settings.capture_ai_content:
-            captured_input, batch_size = serialize_chat_model_input(messages)
+            captured_system, captured_input, batch_size = serialize_chat_model_input(
+                messages,
+                separate_system_instructions=self._separate_system_instructions,
+            )
+            if captured_system is not None:
+                span.set_attribute(GENAI_SYSTEM_INSTRUCTIONS, captured_system)
             span.set_attribute(GENAI_INPUT_MESSAGES, captured_input)
+            span.set_attribute(APP_OBSERVATION_INPUT, serialize_observation_input(messages))
             span.set_attribute("app.gen_ai.input.batch_size", batch_size)
             if batch_size > 1:
                 span.set_attribute(APP_INPUT_CAPTURE_MODE, "truncated")
@@ -256,6 +283,7 @@ class OTelModelCallback(AsyncCallbackHandler):
             "captured_chunks": [] if settings.capture_ai_content else None,
             "captured_chars": 0,
             "capture_truncated": False,
+            "output_type": output_type,
         }
 
     async def on_llm_new_token(self, token, *, run_id, chunk=None, **kwargs) -> None:
@@ -322,6 +350,12 @@ class OTelModelCallback(AsyncCallbackHandler):
                         (metadata.get("finish_reasons") or ["unknown"])[0],
                     ),
                 )
+                span.set_attribute(
+                    APP_OBSERVATION_OUTPUT,
+                    serialize_observation_text_output(
+                        "".join(run["captured_chunks"]), run["output_type"]
+                    ),
+                )
                 if run["capture_truncated"]:
                     span.set_attribute(
                         "app.gen_ai.output.capture_mode", "truncated"
@@ -329,6 +363,10 @@ class OTelModelCallback(AsyncCallbackHandler):
             else:
                 span.set_attribute(
                     GENAI_OUTPUT_MESSAGES, serialize_llm_result(response)
+                )
+                span.set_attribute(
+                    APP_OBSERVATION_OUTPUT,
+                    serialize_observation_output(response, run["output_type"]),
                 )
 
         record_model_operation(
@@ -468,32 +506,8 @@ safe default is active.
 
 ## How to attach it
 
-| Situation | Attach |
-| --- | --- |
-| `streaming=False` model | `OTelModelCallback()` |
-| `streaming=True` model | `OTelModelCallback(streaming=True)` |
-| Both, in one service | One instance per model, with the matching flag. A single instance can be shared by models with the same flag; it keys all state by `run_id`. |
-| Completion-style (non-chat) LLM | Add `on_llm_start`, above |
-
-### Sync versus async invocation
-
-The handler subclasses `AsyncCallbackHandler`. Whether that also covers a
-**synchronous** `agent.invoke()` / `agent.stream()` depends on the pinned
-`langchain-core`: it bridges sync callers to async handlers in some versions and
-silently skips them in others, and a skipped handler produces **zero model
-spans** — indistinguishable from a broken exporter.
-
-Resolve it once, for the version in the lockfile, and write the answer here:
-
-1. call the agent exactly the way production calls it — `invoke` if production
-   uses `invoke`, `ainvoke` if it uses `ainvoke`;
-2. confirm a `chat <model>` span is exported;
-3. if none appears, additionally attach a `BaseCallbackHandler` subclass with
-   the same body using synchronous methods, and record that both are required.
-
-Never verify with `ainvoke` and ship `invoke`. `tools_and_middleware.md` makes
-the same distinction explicit for middleware (`@wrap_tool_call` versus
-`awrap_tool_call`); the callback layer has the same hazard and no error message.
+Use the flags and sync/async verification in `provider_compatibility.md`; they are
+properties of the physical adapter and production invocation style.
 
 ---
 
@@ -509,6 +523,12 @@ Run one agent invocation and check the exported spans:
 - `app.gen_ai.stream.chunk_count` is correct with capture both on and off, including an error after the first chunk;
 - the agent is invoked **the way production invokes it** (sync or async) and model spans still appear;
 - `gen_ai.response.model` appears on the span and the model-duration/token metrics when the provider returns it;
+- when the provider returns a finish reason, both `gen_ai.response.finish_reasons` and each captured output message preserve it instead of falling back to `unknown`;
+- native structured output emits `gen_ai.output.type=json`, while its JSON text remains inside the standard output-message envelope;
+- text-only observation input renders as role/content and one valid JSON response renders as
+  the decoded object, while multipart output falls back to the canonical envelope;
+- a provider with a separate system field emits `gen_ai.system_instructions` without a duplicate system-role input message, while provider-reported usage stays unchanged;
+- representative non-text provider content blocks survive serialization instead of becoming empty text;
 - forcing a provider error produces a span with `ERROR` status and `error.type`, and no exception span event;
 - with `CAPTURE_AI_CONTENT` unset, no `gen_ai.input.messages` attribute exists anywhere.
 

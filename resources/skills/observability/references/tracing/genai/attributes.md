@@ -78,6 +78,8 @@ GENAI_TOOL_DEFINITIONS = "gen_ai.tool.definitions"
 GENAI_TOOL_CALL_ARGUMENTS = "gen_ai.tool.call.arguments"
 GENAI_TOOL_CALL_RESULT = "gen_ai.tool.call.result"
 APP_INPUT_CAPTURE_MODE = "app.gen_ai.input.capture_mode"  # none|full|delta|truncated
+APP_OBSERVATION_INPUT = "app.gen_ai.observation.input"
+APP_OBSERVATION_OUTPUT = "app.gen_ai.observation.output"
 
 ERROR_TYPE = "error.type"
 ```

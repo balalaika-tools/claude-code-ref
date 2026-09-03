@@ -178,6 +178,17 @@ grep -E 'gen_ai\.(input\.messages|output\.messages|system_instructions|tool\.def
 Expect no matches.
 
 - [ ] With it enabled, the attributes appear and hold the standard message-array schema.
+- [ ] Raw spans keep canonical `gen_ai.*` role/parts envelopes. If a backend-native
+  presentation is configured, text-only input additionally has role/content and one
+  valid structured-output response additionally has the decoded JSON object under
+  content-gated `app.gen_ai.observation.input` / `output`.
+- [ ] A provider response containing one exactly empty reasoning part plus one JSON text part
+  keeps both parts in canonical output but projects the decoded object for the backend. Repeat
+  with non-empty reasoning and confirm the presentation falls back to the canonical envelope.
+- [ ] On the Langfuse branch, the stored observation uses the projected
+  `langfuse.observation.input` / `output`; the neutral source keys are absent from
+  metadata. Expand or query the stored output and verify the actual content, since a
+  collapsed object may display only an item count.
 - [ ] If capture is filtered or truncated, `app.gen_ai.input.capture_mode` marks it.
 - [ ] `gen_ai.conversation.compacted` is absent unless the model genuinely received compacted context.
 
@@ -207,6 +218,7 @@ Query the metrics backend for the canary service's `app.*`, `gen_ai.*`, and
 
 - [ ] A log emitted inside a span carries a 32-hex `trace_id` and a 16-hex `span_id`.
 - [ ] That trace ID finds the trace in the trace backend.
+- [ ] With a GenAI projection, that trace ID finds the operation in both trace backends; a log from an omitted operational span is expected to have no observation-level `span_id` match there.
 - [ ] For a linked worker/state-machine trace, logs carry the current worker
   trace ID, not the producer trace ID stored in the span link.
 - [ ] Durable workflow boundary logs and transition spans share the documented
@@ -235,19 +247,24 @@ Query the metrics backend for the canary service's `app.*`, `gen_ai.*`, and
 - [ ] Exception detail is deleted on traces only. The logs pipeline still carries `exception.message` and `exception.stacktrace`.
 - [ ] No metrics pipeline contains a sampling processor.
 - [ ] No `# MEASURE:` placeholder value from `collector/production.md` survives in a deployed config.
-- [ ] Complete traces reach the GenAI backend: root, HTTP, retrieval, tool, and model spans, not just model leaves.
+- [ ] The main trace backend receives the complete retained operation tree and contains neither canonical verbose GenAI content nor destination presentation copies.
+- [ ] The GenAI backend receives the same trace ID and only the rooted projection: entry root, GenAI workflow/agent/model/embedding/retrieval/tool spans, and meaningful business ancestors; unrelated operational siblings are absent.
+- [ ] Every retained GenAI-projection span has its complete parent chain to the root; retained trace IDs, span IDs, parent IDs, status, and timestamps match the main backend.
+- [ ] Business ancestors use `app.telemetry.category="genai"` only as projection membership; they do not carry a fabricated `gen_ai.operation.name`.
 - [ ] The health endpoint responds — and remember it proves only that the process is up, not that the backend is accepting data.
 - [ ] Collector self-metrics use a periodic OTLP reader with no pull reader or
   metrics listener; the monitoring backend contains `otelcol_process_uptime`.
 - [ ] A Langfuse exporter uses OTLP/HTTP and sends `x-langfuse-ingestion-version: "4"`.
+- [ ] Destination presentation attributes are created only on the Langfuse branch;
+  general trace backends contain neither `app.gen_ai.observation.*` nor
+  `langfuse.observation.*` payload copies.
 
 ## 11. Production retention and rollout (if production or sampling changed)
 
 - [ ] The policy records measured new traces/second, average and p95 spans/trace,
   p99 complete-trace arrival, serialized size, backend budget, and minimum useful
   samples. Example percentages and capacities were not copied as defaults.
-- [ ] Force a service failure and a slow operation; both complete traces reach
-  every approved trace backend regardless of the normal-success percentage.
+- [ ] Force a failure and a slow operation: complete retained traces reach the main backend and specialized backends receive their same-trace-ID connected projections regardless of the normal-success percentage.
 - [ ] Error retention matches any `ERROR` span and keeps the entire trace; log severity alone does not satisfy this check.
 - [ ] Critical non-errors use a separate bounded-outcome policy instead of false `ERROR` status.
 - [ ] Critical routes/outcomes are matched by bounded, observed attributes. Raw
@@ -267,9 +284,7 @@ Query the metrics backend for the canary service's `app.*`, `gen_ai.*`, and
 - [ ] Collector telemetry shows no early drops, unexpected late spans, policy
   errors, or memory pressure at the expected peak. Record the actual effective
   retained ratio rather than adding configured policy percentages.
-- [ ] One complete golden trace is searchable in every destination. Compare
-  application request/job metrics, Collector accepted/exported counts, and
-  backend ingest; document expected differences caused by sampling/filtering.
+- [ ] One complete golden trace is searchable in the main backend and the same trace ID resolves to each expected specialized projection; reconcile application, Collector, and backend counts and document expected sampling/filtering differences.
 - [ ] The config is canaried before fleet rollout and the rollback procedure is
   exercised. Temporary burn-in and forced-diagnostic rules have automatic or
   mandatory expiry removal.
@@ -304,6 +319,7 @@ helpers and lifecycle paths in addition to the exported-telemetry checks:
   handoff, retry carrier retention, and explicit empty-context roots;
 - serializers with batched input, multiple generations, multimodal parts, and
   tool calls;
+- GenAI projection marking on a mixed tree: one marked root, every marked in-trace parent marked, meaningful business ancestors retained, and operational siblings unmarked;
 - redaction canaries and duplicate automatic/manual boundary ownership.
 
 Do not add a new test framework only for observability. State which paths were

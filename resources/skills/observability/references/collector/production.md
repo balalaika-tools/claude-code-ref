@@ -195,6 +195,12 @@ processors:
         action: delete
       - key: gen_ai.tool.call.result
         action: delete
+      # Neutral backend-presentation copies are content too. They are mapped
+      # only on the Langfuse branch and must not survive on the APM branch.
+      - key: app.gen_ai.observation.input
+        action: delete
+      - key: app.gen_ai.observation.output
+        action: delete
 
   tail_sampling:
     # Too short silently truncates traces; too long grows memory and delays
@@ -381,10 +387,16 @@ Add a processor only with a stated purpose. Each one costs CPU and a place where
 
 ## Adding a Langfuse path
 
-Two trace pipelines from one receiver: the APM path drops LLM payloads, the Langfuse path keeps them and adds Langfuse-specific mapping.
+Two pipelines consume one application trace: APM keeps the complete tree without GenAI payloads; Langfuse keeps approved payloads and the rooted projection from `genai_projection.md`. The application still owns one provider and root; neither branch rewrites identity.
 
 ```yaml
 processors:
+  filter/langfuse_projection:
+    error_mode: ignore
+    trace_conditions:
+      # DROP unmarked spans; the application marks GenAI spans and their complete path to the root.
+      - 'span.attributes["app.telemetry.category"] != "genai"'
+
   transform/langfuse:
     error_mode: ignore
     trace_statements:
@@ -435,22 +447,21 @@ service:
         - resource/environment
         - attributes/drop_secrets      # secrets still go
         - attributes/drop_span_exception_detail
-        - transform/langfuse           # but payloads stay
         - tail_sampling
+        # Sample the complete trace before projecting; operational errors affect retention.
+        - filter/langfuse_projection
+        - transform/langfuse           # payloads stay on this branch
         - batch
       exporters: [otlphttp/langfuse]
 ```
 
-**Naming `tail_sampling` in two pipelines allocates it twice.** The Collector
-builds a separate processor instance per pipeline, so the configuration above
-holds two `num_traces` buffers and two pairs of decision caches — twice the
-memory `estimate_trace_budget.py` reports for one instance. Either budget for
-`N ×` the single-instance figure (pass `--sampling-pipelines N`), or sample once
-and fan out afterwards using a routing/forward connector so only one sampler
-instance exists. The two instances do agree on which traces to keep: the
-probabilistic policy hashes the trace ID with the same default salt in both.
+Every retained span needs a retained path to the root; the processor does not infer ancestors. Mark the root, GenAI spans, and real business ancestors with `app.telemetry.category="genai"`, not operational siblings. Never filter on `gen_ai.*` alone. If no meaningful business wrapper exists, parent the workflow directly under the operation root. The full invariant is in `genai_projection.md`.
 
-The mapping **copies**; it does not rename or delete. The neutral `app.*` and `gen_ai.*` attributes survive, so the APM payload stays vendor-neutral and swapping a backend is a Collector change rather than a code deployment.
+Both branches share a trace ID and preserve retained span/parent IDs. A log's trace ID finds the operation in both backends; a projected-out span has no Langfuse observation-level counterpart.
+
+**Naming `tail_sampling` in two pipelines allocates it twice.** This example has two buffers and decision-cache pairs. Budget `N ×` the single-instance estimate (`--sampling-pipelines N`), or sample once and fan out through a routing/forward connector. Identical probabilistic policies agree because both hash the same trace ID with the same default salt.
+
+The mapping **copies** rather than renaming canonical `gen_ai.*`. Neutral `app.gen_ai.observation.*` values are deleted after the Langfuse copies are made, as shown in `component.md`; APM contains neither payload representation.
 
 Only map what a concrete Langfuse filter needs. Mirroring every application attribute into `langfuse.trace.metadata.*` produces an unusable filter list.
 
@@ -559,7 +570,9 @@ Telemetry loss is preferable to application downtime. Silent telemetry loss duri
 - Validate every config change in CI against the exact production image.
 - Record the policy owner, rationale, thresholds, expected volume, review date, and expiry of temporary rules.
 - Roll config changes gradually and keep a tested rollback path. A bad telemetry config creates blind spots precisely when you need visibility.
-- Canary one complete trace — root, HTTP, model, tool spans — before rollout, and confirm both destinations: the APM payload has no payload attributes, and the Langfuse payload has the expected mappings.
+- Canary one bounded operation before rollout. Confirm that the APM backend has the complete tree
+  without GenAI payloads and that Langfuse has the same trace ID as a connected root/business/GenAI
+  projection with the expected captured-content mappings.
 - Compare application request/job metrics with Collector accepted/exported counts and backend ingest; process health alone does not prove delivery.
 - Watch trace completeness, orphan rate, late spans, early decisions, error-trace retention, memory, queue utilisation, and actual retained percentage during the canary.
 - Remove release burn-in and forced-diagnostic rules when their expiry is reached.
@@ -584,16 +597,14 @@ Telemetry loss is preferable to application downtime. Silent telemetry loss duri
 - [ ] Email and other low-entropy personal fields are deleted, not presented as anonymized hashes.
 - [ ] Credentials come from a secret store and appear in no committed file.
 - [ ] Receivers are bound to private networks.
-- [ ] Collector self-metrics are pushed over OTLP to an independent monitoring
-      path, and structured internal logs leave via
-      an independent platform log agent or direct endpoint.
-- [ ] Any periodic self-metrics reader has an explicit, measured reader-level
-      timeout comfortably below the platform termination grace period, and a
-      hanging-destination shutdown test proves application queues still drain.
+- [ ] Collector self-metrics are pushed over OTLP to an independent monitoring path, and structured internal logs leave via an independent platform log agent or direct endpoint.
+- [ ] Any periodic self-metrics reader has an explicit, measured reader-level timeout comfortably below the platform termination grace period, and a hanging-destination shutdown test proves application queues still drain.
 - [ ] Collector self-telemetry has stable role/environment identity, preserves
       the per-replica `service.instance.id`, and alerts use rates/increases for
       counters rather than historical values.
-- [ ] Health probes, self-telemetry, and an end-to-end backend canary are all
-      present; none is treated as proof supplied by another.
+- [ ] Health probes, self-telemetry, and an end-to-end backend canary are all present; none is treated as proof supplied by another.
 - [ ] Temporary burn-in/diagnostic rules have an owner and expiry.
 - [ ] Langfuse exporters use OTLP/HTTP and send `x-langfuse-ingestion-version: "4"`.
+- [ ] The main trace backend contains the complete operational tree with every verbose GenAI payload and neutral presentation copy removed.
+- [ ] Langfuse contains the same trace ID, the root, GenAI spans, and only their meaningful business ancestors; every retained parent exists and retained span IDs match the main trace.
+- [ ] Tail sampling evaluates the complete trace before the Langfuse projection filter.

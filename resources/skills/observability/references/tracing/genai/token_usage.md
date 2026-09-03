@@ -131,6 +131,8 @@ Three decisions behind it:
 
 Capture every figure the source exposes. Token counts drive cost, prompt-growth detection, and cache-effectiveness analysis, and none of them can be reconstructed after the fact. If a provider reports billable and raw tokens separately, use billable tokens for the standard attributes.
 
+Content placement is orthogonal to usage. Splitting a provider-level system field into `gen_ai.system_instructions` while keeping chat history in `gen_ai.input.messages` does not split the billed request. Preserve the provider-reported input count for the whole request, including system instructions. Never subtract estimated system tokens, sum independently tokenized telemetry fields, or change usage when `CAPTURE_AI_CONTENT` changes.
+
 When the provider reports no details, the flattened form preserves that absence:
 
 ```json
@@ -257,6 +259,7 @@ The equivalent for other providers differs; check the integration. **If `gen_ai.
 - `gen_ai.usage.cache_read.input_tokens`, `gen_ai.usage.cache_write.input_tokens`, reasoning, and audio breakdowns are present when the provider reports them, including an explicit `0`, and absent when unavailable.
 - `app.gen_ai.usage.input_token_details` / `output_token_details` are populated only when the provider reports details.
 - Streamed and non-streamed calls to the same model both carry usage.
+- The same provider response yields identical usage with content capture on or off and with system instructions projected separately or left in chat history.
 - The token histogram in `../../metrics/genai.md` and the span attributes come from the same normalized dict.
 
 Do not discard details because they look empty this time — a model that reports `cache_read: 0` today reports a real number after prompt caching is enabled.
