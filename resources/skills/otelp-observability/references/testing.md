@@ -170,6 +170,7 @@ Deterministic logic, not the SDK. Do not test that OpenTelemetry creates spans.
 | Linked-consumer path | `context=None` where `Context()` was meant — asserted as `span.parent is None` plus one link |
 | Retry of the same work item | A regenerated carrier breaking the causal link |
 | Redaction canary through the serializer | A secret reaching a span attribute |
+| Logging the same chained exception with `LOG_FULL_EXCEPTION_TRACE=true` and `false` | Missing full detail in the default mode, or leaked traceback/message/PII in masked mode |
 | GenAI projection membership on a mixed business/GenAI/operational tree | An orphaned model leaf, a missing business ancestor, or DB/HTTP noise selected for Langfuse |
 | Both success and failure paths of every recorder | An error rate with a denominator that excludes errors |
 

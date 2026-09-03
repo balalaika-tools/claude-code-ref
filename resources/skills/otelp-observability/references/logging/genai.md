@@ -20,34 +20,49 @@ never in a log record
 
 `log.info("prompt", prompt=prompt)` is the single most common way an LLM service leaks user content into a backend nobody audited. If prompts must be inspectable, they belong on the span, behind the switch, routed to the backend chosen for them.
 
-Bounded facts about the payload are fine and often enough:
+Bounded facts about the payload are fine when a successful agent completion was
+explicitly selected for audit/business search:
 
 ```python
 log.info(
-    "model_request_completed",
+    "agent_invocation_completed",
     **{
+        "gen_ai.agent.name": agent_name,
         "gen_ai.request.model": model,
         "gen_ai.provider.name": provider,
         "input_message_count": len(messages),
         "output_char_count": len(answer),
-        "attempt": attempt,
+        "app.outcome": "success",
     },
 )
 ```
 
 ---
 
-## Event names
+## Default GenAI event matrix
 
-`structlog.md` owns the request/job/queue events. These are the GenAI ones, and they live only here:
+`structlog.md` owns request/job/queue events. Apply this matrix after the
+generic business-event baseline; “when it occurs” means the event is default
+for that control-flow outcome, not that every invocation emits a log.
 
-```
-model_request_failed          tool_execution_failed        guardrail_blocked
-agent_invocation_completed    agent_step_limit_reached     retrieval_completed
-summarization_triggered       agent_invocation_cancelled   retrieval_empty
-```
+| Situation | Default logging decision | Event |
+| --- | --- | --- |
+| Successful model call | **Do not log**; span and metrics already carry latency, usage, and outcome | — |
+| Terminal standalone/provider-boundary model failure | One `error` at that owning boundary | `model_request_failed` |
+| Model failure that escapes to an HTTP/job/agent owner | **Do not log inside**; emit only the outer application failure record | outer `app.*.failed` event |
+| Recovered provider/model retry | One `warning` per failed physical attempt | `model_request_failed`, `app.outcome=retried` |
+| Recovered tool retry | One `warning` at the recovery boundary | `tool_execution_failed`, `app.outcome=retried` |
+| Model/provider fallback | One `warning` when fallback activates | `model_fallback_activated`, `app.outcome=fallback` |
+| Guardrail blocks an operation | Log when it occurs | `guardrail_blocked` |
+| Agent reaches its step limit | Log when it occurs | `agent_step_limit_reached` |
+| Agent invocation is cancelled | Log when it occurs | `agent_invocation_cancelled` |
+| Retrieval returns no usable result | Log when it occurs | `retrieval_empty` |
+| Summarization/compaction activates | Log when it occurs | `summarization_triggered` |
+| Successful agent or retrieval completion | Conditional: only for audit/business search not answered by traces | `agent_invocation_completed` / `retrieval_completed` |
 
-Stable strings. Model names, tool names, and attempt numbers are fields.
+Event names are stable strings. Model names, tool names, attempts, fallback
+source/target, policy, and reason are fields. Never create a success log for
+every model/tool/span merely for symmetry.
 
 These are structlog event bodies and remain useful when logs go to stdout. If
 the record is exported as a named OpenTelemetry event, a provider-facing model
@@ -91,7 +106,7 @@ HTTP handler           span: ERROR + error.type          log.error(..., exc_info
 
 The owning boundary is whichever layer decides the request's outcome — the exception handler, the worker's per-message handler. Everything inside it sets `error.type` and re-raises. Full contract: `../conventions/errors.md`.
 
-The exception to that rule is a failure that is **handled and recovered**: a tool attempt that a retry then fixes, or a model fallback that succeeds. Those never reach the boundary, so if you want them visible they need their own record where they happen — at `warning`, with `app.outcome` describing the recovery, and without marking the parent span `ERROR`.
+The exception to that rule is a failure that is **handled and recovered**: a tool attempt that a retry then fixes, or a model fallback that succeeds. Those never reach the boundary, so the default matrix gives them one record where recovery is decided — at `warning`, with `app.outcome` describing the recovery, and without marking the parent span `ERROR`.
 
 For a recovered model-client attempt exported through the OTel logs signal,
 set `otel_event_name="gen_ai.client.operation.exception"`. The shared structlog
@@ -126,9 +141,11 @@ This is the split that catches people out on a GenAI service: the trace backend,
 ## Verify
 
 - No prompt, completion, tool argument, or retrieved document appears in any log line. Put a canary string through the service and grep the captured log output for it.
-- A model failure inside an agent produces exactly **one** record with a stack trace, at the request boundary.
+- A model failure inside an agent produces exactly **one** record at the request boundary, with full or masked detail according to `LOG_FULL_EXCEPTION_TRACE`.
 - Named provider-client exception events use `gen_ai.client.operation.exception`; outer application failures use one `app.*` event instead.
 - A retried-then-successful tool call produces a `warning` record and leaves the agent span `UNSET`.
+- A successful model call emits no routine completion log; a selected successful agent/retrieval business event remains conditional and documented.
+- Guardrail, step-limit, cancellation, empty-retrieval, summarization, and fallback canaries emit the matrix event once with bounded fields.
 - Records emitted inside a model span carry that span's `trace_id` and `span_id`.
 - `gen_ai.conversation.id` appears in logs and in no metric.
 

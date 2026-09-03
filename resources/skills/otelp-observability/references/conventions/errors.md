@@ -1,9 +1,6 @@
 # The Error Contract
 
 Every code sample in this skill records failures the same way. Use this contract everywhere; do not mix it with the older span-event style.
-
----
-
 ## Why not `record_exception()`
 
 OpenTelemetry is moving exception detail off span events and onto log records
@@ -33,21 +30,23 @@ exception-detail processor out of the logs pipeline precisely for this).
 If a backend cannot pivot, say so and let the user choose; do not quietly
 degrade their error view. This is the one place in the skill where a house rule
 has a visible product consequence.
-
----
-
 ## The contract
 
 Three things happen when an operation fails:
 
 1. the span ends with `ERROR` status;
 2. the span carries a low-cardinality `error.type`;
-3. the environment-appropriate exception detail is emitted once, as a named structured log, while the span is still active.
+3. the configured exception detail is emitted once, as a named structured log, while the span is still active.
 
 Nothing else. No `str(exc)` in the span status message, no exception message as an attribute, no duplicated log at every call depth.
 
----
-
+Always declare `LOG_FULL_EXCEPTION_TRACE`, defaulting to `true` independently
+of environment and `LOG_LEVEL`; do not ask for confirmation. True stores the
+complete chained traceback in `exception.stacktrace`. When the user explicitly
+sets it to `false`, remove raw traceback and exception-message detail—including
+PII—and keep a safe authored message, `error.type`, stable reason/code, and
+trace/span correlation. Secrets are redacted in both modes. See
+`../logging/structlog.md` for the central processor contract.
 ## Case 1 — the exception escapes the span
 
 The common case. Pass `record_exception=False` so the context manager does not
@@ -56,9 +55,7 @@ at its default so it still sets `ERROR` on the way out.
 
 ```python
 from opentelemetry import trace
-
 tracer = trace.get_tracer(__name__)
-
 
 def retrieve_documents(query: str, top_k: int) -> list[dict]:
     with tracer.start_as_current_span(
@@ -93,12 +90,9 @@ The context manager cannot infer failure from a caught exception. Set the status
 ```python
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
-
 import structlog
-
 log = structlog.get_logger(__name__)
 tracer = trace.get_tracer(__name__)
-
 
 def fetch_price(sku: str) -> Decimal | None:
     with tracer.start_as_current_span(
@@ -144,8 +138,20 @@ else:
 
 `tracer.start_span()` does **not** set status on exception for you and does **not** make the span current. Use `trace.use_span(span, end_on_exit=False, record_exception=False)` if child spans must nest under it.
 
----
+## Custom exceptions when the domain needs them
 
+Prefer a custom exception when the application must distinguish an actionable
+domain failure from an implementation or provider failure: for example
+`PaymentDeclined`, `OrderNotFulfillable`, or `DocumentPolicyViolation`. Give it
+a stable machine-readable reason/code and only the safe context needed by the
+boundary. Chain the original failure with `raise DomainError(...) from exc` so
+the default full traceback preserves the complete cause chain.
+
+Do not wrap merely to rename every exception, and do not put PII, secrets, raw
+payloads, or dynamic messages into the class name/reason code. If callers
+cannot handle, map, retry, alert on, or present the custom type differently,
+keep the original exception. `error.type` uses the bounded custom class name;
+the detailed cause remains in the one owning `exception.stacktrace` log.
 ## `error.type` values
 
 Low-cardinality, and stable enough to alert on.
@@ -186,12 +192,9 @@ Both metrics files defer to this rule: `../metrics/service.md` for the `app.*`
 case, `../metrics/genai.md` for the standard one. When you add an `app.*`
 instrument next to a standard one, they will disagree on this attribute by
 design.
-
----
-
 ## Where the exception log goes
 
-Emit it at the boundary that decides the request's outcome: the HTTP exception handler, the worker's per-message handler, the job's top-level `try`. That is one record per failed operation with environment-appropriate exception detail, correlated by `trace_id`/`span_id` to every span in the trace.
+Emit it at the boundary that decides the request's outcome: the HTTP exception handler, the worker's per-message handler, the job's top-level `try`. That is one record per failed operation with the configured exception detail, correlated by `trace_id`/`span_id` to every span in the trace.
 
 The structlog processor that turns these into named OpenTelemetry events, and the duplicate-ingestion guard it needs, are in `../logging/structlog.md`.
 
@@ -205,9 +208,6 @@ logs the overall application failure, use an application-owned event such as
 same escaping exception merely to satisfy both names; the one-record ownership
 rule still wins. A recovered physical model attempt may use the standard event
 at warning level because it never reaches the outer boundary.
-
----
-
 ## Making failures visible in both signals
 
 Log severity and span status are independent fields. `logger.error(...)` does not set the active span to `ERROR`, and an `ERROR` span does not create a log. A tail-sampling policy that keeps error traces sees only the span status — so an operation that logged an error but left its span `UNSET` will be sampled away exactly when you need it.
@@ -222,9 +222,6 @@ any span, not only the root. Successful fallback, expected business HITL, and
 safe deferral keep unset status plus their bounded outcome. Terminal
 failure-driven HITL carries `ERROR`, bounded `error.type`, and `app.outcome=hitl`.
 Log detail once while the owning span is active for correlation. Retain complete error traces; sample critical non-errors with a bounded-outcome policy.
-
----
-
 ## Checklist
 
 - [ ] No `record_exception()` or `add_event()` anywhere in the new code.
@@ -235,6 +232,7 @@ Log detail once while the owning span is active for correlation. Retain complete
 - [ ] Caught-and-handled failures set span status explicitly, and only when the operation actually failed.
 - [ ] Terminal failure-driven HITL sets both `ERROR` and `app.outcome=hitl`; expected business HITL remains non-error.
 - [ ] Error filtering and tail sampling match any `ERROR` span in the trace, not only the root.
-- [ ] Exception detail is logged once through the central renderer: full traceback in local/dev/staging; safe indicators and correlation without raw exception text in production.
+- [ ] `LOG_FULL_EXCEPTION_TRACE` is always declared and defaults to `true`; `false` masks raw traceback/message detail while preserving safe classification and correlation.
+- [ ] Domain exceptions exist only where their stable type/reason changes handling, retry, alerting, or user-facing mapping; wrapped causes use `raise ... from exc`.
 - [ ] Provider-facing GenAI client exception events use `gen_ai.client.operation.exception`; outer application failures use an `app.*` event and are not duplicated.
 - [ ] No exception message appears in a span attribute, span status message, or metric attribute.

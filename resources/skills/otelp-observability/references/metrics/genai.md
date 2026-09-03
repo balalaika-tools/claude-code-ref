@@ -4,23 +4,26 @@ These sit **on top of** the service metrics in `service.md`, not instead of them
 
 ---
 
-## Use the standard instruments
+## Default suggested GenAI baseline
 
-The GenAI semantic conventions define these. Use them rather than inventing `llm.requests`, so dashboards, backends, and future instrumentation libraries agree.
+Start with the two **core** rows for every model-calling application, then add
+each conditional row whose capability exists. These sit on top of the matching
+service baseline in `service.md`. Use the standard names rather than inventing
+`llm.requests`, so dashboards, backends, and future instrumentation agree.
 
-| Metric | Instrument | Unit | Answers |
-| --- | --- | --- | --- |
-| `gen_ai.client.operation.duration` | Histogram | `s` | model latency, error rate, timeouts |
-| `gen_ai.client.token.usage` | Histogram | `{token}` | token distribution and prompt growth |
-| `gen_ai.client.operation.time_to_first_chunk` | Histogram | `s` | streaming UX |
-| `gen_ai.execute_tool.duration` | Histogram | `s` | tool latency and error rate |
-| `gen_ai.invoke_agent.duration` | Histogram | `s` | one agent invocation |
-| `gen_ai.invoke_agent.inference_calls` | Histogram | `{inference_call}` | model fan-out per invocation |
-| `gen_ai.invoke_agent.tool_calls` | Histogram | `{tool_call}` | tool fan-out per invocation |
-| `gen_ai.invoke_workflow.duration` | Histogram | `s` | multi-agent workflow latency |
+| Default when | Metric | Instrument | Unit | Answers |
+| --- | --- | --- | --- | --- |
+| Every GenAI app | `gen_ai.client.operation.duration` | Histogram | `s` | model latency, error rate, timeouts |
+| Every GenAI app | `gen_ai.client.token.usage` | Histogram | `{token}` | token distribution and prompt growth |
+| Streaming | `gen_ai.client.operation.time_to_first_chunk` | Histogram | `s` | streaming UX |
+| Tool use | `gen_ai.execute_tool.duration` | Histogram | `s` | tool latency and error rate |
+| Agent | `gen_ai.invoke_agent.duration` | Histogram | `s` | one agent invocation |
+| Agent | `gen_ai.invoke_agent.inference_calls` | Histogram | `{inference_call}` | model fan-out per invocation |
+| Agent with tools | `gen_ai.invoke_agent.tool_calls` | Histogram | `{tool_call}` | tool fan-out per invocation |
+| Streaming agent | `app.agent.time_to_first_chunk` | Histogram | `s` | end-user agent response latency |
+| Multi-agent workflow | `gen_ai.invoke_workflow.duration` | Histogram | `s` | multi-agent workflow latency |
 
 The two `*_calls` metrics are **histograms recorded once per invocation**, not counters incremented per call. They describe fan-out. Do not sum them against a per-call counter; the aggregation semantics differ and the result is meaningless.
-
 Add `app.*` metrics only for product facts these do not express.
 
 ---

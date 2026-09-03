@@ -6,9 +6,21 @@ Metrics are not optional for a GenAI service either. GenAI metrics (`genai.md`) 
 
 ---
 
-## Choose by what the service is responsible for
+## Default suggested baseline by application shape
 
-Do not add every metric on this page. Take the rows that match the service's actual responsibilities.
+Adopt every row under the application's primary shape unless the named source
+does not exist or an established equivalent already emits it. Compose shapes:
+an HTTP service that also consumes a queue gets both baselines. Add the
+dependency baseline whenever the app calls a database, provider, broker, or
+downstream service. These are defaults to review, not a catalogue to copy into
+an unrelated process.
+
+For **every** app, the resulting set must answer: operation throughput, failure
+rate, duration, current saturation/in-flight work where meaningful, and the one
+or two domain outcomes the business actually monitors. Prefer a standard
+instrument for the first four. During discovery, propose at least one bounded
+`app.*` business counter or distribution when no standard metric expresses the
+domain outcome; state its owner and operational question before adding it.
 
 ### HTTP / API service
 
@@ -39,6 +51,7 @@ you add its HTTP equivalent, you gain nothing.
 | `app.worker.oldest_message.age` | ObservableGauge | `s` | user-visible delay |
 | `app.worker.job.duration` | Histogram | `s` | processing time |
 | `app.worker.jobs` | Counter | `{job}` | throughput and failure rate, by `app.outcome` |
+| `app.worker.jobs.in_flight` | UpDownCounter | `{job}` | concurrency and saturation |
 | `app.worker.retries` | Counter | `{retry}` | retry storms |
 | `app.worker.dead_letter` | Counter | `{message}` | messages given up on |
 
@@ -57,6 +70,13 @@ The third one matters most: a job that never starts emits no duration and no fai
 ### Any service with dependencies
 
 Dependency latency and error rate per downstream, from the client instrumentation's duration histogram. If a dependency is called through a library with no instrumentation, add one histogram with a bounded `server.address` or a logical dependency name.
+
+### Baseline selection report
+
+Before implementation, list the selected defaults and their source (`auto`,
+`manual`, or existing library), plus any intentionally omitted row and why.
+This makes “metrics enabled” a concrete contract rather than an exporter that
+may emit nothing useful.
 
 ---
 

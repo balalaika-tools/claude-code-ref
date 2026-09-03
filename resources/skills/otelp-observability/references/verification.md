@@ -63,11 +63,11 @@ Remove the console exporter before committing.
 
 Exercise one representative operation end to end, then check the exported spans.
 
-- [ ] A root span exists, and it is the boundary you intended — the HTTP server span, Lambda invocation, job run, or message.
+- [ ] The boundary shape is correct: one trace per HTTP request or bounded job/message/retry attempt, and no span/trace remains open around an unbounded worker loop.
 - [ ] Every span has a low-cardinality name. No IDs, prompts, or user values.
 - [ ] Child spans are actually **children**. Siblings where you expected nesting mean context was lost — usually at a raw-thread or non-propagating executor boundary; modern `asyncio.create_task()` and `asyncio.to_thread()` copy context.
 - [ ] There is exactly one span per logical operation. Two means automatic and manual instrumentation both own the boundary.
-- [ ] Span count per request is proportional to what the request does. A health check producing forty spans means an instrumentation package is too chatty.
+- [ ] Span count is proportional to the work, and each custom span has useful bounded operation/outcome/decision/result attributes rather than copied payloads or generic implementation fields.
 - [ ] `service.namespace`, `service.name`, `service.instance.id`, `service.version`, and `deployment.environment.name` appear on every span.
 - [ ] Start two replicas and confirm their `service.instance.id` values differ while `service.namespace` and `service.name` remain identical.
 - [ ] `service.instance.id` remains unchanged across several operations from one process; a value that changes per request destroys instance-level analysis.
@@ -90,8 +90,8 @@ git grep -n "record_exception\|add_event" -- '*.py'
 
 Expect zero hits in code this work added or touched.
 
-- [ ] The exception appears **once** in the logs, with a stack trace, from the boundary that handled it.
-- [ ] That stack trace survives the Collector: with the pipeline deployed, find the canary exception in the log backend and confirm `exception.stacktrace` is still on it. Deleting it on the logs path removes the only copy the error contract leaves.
+- [ ] The exception appears **once** at the owning boundary. With the always-declared `LOG_FULL_EXCEPTION_TRACE=true` default, the record contains the full chained `exception.stacktrace`; setting it to `false` masks raw trace/message detail.
+- [ ] When enabled, that stack trace survives the Collector and any explicit truncation is marked; deleting it on the logs path removes the only detailed copy the error contract leaves.
 - [ ] A handled failure with a successful fallback does **not** mark the span `ERROR`.
 - [ ] Terminal failure-driven HITL marks the owner `ERROR`, keeps `app.outcome=hitl`, and carries the bounded cause.
 - [ ] Expected business HITL remains non-error and is distinguishable by status.
@@ -194,7 +194,7 @@ Expect no matches.
 
 ## 7. Metrics
 
-- [ ] Every instrument produces data. Export once and look:
+- [ ] Every selected default instrument for this app shape produces data, and each omitted baseline row has a documented reason. Export once and look:
 
 Query the metrics backend for the canary service's `app.*`, `gen_ai.*`, and
 `http.server.*` instruments. With no Collector, use an in-process
@@ -223,7 +223,7 @@ Query the metrics backend for the canary service's `app.*`, `gen_ai.*`, and
   trace ID, not the producer trace ID stored in the span link.
 - [ ] Durable workflow boundary logs and transition spans share the documented
   `workflow_run_id` / `app.workflow.run.id` value; the ID appears on no metric.
-- [ ] Event names are stable strings; variable data is in fields.
+- [ ] The event catalogue covers terminal failures, recovered retries/fallbacks, and material business state changes; names are stable strings and variable data is in fields.
 - [ ] No prompt, completion, token, cookie, or authorization header in any line. Put a canary secret through the service and grep the log output for it.
 - [ ] One record per failed operation, not one per stack frame.
 
@@ -231,7 +231,7 @@ Query the metrics backend for the canary service's `app.*`, `gen_ai.*`, and
 
 - [ ] Every new environment variable exists in the service's config object — not read via `os.environ` at a call site.
 - [ ] Every new variable is declared in the deployment (compose file, Helm values, task definition, `.env.example`).
-- [ ] Defaults are safe: content capture off, no backend credentials in application containers.
+- [ ] Defaults are explicit: content capture off, `LOG_FULL_EXCEPTION_TRACE=true`, no backend credentials in app containers; setting the switch to `false` is verified to mask traceback/message detail.
 - [ ] `OTEL_SERVICE_NAME` and `SERVICE_NAMESPACE` are required repository-specific values. Missing either fails startup with a clear settings validation error; other new variables use their documented safe defaults.
 - [ ] Exactly one owner sets each service resource attribute. Code-based setup does not duplicate the same keys in `OTEL_RESOURCE_ATTRIBUTES`; zero-code setup does not build an in-code provider.
 - [ ] Collector enrichment cannot overwrite the application: `resource`/`attributes` processors use `action: insert`, `resourcedetection` uses `override: false`. Test it — send telemetry with `deployment.environment.name=uat` through the pipeline and confirm it arrives as `uat`, not as the Collector's value.
@@ -244,7 +244,7 @@ Query the metrics backend for the canary service's `app.*`, `gen_ai.*`, and
 - [ ] Receive and export counters both increase; `otelcol_exporter_send_failed_*` stays at zero.
 - [ ] Canary secrets — a fake API key, email, and authorization header — reach no backend.
 - [ ] `user.email` is deleted on every Collector path. No test or documentation treats the Collector's unsalted hash action as anonymization.
-- [ ] Exception detail is deleted on traces only. The logs pipeline still carries `exception.message` and `exception.stacktrace`.
+- [ ] Exception detail is deleted on traces only. The logs pipeline preserves `exception.stacktrace` when enabled and never overrides the application's environment-controlled full/safe choice.
 - [ ] No metrics pipeline contains a sampling processor.
 - [ ] No `# MEASURE:` placeholder value from `collector/production.md` survives in a deployed config.
 - [ ] The main trace backend receives the complete retained operation tree and contains neither canonical verbose GenAI content nor destination presentation copies.

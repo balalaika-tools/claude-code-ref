@@ -13,14 +13,11 @@ structlog does not have to route through the stdlib formatter. If stdout or a fi
 ```python
 # observability/logging.py
 import sys
-
 import structlog
 from opentelemetry import trace
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.trace import format_span_id, format_trace_id
-
 from core.config import get_settings
-
 
 def add_otel_trace_context(_, __, event_dict):
     context = trace.get_current_span().get_span_context()
@@ -28,7 +25,6 @@ def add_otel_trace_context(_, __, event_dict):
         event_dict["trace_id"] = format_trace_id(context.trace_id)
         event_dict["span_id"] = format_span_id(context.span_id)
     return event_dict
-
 
 def add_exception_fields(_, __, event_dict):
     """Materialize standard exception fields before format_exc_info consumes it."""
@@ -47,15 +43,30 @@ def add_exception_fields(_, __, event_dict):
         event_dict.setdefault("exception.message", str(exc))
     return event_dict
 
+def apply_exception_detail_policy(include_full_trace: bool):
+    """Keep traceback policy centralized and expose one dedicated JSON field."""
+    def processor(_, __, event_dict):
+        rendered = event_dict.pop("exception", None)
+        if rendered and include_full_trace:
+            # Apply the service's credential/token redactor to this text before
+            # returning it; do not enable capture_locals in traceback formatters.
+            event_dict["exception.stacktrace"] = rendered
+            event_dict["app.error.stacktrace_included"] = True
+        elif rendered:
+            # Retain a safe authored event body plus bounded classification.
+            event_dict["exception.message"] = "Exception details masked by policy"
+            event_dict["app.error.stacktrace_included"] = False
+        return event_dict
+    return processor
 
 def configure_logging(logger_provider: LoggerProvider | None = None) -> None:
     settings = get_settings()
-
     processors = [
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         add_exception_fields,
         structlog.processors.format_exc_info,
+        apply_exception_detail_policy(settings.log_full_exception_trace),
     ]
     if logger_provider is not None:
         # OtelEventProcessor is defined below in this same module. It drops
@@ -68,7 +79,6 @@ def configure_logging(logger_provider: LoggerProvider | None = None) -> None:
             structlog.processors.JSONRenderer(),
         ]
     )
-
     structlog.configure(
         processors=processors,
         wrapper_class=structlog.make_filtering_bound_logger(
@@ -76,8 +86,6 @@ def configure_logging(logger_provider: LoggerProvider | None = None) -> None:
         ),
         cache_logger_on_first_use=True,
     )
-
-
 log = structlog.get_logger().bind(**{"service.name": get_settings().otel_service_name})
 ```
 
@@ -85,7 +93,6 @@ Call `configure_logging(providers.logger_provider)` after
 `providers = configure_observability()`. The provider is `None` unless named
 OTel events are enabled, so ordinary JSON stdout logging needs no second setup
 path.
-
 The output should look like:
 
 ```json
@@ -197,13 +204,18 @@ exception_id      order_id          supplier_id      document_count
 workflow_run_id   workflow_state    operation        tenant_id
 ```
 
-Never log:
+Never log as ordinary fields:
 
 ```
 raw prompts and completions      access tokens, API keys
 full request/response bodies     cookies, authorization headers
 retrieved document text          personal data without explicit permission
 ```
+
+The separately governed `exception.stacktrace` may contain PII through an
+exception message. `LOG_FULL_EXCEPTION_TRACE` is therefore always exposed:
+it defaults to `true`, and the user can set it to `false` to mask raw traceback
+and message detail. This does not relax always-on secret redaction.
 
 An LLM service is where this rule gets broken, and it has its own file: `genai.md` covers what a GenAI service must keep out of its logs, which events are worth emitting, and where the exception record goes when a model call is retried inside an agent.
 
@@ -227,7 +239,7 @@ deprecated and new exception events go to correlated log records
 
 ## Exception logging
 
-Log once at the owning boundary and route `exc_info` through the shared renderer: full traceback in local/dev/staging, safe authored message and bounded indicators in production. Redact credentials/tokens everywhere; call sites never branch on environment.
+Log once at the owning boundary and route `exc_info` through the shared renderer. Always declare `LOG_FULL_EXCEPTION_TRACE`; it defaults to `true` in every environment and places the complete chained traceback in `exception.stacktrace`. When the user sets it to `false`, keep only a safe authored message, bounded indicators, and correlation. Redact credentials/tokens everywhere; call sites never branch on environment or privacy policy.
 
 ```python
 try:
@@ -254,12 +266,12 @@ Logging at every level produces one incident with six stack traces and no way to
 
 ### Backend size limits on the traceback attribute
 
-A log backend can cap the size of structured metadata per record — Grafana Loki, for example, rejects a whole line once its structured metadata exceeds `max_structured_metadata_size`. The rendered traceback is unbounded; a deep stack or an `ExceptionGroup` can exceed that cap easily. When it does, the backend does not truncate the field — it drops the **entire record**, so the one owning exception log for the failure disappears along with `trace_id`, `error.type`, and everything else on it.
+A log backend can cap the size of structured metadata per record — Grafana Loki, for example, rejects a whole line once its structured metadata exceeds `max_structured_metadata_size`. The rendered, chained traceback is unbounded; a deep stack or an `ExceptionGroup` can exceed that cap easily. When it does, the backend does not truncate the field — it drops the **entire record**, so the one owning exception log for the failure disappears along with `trace_id`, `error.type`, and everything else on it.
 
 This is a different failure than the Collector-side deletion `../collector/production.md` warns about: that removes only the stack trace and the record still arrives. Confirm the log backend's per-record limit before shipping full-traceback logging anywhere it applies. Two mitigations, in order of preference:
 
-- Keep the traceback as a bounded attribute and truncate it to a fixed size safely under the backend's cap — never drop the field silently.
-- If the backend's log body has no comparable limit, carry the rendered traceback there instead of in `attributes`: pop `event_dict["exception"]` (written by `format_exc_info`) before building the attributes dict, and fold it into `body`. Bounded, searchable fields (`error.type`, `workflow_run_id`, …) stay attributes either way — only the unbounded text moves.
+- Keep the traceback as a bounded attribute and truncate it to a fixed size safely under the backend's cap; mark `app.error.stacktrace_truncated=true` — never drop the field silently.
+- If the backend's log body has no comparable limit, carry `exception.stacktrace` in the body instead of attributes. Bounded searchable fields (`error.type`, `workflow_run_id`, …) stay attributes — only the unbounded text moves.
 
 Verify with a synthetic exception whose rendered traceback exceeds the backend's cap and confirm exactly one record still arrives.
 
@@ -304,10 +316,8 @@ class OtelEventProcessor:
         attributes = {
             k: v
             for k, v in event_dict.items()
-            if k not in {"event", "level", "timestamp", "exception"}
+            if k not in {"event", "level", "timestamp"}
         }
-        if "exception" in event_dict:
-            attributes["exception.stacktrace"] = event_dict["exception"]
 
         # This standard event recommends WARN even when the provider failure
         # ultimately causes an application-owned ERROR event at an outer
@@ -401,7 +411,7 @@ And a corollary with teeth here specifically: because a tail policy keeps traces
   linked producer trace ID; `workflow_run_id` finds the complete durable run.
 - Event names are stable strings, with variable data in fields.
 - No prompt, completion, token, cookie, or authorization header appears in any log line — grep a captured log sample for a canary secret to prove it.
-- An exception produces exactly one record: full traceback in non-production; safe projection and stable indicators without raw exception text in production.
+- An exception produces exactly one record. `exception.stacktrace` contains the full cause chain by default; setting `LOG_FULL_EXCEPTION_TRACE=false` yields only the safe projection and stable indicators.
 - If named events are enabled: `event_name` is populated at the top level, and the record appears exactly once.
 
 ## Then

@@ -154,7 +154,7 @@ The shared logging module may own:
 
 - stdlib/structlog processor construction and level normalization;
 - current-span `trace_id`/`span_id` injection;
-- credential/token redaction and safe/full exception projection;
+- credential/token redaction and the default-on, environment-controlled full-trace policy;
 - stable common fields such as timestamp, severity, and service identity;
 - optional named OTel log-event export when it has one delivery owner.
 
@@ -192,7 +192,7 @@ unrelated services merely to make their folder trees symmetrical.
 - Success, escaping failure, handled failure, cancellation, and linked-root
   behavior satisfy the common contract.
 - Logging inside a span has valid trace/span identifiers and applies the same
-  redaction and environment exception policy in every consumer.
+  redaction and `LOG_FULL_EXCEPTION_TRACE` behavior in every consumer.
 - A record has one delivery path; a boundary has one span owner.
 - Shutdown flushes each enabled signal once and cannot replace business failure.
 - Library tests pass independently, then each migrated consumer's contract and

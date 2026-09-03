@@ -158,6 +158,11 @@ class Settings(BaseSettings):
     capture_ai_content: bool = Field(False, alias="CAPTURE_AI_CONTENT")
 
     log_level: str = Field("INFO", alias="LOG_LEVEL")
+    # Always declared; independent of log level and environment. Users set
+    # false when raw traceback/message detail, including PII, must be masked.
+    log_full_exception_trace: bool = Field(
+        True, alias="LOG_FULL_EXCEPTION_TRACE"
+    )
 
 
 @lru_cache
@@ -190,6 +195,7 @@ For a plain-dataclass or `os.environ`-based config, add fields in the same style
 | `OTEL_PROPAGATORS` | Set explicitly in deployment; add baggage only when routed by `SKILL.md` | `tracecontext` |
 | `CAPTURE_AI_CONTENT` | GenAI content capture switch | `false` |
 | `LOG_LEVEL` | structlog level | `INFO` |
+| `LOG_FULL_EXCEPTION_TRACE` | Include the complete chained traceback in `exception.stacktrace` | `true` |
 
 Sampling configuration follows the provider owner and the policy selected in
 discovery. For a code-owned provider, pass `ALWAYS_ON` directly for Collector

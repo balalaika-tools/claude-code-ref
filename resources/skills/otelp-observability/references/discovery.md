@@ -253,6 +253,9 @@ Split them by signal:
 | Log field | A high-cardinality identifier needed to find one record later: `exception_id`, `order_id` |
 
 If the user explicitly requested particular business attributes, include them as well.
+Do not ask about exception-trace capture. Always add
+`LOG_FULL_EXCEPTION_TRACE=true`; document that deployments can set it to
+`false` to mask raw traceback and exception-message detail, including PII.
 
 ---
 
@@ -271,6 +274,7 @@ Baggage:        none
 Backends:       traces -> Tempo, metrics -> Mimir, logs -> Loki
 Export topology: shared gateway Collector, new services/otel-collector component
 Business:       app.pricing.product_count, app.pricing.updates, supplier_id log field
+Error trace:    LOG_FULL_EXCEPTION_TRACE=true (set false for safe projection)
 Production:     <not measured — PROVISIONAL; see §8 for the required inputs>
 Noise:          successful /live and /ready are leaf spans; failed probes retained
 Rollout:        release burn-in for one Git SHA; owner=platform; expires=<date>

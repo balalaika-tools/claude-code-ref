@@ -106,6 +106,7 @@ dashboards that each miss three quarters of the data, so the domains are fixed:
 | `app.retrieval.*`, `app.embedding.*`, `app.guardrail.*` | RAG and policy stages | `app.retrieval.result_count`, `app.guardrail.blocked` |
 | `app.tenant.*`, `app.feature.*`, `app.experiment.*` | bounded request segmentation, including anything baggage propagates | `app.tenant.tier`, `app.feature.name`, `app.experiment.variant` |
 | `app.telemetry.*` | bounded application-owned routing and projection facts; spans only | `app.telemetry.category="genai"` |
+| `app.error.*` | logging-policy metadata; logs only, never exception content | `app.error.stacktrace_included`, `app.error.stacktrace_truncated` |
 | `app.<business-domain>.*` | everything the service's own domain owns | `app.pricing.product_count`, `app.exception.rule` |
 | `app.outcome`, `app.response.time_to_first_chunk` | deliberately flat, because they belong to no single domain | — |
 
@@ -161,7 +162,7 @@ allowed    service.name, deployment.environment.name, http.route, http.request.m
 
 forbidden  user.id, session.id, gen_ai.conversation.id, request_id, trace_id,
            order_id, document_id, gen_ai.response.id, raw URLs, exception messages,
-           prompt or response text, tool arguments, app.telemetry.category
+           prompt or response text, tool arguments, app.telemetry.category, app.error.*
 ```
 
 This is the list the metrics files defer to — `../metrics/service.md` and `../metrics/genai.md` add only the traps specific to their domain.
@@ -197,7 +198,7 @@ The same fact should carry the same name everywhere it is bounded enough to appe
 ```
 span attribute   gen_ai.request.model = "gpt-5"
 metric attribute gen_ai.request.model = "gpt-5"
-log field        model = "gpt-5"
+log field        gen_ai.request.model = "gpt-5"
 ```
 
 Where a name must differ (log fields are conventionally flat, metric labels get normalised by the backend), document the mapping once in the observability package rather than letting each call site improvise.

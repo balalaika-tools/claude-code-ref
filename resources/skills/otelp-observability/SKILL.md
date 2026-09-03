@@ -1,5 +1,5 @@
 ---
-name: observability
+name: otelp-observability
 description: "Add, audit, repair, upgrade, or troubleshoot OpenTelemetry tracing, metrics, and structured logging in a Python application, service, or shared internal observability library — FastAPI/HTTP APIs, background workers, queue consumers, DB-backed state machines, scheduled jobs, AWS Lambda functions, LangChain/LangGraph agents, and direct provider-SDK LLM code — including GenAI semantic conventions, token and TTFC capture, trace propagation across queues and durable database handoffs, allowlisted baggage, an OpenTelemetry Collector component, and OTLP-first backend routing. Use whenever the user wants to instrument a service, consolidate reusable telemetry/logging, fix or review existing signals, investigate missing or duplicate signals, or update an observability implementation."
 ---
 
@@ -8,9 +8,6 @@ description: "Add, audit, repair, upgrade, or troubleshoot OpenTelemetry tracing
 You are adding or consolidating OpenTelemetry in software that already works. The code exists; your job is to make its behaviour visible without changing what it does.
 
 This file is a router. It holds the rules that apply to every implementation and tells you which reference files to read. **Do not read the whole `references/` tree.** Load only the files the routing table sends you to — unrelated reference material contaminates the implementation.
-
----
-
 ## Scope
 
 **One service at a time by default.** Instrument exactly the service the user named. In a monorepo, do not touch sibling services merely for symmetry. If shared code must change, say so and keep the change additive so other services keep working unchanged.
@@ -20,9 +17,6 @@ This file is a router. It holds the rules that apply to every implementation and
 If the user has named neither a service nor an explicit shared-library scope and the repo contains more than one service, ask which one before editing anything.
 
 **Python, and FastAPI for HTTP.** Every code sample here is Python, and the HTTP framework hooks are FastAPI's. The routing, conventions, retention policy, and Collector material are language-neutral — for another runtime use those and skip `setup/`, `tracing/genai/`, and `logging/`, whose code does not transfer.
-
----
-
 ## Step 0 — Which kind of work is this?
 
 The description covers six modes and they do not need the same files. Pick one before loading anything else:
@@ -30,7 +24,7 @@ The description covers six modes and they do not need the same files. Pick one b
 | Mode | Load |
 | --- | --- |
 | **Add** instrumentation to a service | Step 1 discovery, then the Step 3 routing tables |
-| **Audit or review** existing telemetry | `references/conventions/naming.md` + `references/conventions/errors.md`, `references/verification.md`, and the one boundary file matching the service type. Skip discovery's greenfield intake. |
+| **Audit or review** existing telemetry | `references/conventions/naming.md` + `references/conventions/errors.md`, `references/metrics/service.md`, `references/logging/structlog.md` + `references/logging/business_events.md`, `references/verification.md`, and the matching boundary file; add GenAI signal files when applicable. Skip discovery's greenfield intake. |
 | **Troubleshoot** a specific symptom — missing, duplicated, orphaned, or zero-valued signals | `references/troubleshooting.md` only, then the single file it points at |
 | **Upgrade** a package, convention revision, or Collector image | `references/compatibility.md` only, then the files its checklist names |
 | **Collector-only** change | `references/collector/*`, plus `references/tracing/production_policy.md` if production retention is involved |
@@ -88,7 +82,7 @@ These hold regardless of service type. They are short on purpose; the reasoning 
    normalized content is exactly empty; retain every non-empty reasoning or non-text part and
    always preserve the complete canonical envelope.
    Never deform `gen_ai.*` to satisfy one UI.
-9. **Exception detail is environment-scoped.** When exception logs may contain sensitive or external content, use one typed logging setting independent of log level: local, dev, and staging emit the full exception traceback for debugging; production emits only a safe authored message, bounded `error.type` and failure/reason code, and trace/span correlation. Credential and token redaction stays active in every environment. Enforce the policy in the shared logging processor, never with scattered environment checks at call sites. Full contract: `references/conventions/errors.md`.
+9. **Full exception traces are the default.** Always declare one typed `log_full_exception_trace` / `LOG_FULL_EXCEPTION_TRACE` setting, independent of log level and environment, with a default of `true`. Do not ask for confirmation. When it is `true`, put the complete chained traceback in the dedicated `exception.stacktrace` field; when the user sets it to `false`, remove the raw traceback and exception message and emit a safe authored message, bounded `error.type` and failure/reason code, and trace/span correlation instead. Apply credential/token redaction in both modes and enforce the switch in the shared logging processor rather than at call sites. Full contract: `references/conventions/errors.md`.
 10. **Metrics are not derived from sampled traces.** They are emitted independently, with bounded attributes only.
 11. **Instrument boundaries, not functions, and make auto-instrumentation earn its volume.** HTTP request, queue publish/consume, durable work claim/state transition, external call, LLM call, tool call, agent invocation, and business phase. Keep database-query spans only when query-level visibility has demonstrated operational value. If database/ORM spans scale with rows, candidates, flushes, or transactions and overwhelm the business shape, leave them off or make them a diagnostic mode; preserve a few business spans, independent metrics, and correlated structured failure logs without recreating O(N) repository spans or per-query logs. Read `references/setup/high_volume_database_tracing.md`. Not every helper is a boundary.
 12. **Durable handoffs carry context.** Queue messages, outbox rows, leased jobs, and persisted state transitions carry an allowlisted W3C trace carrier written atomically with the work. Delayed or retried work normally starts a new trace with a link. Logs keep the current span's `trace_id`/`span_id`; a stable workflow/run ID correlates important logs and linked traces and never labels metrics.
@@ -128,7 +122,7 @@ references/
     genai/            attributes, token_usage, content_capture, provider_sdk, retrieval
       langchain/      architecture + the three agent layers
   metrics/            service.md + genai.md
-  logging/            structlog.md + genai.md
+  logging/            structlog.md + business_events.md + genai.md
   collector/          component (including self-telemetry), dev_staging, production
   testing.md          in-memory exporter harness for telemetry assertions
   verification.md     the exported-telemetry checks
@@ -251,7 +245,7 @@ label drift the shared module exists to prevent.
 | --- | --- |
 | `references/metrics/service.md` | Every service — request/job/dependency/queue and business metrics |
 | `references/metrics/genai.md` | GenAI services — model, tool, and agent instruments on top of the above |
-| `references/logging/structlog.md` | Every service |
+| `references/logging/structlog.md` + `references/logging/business_events.md` | Every service — structured transport, exception trace policy, and domain event catalogue |
 | `references/logging/genai.md` | GenAI services — content rules, event names, where the exception record goes |
 
 ### If a Collector is being deployed
@@ -278,6 +272,10 @@ Generic instrumentation tells you the service is slow. Domain telemetry tells yo
 Ask of each candidate: does this help debugging, filtering, aggregation, incident investigation, performance analysis, or business monitoring? If not, leave it out. A value being available is not a reason to record it.
 
 Prefer domain words over implementation words: `app.pricing.product_count`, not `processed_items`. Naming rules are in `references/conventions/naming.md`.
+
+For an HTTP request, keep one inbound trace and add custom child spans for the meaningful business phases. For an unbounded worker loop, never hold one loop-wide trace open: each independently owned message, job, batch, or retry attempt gets a bounded trace, custom business spans, and a link to the producer/prior transition when the handoff is delayed, durable, batched, or independently retried.
+
+Every root and custom span must earn its attributes. Include the bounded operation/workflow identity, outcome, attempt or retry classification when relevant, and the few domain counts, decisions, strategies, or result categories needed to explain that operation. Put searchable high-cardinality IDs only on spans/logs when policy allows; never on metrics. Do not copy every available value or repeat inherited resource attributes manually.
 
 ---
 

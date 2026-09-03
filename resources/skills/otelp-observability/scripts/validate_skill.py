@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic validation for the observability skill package."""
+"""Deterministic validation for the otelp-observability skill package."""
 
 from __future__ import annotations
 
@@ -1574,6 +1574,85 @@ def validate_routing_contract(skill_root: Path) -> None:
         )
 
 
+def validate_application_signal_baselines(skill_root: Path) -> None:
+    """Keep the default logging, tracing, and metrics contract discoverable."""
+    documents = {
+        relative: " ".join((skill_root / relative).read_text(encoding="utf-8").split())
+        for relative in (
+            "SKILL.md",
+            "references/discovery.md",
+            "references/conventions/errors.md",
+            "references/logging/structlog.md",
+            "references/logging/business_events.md",
+            "references/logging/genai.md",
+            "references/metrics/service.md",
+            "references/metrics/genai.md",
+            "references/setup/package_layout.md",
+            "references/testing.md",
+            "references/tracing/worker_runtime.md",
+        )
+    }
+    checks = {
+        "SKILL.md": (
+            "references/logging/business_events.md",
+            "log_full_exception_trace",
+            "one inbound trace",
+            "never hold one loop-wide trace open",
+        ),
+        "references/discovery.md": (
+            "Do not ask about exception-trace capture",
+            "LOG_FULL_EXCEPTION_TRACE=true",
+            "set it to `false`",
+        ),
+        "references/conventions/errors.md": (
+            "Custom exceptions when the domain needs them",
+            "complete chained traceback",
+            "raise DomainError(...) from exc",
+        ),
+        "references/logging/structlog.md": (
+            "LOG_FULL_EXCEPTION_TRACE",
+            "exception.stacktrace",
+            "apply_exception_detail_policy",
+        ),
+        "references/logging/business_events.md": (
+            "Default event baseline",
+            "Material business change",
+            "Failure ownership",
+        ),
+        "references/logging/genai.md": (
+            "Default GenAI event matrix",
+            "Successful model call",
+            "Model/provider fallback",
+            "Successful agent or retrieval completion",
+        ),
+        "references/metrics/service.md": (
+            "Default suggested baseline by application shape",
+            "HTTP / API service",
+            "Worker / queue consumer",
+            "Scheduled job",
+        ),
+        "references/metrics/genai.md": (
+            "Default suggested GenAI baseline",
+            "Every GenAI app",
+            "Streaming agent",
+        ),
+        "references/setup/package_layout.md": (
+            "log_full_exception_trace",
+            "LOG_FULL_EXCEPTION_TRACE",
+        ),
+        "references/testing.md": (
+            "LOG_FULL_EXCEPTION_TRACE=true",
+            "leaked traceback/message/PII in masked mode",
+        ),
+        "references/tracing/worker_runtime.md": (
+            "process loop is lifecycle, not a trace boundary",
+            "new trace with a `SpanLink`",
+        ),
+    }
+    for relative, phrases in checks.items():
+        require_phrases(documents[relative], phrases, context=f"signal baseline {relative}")
+
+
 # Per-file caps. Anything not listed falls back to DEFAULT_LINE_CAP, so a new
 # reference cannot grow unbounded just by not being in the table.
 DEFAULT_LINE_CAP = 400
@@ -1605,6 +1684,7 @@ LINE_CAPS = {
     "references/collector/production.md": 610,
     "references/metrics/genai.md": 400,
     "references/logging/structlog.md": 420,
+    "references/logging/business_events.md": 140,
 }
 # The set loaded on every invocation, whatever the task. This is the number
 # that actually governs per-invocation cost, so it is capped as a whole.
@@ -1878,6 +1958,7 @@ def main() -> int:
         validate_lambda_contract(skill_root)
         validate_production_policy_contract(skill_root)
         validate_routing_contract(skill_root)
+        validate_application_signal_baselines(skill_root)
         notes += validate_context_footprint(skill_root)
         validate_review_regressions(skill_root)
         if args.collector_image:
@@ -1885,7 +1966,7 @@ def main() -> int:
     except ValidationError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
-    print("PASS: observability skill validation")
+    print("PASS: otelp-observability skill validation")
     for note in notes:
         print(f"NOTE: {note}")
     if not args.collector_image:

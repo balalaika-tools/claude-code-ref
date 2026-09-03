@@ -6,6 +6,24 @@ semantics and durable DB handoffs live in their own references.
 
 ## Long-running worker loops
 
+The process loop is lifecycle, not a trace boundary. Never keep one span current
+around `while not stopping`: it creates an unbounded trace, gives child work the
+wrong parent, and exports nothing until shutdown. Each independently owned
+message, job, batch, or retry attempt gets its own bounded root/consumer span
+and custom child spans for its meaningful business phases.
+
+Use the transport reference to decide causality. Prompt, synchronous work may
+continue the extracted producer trace; delayed, durable, batched, or
+independently retried work starts a new trace with a `SpanLink`. A poll/receive,
+database claim, or previous loop iteration is never the parent merely because
+its context happens to be current. Keep a stable workflow/job ID on spans and
+important logs for cross-trace search, never as a metric label.
+
+On the work boundary record bounded job/message type, attempt, outcome, and
+queue or workflow identity. Child business spans record the decision, strategy,
+result count/category, dependency, and `error.type` actually needed to explain
+the phase; do not copy payloads or every available value.
+
 Configure providers once at startup, not per message. Shut down on the termination signal, after the in-flight message finishes:
 
 ```python

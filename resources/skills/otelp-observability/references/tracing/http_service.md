@@ -12,6 +12,11 @@ framework whose instrumentation owns the `SERVER` span.
 
 ## The trace shape you are aiming for
 
+One inbound request is one trace boundary. Continue valid incoming context when
+present; otherwise the framework's `SERVER` span becomes the root. Add custom
+child spans for meaningful business phases inside that trace — never start a
+second application trace for a phase of the same request.
+
 ```
 POST /orders                          SERVER   (auto-instrumentation)
   validate order                      INTERNAL (manual)
@@ -151,6 +156,20 @@ Set these at span creation where possible, so a sampler can use them:
 | `gen_ai.conversation.id` | GenAI services, see `genai/attributes.md` |
 
 Derive them from the authenticated request, never from unvalidated request body fields. A caller-supplied "tenant tier" is a spoofable metric dimension.
+
+### Attributes on custom business spans
+
+Every custom span should explain its own operation without copying the whole
+request. At creation, set its stable business operation/workflow and bounded
+strategy, policy, or dependency identity. Before it ends, add the outcome and
+the few result facts operators need — item/result counts, decision category,
+fallback used, or retry attempt. On failure, add only bounded `error.type` and
+status; the owning log carries the message and `exception.stacktrace`.
+
+Do not attach every available request field. IDs and user/session values belong
+only where they materially help find one trace and privacy policy allows them;
+they never become metric labels. Resource attributes are inherited and should
+not be manually repeated on each span.
 
 ---
 
