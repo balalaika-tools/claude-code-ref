@@ -20,20 +20,29 @@ For badge hex codes and logo names, see `../badges.md`.
 
 ---
 
-## Structure
+## Explore by area
 
-\```
-docs/
-│
-│ ── CATEGORY NAME ──────────────────────────────────────
-├── category/
-│   ├── sub_topic/       Short description of what's here
-│   └── other_topic/     Short description
-│
-│ ── ANOTHER CATEGORY ───────────────────────────────────
-└── another/
-    └── sub/             Description
-\```
+<div class="grid cards" markdown>
+
+-   **{Area name}**
+
+    {One sentence describing the questions this area helps the reader answer.}
+
+    [{Start or explore label} →]({area}/index.md)
+
+-   **{Area name}**
+
+    {One sentence describing the concrete capabilities covered here.}
+
+    [{Start or explore label} →]({area}/index.md)
+
+-   **{Area name}**
+
+    {One sentence describing the systems, trade-offs, or workflows covered here.}
+
+    [{Start or explore label} →]({area}/index.md)
+
+</div>
 
 ---
 
@@ -72,8 +81,12 @@ docs/
 
 ## Key rules
 
-- The ASCII tree uses box-drawing: `├──`, `└──`, `│` — with inline descriptions after directory names
-- Category headers in the tree use `── CAPS ──` decorative lines
+- Start with an **Explore by area** overview organized around reader intent, not directory shape
+- In MkDocs Material, use a card grid and link every card to its section `index.md`
+- In Markdown-only collections, replace the cards with a compact Area / Covers / Start here table
+- Keep card titles and descriptions parallel, concise, and free of decorative emoji
+- Add a small `Repository layout` tree only when contributors genuinely need it; it is secondary,
+  never the primary navigation
 - The Contents section groups files by category with a markdown table per group
 - Reading Order has 2–4 named paths for different experience levels or goals
 - Every path reaches a runnable result or concrete worked outcome within its first two entries
