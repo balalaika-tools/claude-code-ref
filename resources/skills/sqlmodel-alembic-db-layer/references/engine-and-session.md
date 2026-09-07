@@ -25,7 +25,7 @@ engine = build_engine(settings.database_url)
 native async support, also fully supported by SQLAlchemy 2.x as an
 alternative). Either is fine; don't mix them within one service. The URL
 itself comes from resolved settings/secrets, not hardcoded here — see the
-`settings-config` skill for where that string is sourced from.
+`python-settings-config` skill for where that string is sourced from.
 
 Declare **`greenlet` as an explicit dependency** of anything that uses the
 async engine. SQLAlchemy's own dependency marker for it only matches

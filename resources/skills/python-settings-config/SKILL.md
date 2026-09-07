@@ -1,12 +1,12 @@
 ---
-name: settings-config
+name: python-settings-config
 description: >
   Use when creating, extending, or reviewing application configuration for a
   Python/FastAPI AI service settings and secrets modules, YAML application
   baselines under root `config/*.yaml`, `.env.example`,
   Pydantic/pydantic-settings models, SecretStr usage, or secret-manager
   integration with AWS SSM, Azure Key Vault, GCP Secret Manager, Vault, or
-  another SDK. Also use when the user calls /settings-config explicitly.
+  another SDK. Also use when the user calls /python-settings-config explicitly.
 ---
 
 # Settings & Secrets

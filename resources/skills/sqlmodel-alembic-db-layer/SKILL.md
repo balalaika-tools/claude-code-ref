@@ -1,27 +1,13 @@
 ---
 name: sqlmodel-alembic-db-layer
 description: >-
-  Scaffold or review an async Python database layer built on SQLModel and
-  Alembic: `base.py` conventions and shared metadata/naming, `models/` table
-  classes, `engine.py`/`session.py` with production-grade async connection
-  pooling, a `repositories/` layer that is the only place doing DB access, a
-  `queries/` folder for large reporting SQL kept out of Python code, and async
-  Alembic migrations (async `env.py`, autogenerate, revision workflow). Covers
-  both a uv-workspace monorepo (a shared `libs/`/`packages/` member holding
-  only `base.py` + `models/`, a dedicated `services/db-migrate` deployable
-  holding the Alembic history, and `engine.py`, `session.py`,
-  `repositories/`, `queries/` per service) and a single-service repo
-  (`src/<package>/infrastructure/db/` holding everything). Also covers the
-  Dockerfile `ENTRYPOINT`/`CMD` for running migrations in each shape, and the
-  schema-verification harness: an `alembic check` drift job in CI, model/DB
-  parity tests, pinning trigger/function DDL that autogenerate cannot see,
-  runtime schema-version guards, squashing pre-release history to a baseline,
-  migration transaction semantics, backfills, and rollout runbooks for gated
-  or destructive migrations. Use when adding or reviewing DB models, wiring an
-  async SQLAlchemy/SQLModel engine, setting up, extending, squashing, or
-  verifying Alembic migrations, investigating model/migration drift, deciding
-  where repository/query code should live relative to shared model
-  definitions, or wiring the migration runner's Dockerfile.
+  Scaffold or review an async SQLModel and Alembic database layer, including
+  models and shared metadata, async engines and sessions, repositories,
+  reporting queries, migrations, migration containers, and schema-verification
+  checks. Use for single-service repositories and uv workspaces when adding or
+  reviewing database models, connection pooling, repository boundaries,
+  Alembic setup or revisions, model/migration drift, shared model ownership,
+  backfills, migration safety, or migration-runner deployment.
 ---
 
 # Async DB Layer: SQLModel + Alembic
@@ -134,6 +120,6 @@ Load only what you're touching:
 - `python-repository-setup` — repo-shape decision, workspace mechanics,
   per-member `pyproject.toml`, Docker builds. Use it first for the monorepo
   case.
-- `settings-config` — where the database URL and credentials themselves are
+- `python-settings-config` — where the database URL and credentials themselves are
   read from (`Settings`/`secrets.py`). This skill's `engine.py` takes a
   resolved connection string; it doesn't decide how that string is sourced.

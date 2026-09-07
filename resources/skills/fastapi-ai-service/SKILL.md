@@ -6,7 +6,7 @@ description: >
   configuration and secrets, API routers, background workers, AI agent modules,
   and startup validation. Use when the user asks to scaffold a new FastAPI AI
   service, build a new agent backend, align a backend with this repo's service
-  conventions, or coordinate focused sub-skills such as settings-config.
+  conventions, or coordinate focused sub-skills such as python-settings-config.
 ---
 # FastAPI AI Service
 
@@ -68,7 +68,7 @@ and `worker/`.
 1. Inspect the current package structure, dependency manager, and config files.
 2. Define the service boundary: API endpoints, long-lived clients, agent entry
    points, background workers, and persistence dependencies.
-3. Load `/settings-config` before creating or changing `settings.py`,
+3. Load `/python-settings-config` before creating or changing `settings.py`,
    `secrets.py`, `config/*.yaml`, or `.env.example`.
 4. Build FastAPI through an app factory. Put long-lived resources in lifespan
    startup/shutdown, attach a typed runtime object to `app.state`, and fail fast
@@ -83,7 +83,7 @@ and `worker/`.
 
 ## Sub-Skills
 
-- `/settings-config`: Operational YAML config, Pydantic settings, secrets,
+- `/python-settings-config`: Operational YAML config, Pydantic settings, secrets,
   `.env.example`, and provider-specific secret loading.
 - Future focused skills can cover API routing, agent module design, runtime
   lifecycle, persistence, observability, and deployment.

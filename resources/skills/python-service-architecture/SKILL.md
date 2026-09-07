@@ -130,7 +130,7 @@ These are requirements, not optional examples:
    repository-root `config/` by default, even though every service owns its
    `pyproject.toml`. Create service-local YAML `config/` directories only when
    the user explicitly requests the per-service alternative. Use
-   `settings-config` for the shared layout and merge order.
+   `python-settings-config` for the shared layout and merge order.
 
 Create only directories required by the current member. The canonical tree is
 a placement policy, not permission to add empty packages.
@@ -159,7 +159,7 @@ requests both.
 - Use `python-repository-setup` to decide whether shared code earns a
   workspace member and for `pyproject.toml`, dependency isolation, lockfiles,
   scoped installs, root pre-commit/pre-push tooling, and Docker build layout.
-- Use `settings-config` for detailed settings/secrets implementation.
+- Use `python-settings-config` for detailed settings/secrets implementation.
 - Use `sqlmodel-alembic-db-layer` for SQLModel, repositories, sessions, and
   Alembic structure.
 - Use `otel-observability` for actual OpenTelemetry implementation or audit,

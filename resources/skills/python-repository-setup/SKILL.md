@@ -2,7 +2,7 @@
 name: python-repository-setup
 description: >-
   Structure or review a Python repository, from one deployable with a root
-  `pyproject.toml` and `src/<package>/` to a multi-deployable uv workspace with
+  `pyproject.toml` and a src-layout package to a multi-deployable uv workspace with
   members under `services/` and reusable packages under `libs/`. Use for
   repository layout, dependency and lockfile ownership, Python/uv pins, Ruff,
   pytest, mypy, pre-commit/pre-push, Dockerfiles, Docker Compose configuration,
@@ -42,7 +42,7 @@ uses one repository-root `config/` for committed YAML application baselines by
 default. Do not create `services/<name>/config/*.yaml` merely because each
 service has its own project file. Use service-local YAML directories only when
 the user explicitly requests per-service configuration ownership. Apply the
-layout and merge precedence defined by `settings-config`; package-local Python
+layout and merge precedence defined by `python-settings-config`; package-local Python
 settings modules remain governed by `python-service-architecture`.
 
 Workspace mode applies once a repository holds more than one independently built artifact
