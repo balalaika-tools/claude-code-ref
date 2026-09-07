@@ -2,7 +2,7 @@
 
 Use this reference for a non-deployable Python package under `libs/` or
 `packages/`, whether creating it, extracting it from services, or modularizing
-an existing member. The `python-uv-workspace-monorepo` skill owns workspace
+an existing member. The `python-repository-setup` skill owns workspace
 admission, `pyproject.toml`, lockfile, scoped-install, and Docker mechanics.
 This reference owns the package's internal modules, dependencies, public API,
 tests, and migration boundaries.

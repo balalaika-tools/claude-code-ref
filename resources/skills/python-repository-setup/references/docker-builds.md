@@ -1,6 +1,6 @@
 π
 
-# Production Docker Builds For A Workspace Member
+# Production Docker Builds
 
 ## Contents
 
@@ -12,9 +12,31 @@
 - Service variants
 - Validation
 
-Use `../assets/workspace-template/services/api/Dockerfile` and
-`../assets/workspace-template/.dockerignore` as the canonical files. Copy and
-adapt them; do not rewrite the pattern from memory.
+For workspace mode, use `../assets/workspace-template/services/api/Dockerfile`
+and `../assets/workspace-template/.dockerignore` as the canonical files. Copy
+and adapt them; do not rewrite the pattern from memory. For a single service,
+retain the same production invariants while removing workspace-only paths and
+flags as described below.
+
+## Single-service adaptation
+
+Build a root `Dockerfile` with `.` as its context. Copy the root
+`pyproject.toml`, `uv.lock`, and `.python-version` for the dependency layer,
+then copy `src/` before the final install. Because the root is the installable
+project, omit workspace-member metadata and do not use `--package` or
+`--no-install-workspace`:
+
+```dockerfile
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev --no-install-project
+COPY src src
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev --no-editable
+```
+
+Keep the version check, builder/runtime split, identical `/app` path, numeric
+non-root runtime user, `tini`, health-check policy, and runtime-secret boundary
+from the workspace image. Validate with `docker build --pull -f Dockerfile .`.
 
 ## Version Contract
 

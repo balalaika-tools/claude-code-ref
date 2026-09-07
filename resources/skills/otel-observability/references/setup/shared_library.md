@@ -13,9 +13,9 @@ normal service-local instrumentation task, keep the one-service scope in
   part of the shared package.
 - Read `../testing.md` before implementing deterministic helpers or migration
   contracts, and `../verification.md` last.
-- In a uv workspace, use the `python-uv-workspace-monorepo` skill for member,
+- In a uv workspace, use the `python-repository-setup` skill for member,
   dependency, lockfile, scoped-install, and Docker mechanics. Use
-  `python-backend-structure` for the internal modularization of `libs/*`.
+  `python-service-architecture` for the internal modularization of `libs/*`.
 
 ## The package must earn the boundary
 
@@ -86,7 +86,7 @@ src/company_observability/
 Do not create `tracing/`, `metrics/`, `logging/`, `exporters/`, or `plugins/`
 subpackages in advance. Promote one slice only when it contains several
 cohesive modules, evolves independently, or needs distinct tests. The general
-library foldering rules live in the `python-backend-structure` skill.
+library foldering rules live in the `python-service-architecture` skill.
 
 Keep `__init__.py` deliberate. Re-export the small supported API, not every SDK
 type or internal helper. Consumers should not depend on the package's private

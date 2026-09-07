@@ -1,5 +1,5 @@
 ---
-name: python-backend-structure
+name: python-service-architecture
 description: >-
   Design, scaffold, refactor, or review the internal folder structure of a
   Python backend service or reusable internal library, including FastAPI
@@ -10,11 +10,12 @@ description: >-
   a root genai package, with clear bootstrap, API, persistence, configuration,
   observability, and test-suite boundaries. Use when deciding where backend code
   or its unit, integration, contract, and end-to-end tests belong, or when
-  standardizing package layouts. Do not use for uv workspace/Docker organization
-  alone or for database-layer mechanics alone.
+  standardizing package layouts. Use `python-repository-setup` instead for
+  top-level repository mode, uv workspace, dependency, Docker, Compose, or
+  repo-wide tooling decisions; do not use this skill for database mechanics alone.
 ---
 
-# Python Backend Structure
+# Python Service Architecture
 
 Enforce the canonical structure below across Python backend deployables. Use the
 lighter shared-library structure for non-deployable packages; never copy a
@@ -142,7 +143,7 @@ requests both.
 
 ## Related skills
 
-- Use `python-uv-workspace-monorepo` to decide whether shared code earns a
+- Use `python-repository-setup` to decide whether shared code earns a
   workspace member and for `pyproject.toml`, dependency isolation, lockfiles,
   scoped installs, root pre-commit/pre-push tooling, and Docker build layout.
 - Use `settings-config` for detailed settings/secrets implementation.

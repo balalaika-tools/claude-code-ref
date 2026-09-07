@@ -1,0 +1,4 @@
+interface:
+  display_name: "Python Service Architecture"
+  short_description: "Design modules and boundaries inside Python services"
+  default_prompt: "Use $python-service-architecture to design or review this Python service or internal-library structure and its tests."

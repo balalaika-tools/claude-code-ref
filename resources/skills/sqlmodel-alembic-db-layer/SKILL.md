@@ -54,7 +54,7 @@ This skill assumes you already know whether you're in a **uv workspace
 monorepo** (multiple independently-deployable services, or a repo that will
 grow into that) or a **single-service repo**. That decision — and the
 `services/` vs `libs/`/`packages/` naming, workspace sources, per-member
-`pyproject.toml` — belongs to the `python-uv-workspace-monorepo` skill, not
+`pyproject.toml` — belongs to the `python-repository-setup` skill, not
 this one. Resolve that first if it isn't already settled; this skill only
 adds where the *DB* pieces specifically go once the shape is decided. See
 `references/repo-layout.md` for both trees.
@@ -131,7 +131,7 @@ Load only what you're touching:
 
 ## Related skills
 
-- `python-uv-workspace-monorepo` — repo-shape decision, workspace mechanics,
+- `python-repository-setup` — repo-shape decision, workspace mechanics,
   per-member `pyproject.toml`, Docker builds. Use it first for the monorepo
   case.
 - `settings-config` — where the database URL and credentials themselves are

@@ -1,32 +1,67 @@
 ---
-name: python-uv-workspace-monorepo
+name: python-repository-setup
 description: >-
-  Structure or review a multi-service Python monorepo with a virtual uv
-  workspace root, one `pyproject.toml` per deployable under `services/`, one
-  per internal library under `libs/` or `packages/`, and workspace sources for
-  internal dependencies. Standardize centralized Ruff, pytest, coverage, mypy,
-  and pre-commit/pre-push tooling; exact Python and uv versions across local
-  development, CI, and Docker; one shared lockfile; scoped per-service installs;
-  and lean multi-stage production images. Use when deciding whether each service
-  needs its own `pyproject.toml`, splitting root dependencies, creating or
-  reviewing `.pre-commit-config.yaml`, scaffolding uv workspaces and Dockerfiles,
-  deciding whether code earns a shared internal package, wiring shared packages,
-  or preventing sibling-service dependencies and dev tools from entering an image.
+  Structure or review a Python repository, from one deployable with a root
+  `pyproject.toml` and `src/<package>/` to a multi-deployable uv workspace with
+  members under `services/` and reusable packages under `libs/`. Use for
+  repository layout, dependency and lockfile ownership, Python/uv pins, Ruff,
+  pytest, mypy, pre-commit/pre-push, Dockerfiles, Docker Compose configuration,
+  scoped production installs, or promotion from a single service to a workspace.
+  For the internal modules and boundaries inside one service or library, use
+  `python-service-architecture` instead.
 ---
 
-# Python Monorepo: uv Workspaces Across Services
+# Python Repository Setup: Single Service or uv Workspace
 
-Apply this rule first; everything else in this skill follows from it:
+Choose the repository mode before generating files:
+
+- **Single deployable:** keep `pyproject.toml`, `uv.lock`, `.python-version`,
+  `Dockerfile`, `compose.yaml`, `src/<package>/`, and `tests/` at the repository
+  root. Do not create `services/`, `libs/`, or a uv workspace pre-emptively.
+- **Multiple independently deployable artifacts:** use a virtual uv workspace.
+  Every deployable lives under `services/` with its own `pyproject.toml`; truly
+  reusable internal packages live under one consistent `libs/` or `packages/`
+  root and also own their `pyproject.toml`.
+
+The tooling and operational standards in this skill apply to both modes:
+version pins, one repository lockfile, Ruff, pytest, coverage, mypy,
+pre-commit/pre-push, Docker, Compose, and CI alignment. Workspace-only mechanics
+such as member globs, `{ workspace = true }`, `--package`, and a virtual root
+apply only to the multi-deployable mode.
+
+For workspace mode, apply this rule:
 
 > **Independently deployable = its own `pyproject.toml`. Genuinely reusable
 > internal code = its own `pyproject.toml`. The root `pyproject.toml` declares
 > the workspace and repo-wide development tooling, but no runtime dependencies
 > any service ships.**
 
-This applies once a repository holds more than one independently built artifact
+Workspace mode applies once a repository holds more than one independently built artifact
 (more than one Dockerfile, more than one Lambda, more than one deployed
-process). A single-service repository does not need a workspace; give it one
-plain `pyproject.toml` at its root and stop reading here.
+process). A single-service repository uses one ordinary root project and still
+follows the applicable sections below.
+
+## Repository Layouts
+
+Single deployable:
+
+```text
+repo/
+├── pyproject.toml
+├── uv.lock
+├── .python-version
+├── .pre-commit-config.yaml
+├── .env.example
+├── Dockerfile
+├── compose.yaml
+├── src/
+│   └── my_service/
+└── tests/
+```
+
+Do not place the package directly at `src/`; use `src/<import_package>/`.
+The root `pyproject.toml` owns both runtime dependencies and repository-wide
+development tooling.
 
 ## Naming The Top-Level Directory: `services/` vs `libs/`/`packages/`
 
@@ -99,7 +134,7 @@ resolution: each service and library keeps its own dependency list, but `uv`
 still resolves the whole workspace into one lockfile and can scope an install
 to exactly one member's dependency closure.
 
-## Repository Layout
+### Workspace layout
 
 ```text
 repo/
@@ -181,7 +216,41 @@ In CI, install the exact root `required-version`, run `uv python install`, and
 then use the root lockfile. `required-version` enforces the uv pin but does not
 install the matching uv binary by itself.
 
-## Root `pyproject.toml`: Workspace And Shared Tooling
+## Root `pyproject.toml`
+
+### Single-service project
+
+For one deployable, the root is an ordinary installable project. Put runtime
+dependencies in root `[project.dependencies]`, development tools in the root
+`dev` dependency group, and source in `src/<import_package>/`. Keep one root
+`uv.lock`; do not add `[tool.uv.workspace]` or use `--package`:
+
+```toml
+[project]
+name = "my-service"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = ["fastapi", "uvicorn"]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.0,<3",
+    "pre-commit>=4.6.1,<5",
+    "pytest>=9.1.1,<10",
+    "pytest-cov>=7.1.0,<8",
+    "ruff>=0.16.3,<0.17",
+]
+
+[build-system]
+requires = ["hatchling>=1.32.0,<2"]
+build-backend = "hatchling.build"
+```
+
+Apply the same Ruff, pytest, coverage, and mypy configuration shown below, but
+set paths to the actual single-service roots (`src`, `tests`) instead of
+`services` and `libs`.
+
+### Workspace virtual root and shared tooling
 
 ```toml
 [tool.uv]
@@ -352,7 +421,7 @@ test setup, or causes real naming pressure. Avoid file-per-class layouts,
 one-file subpackages, speculative registries/factories, and generic `common`,
 `shared`, `utils`, or `core` packages.
 
-Use the `python-backend-structure` skill's shared-library guidance for detailed
+Use the `python-service-architecture` skill's shared-library guidance for detailed
 module ownership, dependency direction, public exports, tests, and
 consumer-by-consumer modularization. Use the domain-specific skill as well when
 the library has one—for example, `observability` determines the internals of a
@@ -400,7 +469,12 @@ that ships, or the "lean image" goal quietly fails:
 uv sync --frozen --no-dev --package api
 ```
 
-## Lean Per-Service Docker Images
+## Lean Production Docker Images
+
+For a single service, build the root `Dockerfile` from the repository root. Use
+the same pins, multi-stage split, locked non-editable install, non-root runtime,
+and secret rules as workspace images, without workspace metadata, `--package`,
+or `--no-install-workspace`.
 
 Build each service's image from the **workspace root** as the build context —
 not from inside `services/api/` — because resolving `api`'s dependencies
@@ -409,17 +483,29 @@ of every workspace member `api` imports (at minimum `libs/company_observability/
 Scoping the build context to just `services/api/` is a common mistake that
 breaks the build the moment a service depends on a shared library. Full
 production Dockerfile, `.dockerignore`, version-alignment checks, and build
-commands: read `references/docker-builds.md` before creating or editing a
-workspace member's image.
+commands for both modes: read
+[references/docker-builds.md](references/docker-builds.md) before creating or
+editing an image.
 
 Use `assets/workspace-template/` as the canonical runnable scaffold. Copy and
 adapt the asset instead of recreating these files from memory. It contains a
 FastAPI service, an internal library, centralized tooling, tests, exact
 toolchain pins, and the workspace-aware multi-stage Dockerfile.
 
+## Docker Compose And Root `.env`
+
+Read [references/docker-compose.md](references/docker-compose.md) whenever
+creating or reviewing `compose.yaml`, root `.env.example`, service environment
+mapping, or local container startup. Compose uses one ignored root `.env` as
+the local stack input. Declare each service's `environment:` mapping explicitly;
+do not attach the whole root file to every container with `env_file: .env`.
+Keep every `services/<name>/.env.example` as that process's complete runtime
+contract; the root `.env.example` documents Compose and stack-level inputs.
+
 ## Setup And Verification
 
-After adapting the template, run all of these from the repository root:
+After adapting the template, run the applicable commands from the repository
+root. For both modes:
 
 ```bash
 uv python install
@@ -429,12 +515,22 @@ uv run --locked pre-commit install
 uv run --locked pre-commit run --all-files --hook-stage pre-commit
 uv run ruff check .
 uv run ruff format --check .
-uv run mypy services libs
+uv run mypy <python-roots>
 uv run pytest
 uv run --locked pre-commit run --all-files --hook-stage pre-push
+docker compose config --quiet
+docker compose up --build
+```
+
+For workspace mode, additionally run:
+
+```bash
 uv sync --frozen --no-dev --package <service>
 docker build --pull -f services/<service>/Dockerfile .
 ```
+
+For a single service, instead use `uv sync --frozen --no-dev` and
+`docker build --pull -f Dockerfile .`.
 
 Also verify the version contract explicitly:
 
@@ -495,7 +591,7 @@ boundary and packaging (ZIP vs. container), see `terraform-aws`'s
 through a uv workspace follows this skill for the workspace layout and that
 reference for the AWS-specific packaging step.
 
-Use `python-backend-structure` for the internal modularization of services and
+Use `python-service-architecture` for the internal modularization of services and
 shared libraries. Use `observability` for the API, lifecycle, logging policy,
 and migration of a shared observability package; this skill owns only whether
 it earns a workspace member and how consumers install it.

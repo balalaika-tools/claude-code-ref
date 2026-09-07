@@ -1,21 +1,23 @@
-# Pre-commit and pre-push in a uv workspace
+# Pre-commit and pre-push in a Python repository
 
-Use this reference when creating, reviewing, or changing the repository-root
+Use this reference in single-service and workspace repositories when creating,
+reviewing, or changing the repository-root
 `.pre-commit-config.yaml`; aligning hooks with uv/Ruff/CI versions; adding or
 moving workspace members; or debugging local/CI hook differences.
 
 ## Ownership and discovery
 
 `.pre-commit-config.yaml` is repo-wide development tooling. Keep one at the
-workspace root beside `pyproject.toml` and `uv.lock`. Do not put independent
+repository root beside `pyproject.toml` and `uv.lock`. Do not put independent
 configs inside services or libraries unless they are separate repositories.
 
 Before editing it, inspect:
 
 - the root `pyproject.toml`, `uv.lock`, and `.python-version`;
 - existing hook stages, exclusions, file filters, and local hook commands;
-- actual deployable and internal-library roots from `[tool.uv.workspace]` and
-  the repository tree—`services/` and `libs/` are examples, not hard names;
+- actual Python roots from the repository tree and, when present,
+  `[tool.uv.workspace]`; `src`/`tests` and `services`/`libs` are mode-specific
+  examples, not hard names;
 - CI quality jobs and their Python/uv versions;
 - Docker pins when a tool version is shared with image builds;
 - domain-specific checks already owned by another skill, such as ShellCheck or

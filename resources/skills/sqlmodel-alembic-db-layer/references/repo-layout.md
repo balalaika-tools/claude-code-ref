@@ -106,14 +106,14 @@ repo/
 ```
 
 `db_models` is a workspace member exactly like any shared library in the
-`python-uv-workspace-monorepo` skill: its own `pyproject.toml`, no
+`python-repository-setup` skill: its own `pyproject.toml`, no
 `Dockerfile` of its own, consumed via `{ workspace = true }`. `db-models` is
 just a placeholder name — call it whatever fits the domain (`db-schema`,
 `core-db`, …); what matters is that it holds *only* `base.py` and `models/`,
 nothing that turns it into a heavier dependency than a service actually
 needs. `db-migrate` is a placeholder too — the point is that it's a
 `services/` member (it ships as its own image, per the deployable-unit rule
-in `python-uv-workspace-monorepo`), not a `libs/` member.
+in `python-repository-setup`), not a `libs/` member.
 
 Each app service's `pyproject.toml` declares:
 
