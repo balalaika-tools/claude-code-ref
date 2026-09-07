@@ -153,7 +153,7 @@ requests both.
   workspace member and for `pyproject.toml`, dependency isolation, lockfiles,
   scoped installs, root pre-commit/pre-push tooling, and Docker build layout.
 - Use `python-settings-config` for detailed settings/secrets implementation.
-- Use `sqlmodel-alembic-db-layer` for SQLModel, repositories, sessions, and
+- Use `python-sqlmodel-alembic` for SQLModel, repositories, sessions, and
   Alembic structure.
 - Use `otel-observability` for actual OpenTelemetry implementation or audit,
   including the lifecycle and logging contract of a shared observability library.

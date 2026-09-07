@@ -1,5 +1,5 @@
 ---
-name: sqlmodel-alembic-db-layer
+name: python-sqlmodel-alembic
 description: >-
   Scaffold or review an async SQLModel and Alembic database layer. Use for table
   models and metadata, engines and sessions, repository implementations,
