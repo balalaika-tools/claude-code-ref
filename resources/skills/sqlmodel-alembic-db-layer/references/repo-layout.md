@@ -15,23 +15,22 @@ repo/
 ├── alembic.ini                          # script_location points below
 └── src/
     └── myservice/
-        └── infrastructure/
-            └── db/
-                ├── base.py               # shared metadata + mixins
-                ├── engine.py             # async engine, pool config
-                ├── session.py            # session factory / DI
-                ├── models/
-                │   ├── __init__.py       # re-exports every model
-                │   ├── user.py
-                │   └── report.py
-                ├── alembic/
-                │   ├── env.py
-                │   └── versions/
-                ├── repositories/
-                │   ├── user_repository.py
-                │   └── report_repository.py
-                └── queries/
-                    └── monthly_report.sql
+        └── db/
+            ├── base.py               # shared metadata + reusable table base
+            ├── engine.py             # async engine, pool config
+            ├── session.py            # session factory / DI
+            ├── models/
+            │   ├── __init__.py       # re-exports every model
+            │   ├── user.py
+            │   └── report.py
+            ├── alembic/
+            │   ├── env.py
+            │   └── versions/
+            ├── repositories/
+            │   ├── user_repository.py
+            │   └── report_repository.py
+            └── queries/
+                └── monthly_report.sql
 ```
 
 One process, one schema, one everything. There's no split to reason about
@@ -62,7 +61,7 @@ repo/
 │       └── src/
 │           └── db_models/
 │               ├── __init__.py
-│               ├── base.py               # shared metadata + mixins
+│               ├── base.py               # shared metadata + reusable table base
 │               └── models/
 │                   ├── __init__.py
 │                   ├── user.py
@@ -84,25 +83,23 @@ repo/
     │   ├── pyproject.toml                # depends on db-models (workspace=true)
     │   └── src/
     │       └── api/
-    │           └── infrastructure/
-    │               └── db/
-    │                   ├── engine.py
-    │                   ├── session.py
-    │                   ├── repositories/
-    │                   │   └── user_repository.py
-    │                   └── queries/
+    │           └── db/
+    │               ├── engine.py
+    │               ├── session.py
+    │               ├── repositories/
+    │               │   └── user_repository.py
+    │               └── queries/
     └── worker/
         ├── pyproject.toml
         └── src/
             └── worker/
-                └── infrastructure/
-                    └── db/
-                        ├── engine.py
-                        ├── session.py
-                        ├── repositories/
-                        │   └── report_repository.py
-                        └── queries/
-                            └── monthly_report.sql
+                └── db/
+                    ├── engine.py
+                    ├── session.py
+                    ├── repositories/
+                    │   └── report_repository.py
+                    └── queries/
+                        └── monthly_report.sql
 ```
 
 `db_models` is a workspace member exactly like any shared library in the

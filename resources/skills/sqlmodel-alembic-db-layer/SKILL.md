@@ -1,13 +1,10 @@
 ---
 name: sqlmodel-alembic-db-layer
 description: >-
-  Scaffold or review an async SQLModel and Alembic database layer, including
-  models and shared metadata, async engines and sessions, repositories,
-  reporting queries, migrations, migration containers, and schema-verification
-  checks. Use for single-service repositories and uv workspaces when adding or
-  reviewing database models, connection pooling, repository boundaries,
-  Alembic setup or revisions, model/migration drift, shared model ownership,
-  backfills, migration safety, or migration-runner deployment.
+  Scaffold or review an async SQLModel and Alembic database layer. Use for table
+  models and metadata, engines and sessions, repository implementations,
+  reporting SQL, migrations and backfills, schema verification, or a dedicated
+  migration runner in a uv workspace.
 ---
 
 # Async DB Layer: SQLModel + Alembic
@@ -21,7 +18,7 @@ The layer has five concerns, always in this order of dependency:
 ```text
 models/            SQLModel table classes — the shape of the data
    ↑
-base.py            shared metadata/naming convention + mixins models/ use
+base.py            shared metadata/naming convention + reusable table base
    ↑
 alembic/           migration history for that one metadata object — its own
                     deployable in a monorepo, colocated in a single-service repo
@@ -51,7 +48,7 @@ Load only what you're touching:
 
 - `references/repo-layout.md` — the monorepo vs. single-service folder trees,
   and specifically which DB pieces are shared vs. per-service.
-- `references/models-and-base.md` — `base.py` (naming convention, mixins) and
+- `references/models-and-base.md` — `base.py` (naming convention, shared fields) and
   `models/` (one file per table, relationships, timestamps, PK conventions).
 - `references/engine-and-session.md` — `engine.py` (async engine, driver
   choice, production connection-pool sizing) and `session.py` (session
@@ -93,7 +90,8 @@ Load only what you're touching:
   call; that silently defeats connection pooling.
 - `repositories/` is the *only* code that imports `AsyncSession`, `text()`, or
   a model class for querying. Nothing outside `repositories/` runs a query
-  directly — business logic calls a repository method, never the session.
+  directly. Bootstrap constructs concrete repositories; application code
+  receives application-owned repository ports and never imports `db/`.
 - Simple lookups/filters use the SQLModel query builder (`select()` +
   `session.exec()`) inline in a repository method. Multi-join, aggregation, or
   reporting SQL goes in its own `.sql` file under `queries/`, read once at

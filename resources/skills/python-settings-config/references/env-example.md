@@ -88,14 +88,15 @@ with a one-line comment per variable:
 ################################################################################
 # REQUIRED — the service fails at startup, naming the variable, when any is missing
 ################################################################################
-# Selects config/<service>/<name>.yaml. Always required; there is no implicit environment.
+# Selects config/<name>.yaml plus config/services/<service>.<name>.yaml when present.
+# Always required; there is no implicit environment.
 ENVIRONMENT_NAME=local
 DATABASE_URL=postgresql+psycopg://app:replace-me@127.0.0.1:5432/app
 PRIMARY_MODEL_ID=
 MODEL_REGION=
 
 ################################################################################
-# OVERRIDABLE — application policy baselined in config/<service>/<environment>.yaml
+# OVERRIDABLE — application policy baselined in repository-root config/*.yaml
 # Setting one here overrides the YAML key for this process only. Values shown are
 # the baseline defaults.
 ################################################################################

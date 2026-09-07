@@ -1,17 +1,14 @@
 ---
 name: python-settings-config
 description: >
-  Use when creating, extending, or reviewing application configuration for a
-  Python/FastAPI AI service settings and secrets modules, YAML application
-  baselines under root `config/*.yaml`, `.env.example`,
-  Pydantic/pydantic-settings models, SecretStr usage, or secret-manager
-  integration with AWS SSM, Azure Key Vault, GCP Secret Manager, Vault, or
-  another SDK. Also use when the user calls /python-settings-config explicitly.
+  Create, extend, or review typed configuration for a Python service. Use for
+  Pydantic settings, YAML application baselines, environment contracts,
+  `.env.example`, secret models, and local or remote secret-provider integration.
 ---
 
 # Settings & Secrets
 
-Create a small, typed configuration surface for FastAPI agent services.
+Create a small, typed configuration surface for Python services.
 Secrets stay out of git, startup fails early when configuration is invalid,
 and non-secret settings follow one clear ownership pattern.
 

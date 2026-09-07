@@ -43,11 +43,11 @@ from the workspace image. Validate with `docker build --pull -f Dockerfile .`.
 Keep these version surfaces aligned:
 
 ```text
-.python-version                         3.13.14
+.python-version                         3.13.15
 member requires-python                  >=3.13,<3.14
-Docker ARG PYTHON_VERSION               3.13.14
-root [tool.uv] required-version         ==0.12.4
-Docker ARG UV_VERSION                   0.12.4
+Docker ARG PYTHON_VERSION               3.13.15
+root [tool.uv] required-version         ==0.12.7
+Docker ARG UV_VERSION                   0.12.7
 ```
 
 The exact Python patch belongs in `.python-version`, Docker, and CI. The member

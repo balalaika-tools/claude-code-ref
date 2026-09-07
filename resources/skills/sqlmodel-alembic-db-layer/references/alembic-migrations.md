@@ -81,11 +81,10 @@ Three things that are easy to get wrong here, in order of how often they bite:
   nothing here and only risks a lingering connection outliving the process.
   This is *only* for this throwaway engine; the app's real `engine.py`
   (`references/engine-and-session.md`) must not use `NullPool`.
-- **`compare_type=True, compare_server_default=True`.** Alembic's defaults for
-  both are `False` for cross-dialect safety, which means out of the box
-  autogenerate silently misses column type changes and server-default changes
-  — exactly the kind of change you actually want caught. Turn both on
-  explicitly.
+- **`compare_type=True, compare_server_default=True`.** Current Alembic enables
+  type comparison by default, while server-default comparison remains disabled
+  because accuracy varies by dialect. Set both explicitly so the intended drift
+  policy remains visible and stable across supported Alembic versions.
 
 ## `alembic.ini`
 
@@ -97,7 +96,7 @@ app uses, either via an environment variable Alembic reads
 near the top of `env.py`, before `run_migrations_online()` is called.
 
 `script_location` points at wherever `alembic/` actually lives per
-`references/repo-layout.md` — colocated under `infrastructure/db/alembic/`
+`references/repo-layout.md` — colocated under `db/alembic/`
 in a single-service repo, or inside the dedicated migration-runner service
 (`services/db-migrate/alembic/`) in a monorepo — never inside the shared
 models package itself, which stays free of an `alembic` dependency.

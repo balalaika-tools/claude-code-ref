@@ -131,7 +131,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .settings import Settings, get_settings
+from myservice.config.settings import Settings, get_settings
 
 
 class Secrets(BaseModel):

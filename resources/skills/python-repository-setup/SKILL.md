@@ -1,14 +1,11 @@
 ---
 name: python-repository-setup
 description: >-
-  Structure or review a Python repository, from one deployable with a root
-  `pyproject.toml` and a src-layout package to a multi-deployable uv workspace with
-  members under `services/` and reusable packages under `libs/`. Use for
-  repository layout, dependency and lockfile ownership, Python/uv pins, Ruff,
-  pytest, mypy, pre-commit/pre-push, Dockerfiles, Docker Compose configuration,
-  scoped production installs, or promotion from a single service to a workspace.
-  For the internal modules and boundaries inside one service or library, use
-  `python-service-architecture` instead.
+  Structure or review a Python repository: a single src-layout project or a uv
+  workspace with isolated deployables and reusable packages. Use for dependency
+  ownership, lockfiles, toolchain pins, repository-wide quality tooling, Docker,
+  Compose, and scoped production installs. Use `python-service-architecture` for
+  modules inside a service or library.
 ---
 
 # Python Repository Setup: Single Service or uv Workspace
@@ -190,23 +187,26 @@ Before scaffolding, verify the current stable patch release for the chosen
 Python minor and the current stable uv release from official sources. Propose
 the defaults, then ask one concise question: “I will use Python X.Y.Z and uv
 A.B.C; do you want different versions?” Skip the question when the user has
-already supplied both versions.
+already supplied both versions. Before copying the bundled asset, update its
+single toolchain manifest and every derived pin with
+`scripts/update_toolchain.py --python X.Y.Z --uv A.B.C`; do not hand-edit a
+subset of the copies.
 
-Use these verified defaults for the bundled template:
+The bundled template snapshot currently uses:
 
-- Python `3.13.14`, with `.python-version` containing exactly `3.13.14`.
-- uv `0.12.4`.
+- Python `3.13.15`, with `.python-version` containing exactly `3.13.15`.
+- uv `0.12.7`.
 - Every member: `requires-python = ">=3.13,<3.14"`.
 
 Apply them in this order:
 
 1. Put `requires-python = ">=3.13,<3.14"` in every service and library
    `pyproject.toml`.
-2. Run `uv python pin 3.13.14` at the workspace root to create
+2. Run `uv python pin 3.13.15` at the workspace root to create
    `.python-version`.
 3. Read that exact value into each Dockerfile's `ARG PYTHON_VERSION` default
    and keep the in-build equality check.
-4. Put `required-version = "==0.12.4"` in the root `[tool.uv]` table and use
+4. Put `required-version = "==0.12.7"` in the root `[tool.uv]` table and use
    the same exact uv version in Docker and CI.
 
 Treat these as a coherent set. If the user changes the Python minor, update
@@ -263,7 +263,7 @@ set paths to the actual single-service roots (`src`, `tests`) instead of
 
 ```toml
 [tool.uv]
-required-version = "==0.12.4"
+required-version = "==0.12.7"
 
 [tool.uv.workspace]
 members = [
@@ -446,12 +446,12 @@ get wrong by assuming the opposite:
   does not create or read one there, and one left behind by mistake is just
   dead weight.
 - `uv lock` always operates on the whole workspace.
-- Plain `uv run` / `uv sync` (no `--package`) operate on the workspace root.
-  With a virtual root, that means installing **every** member into one shared
-  `.venv` — confirmed: syncing a two-service, one-library workspace with no
-  flags installed all three. That shared environment is the intended local
-  dev setup — you can edit `api`, `worker`, and `company_observability`
-  together with one interpreter, one `pytest` run, one IDE environment.
+- Use `uv sync --all-packages` explicitly when the intended local environment
+  contains every workspace member. Do not rely on virtual-root behavior that may
+  vary by uv version or invocation directory. That shared environment is the
+  intended local dev setup — you can edit `api`, `worker`, and
+  `company_observability` together with one interpreter, one `pytest` run, one
+  IDE environment.
 - `uv sync --package api` (or `uv run --package api …`, `uv export --package
   api`) scopes to `api` **and its transitive workspace dependencies only**.
   Confirmed directly: `uv sync --package api` installed `api` and
@@ -534,6 +534,7 @@ docker compose up --build
 For workspace mode, additionally run:
 
 ```bash
+uv sync --frozen --all-packages
 uv sync --frozen --no-dev --package <service>
 docker build --pull -f services/<service>/Dockerfile .
 ```
@@ -544,9 +545,13 @@ For a single service, instead use `uv sync --frozen --no-dev` and
 Also verify the version contract explicitly:
 
 ```bash
+python scripts/update_toolchain.py --check
 test "$(uv run python -c 'import platform; print(platform.python_version())')" = "$(tr -d '\r\n' < .python-version)"
 uv --version
 ```
+
+Run the toolchain check from this skill package before copying the asset; after
+copying, use the remaining checks from the generated repository root.
 
 The final expected ownership is:
 

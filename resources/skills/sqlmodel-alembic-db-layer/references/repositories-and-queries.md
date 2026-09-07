@@ -9,7 +9,7 @@ global session, never opens its own:
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ..models.user import User
+from myservice.db.models.user import User
 
 
 class UserRepository:
@@ -26,10 +26,11 @@ what makes this testable against a real transactional test database and safe
 under concurrent requests, since the session it wraps is itself scoped per
 unit of work (`references/engine-and-session.md`).
 
-Business/workflow code calls `UserRepository(session).get_by_email(...)`; it
-never imports `select`, `text`, or a model class to query directly. That rule
-is what keeps "where does this table get read or written" answerable by
-grepping one directory.
+Bootstrap constructs `UserRepository(session)` and injects it behind an
+application-owned repository port. Business/workflow code calls that port; it
+never imports the concrete repository, session, `select`, `text`, or a table
+model. That rule preserves inward dependency direction and keeps "where does
+this table get read or written" answerable by grepping one directory.
 
 ## Inline query builder vs. an external `.sql` file
 
@@ -44,8 +45,8 @@ enough that reading it interleaved with Python hurts, move it to its own
 `.sql` file under `queries/`, read once at import time, and run it via
 `text()`:
 
-```python
-# queries/monthly_report.sql
+```sql
+-- queries/monthly_report.sql
 SELECT ...
 FROM ...
 WHERE created_at >= :month_start AND created_at < :month_end
@@ -54,6 +55,7 @@ GROUP BY ...
 
 ```python
 # repositories/report_repository.py
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import text
@@ -67,8 +69,11 @@ class ReportRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_monthly_report(self, month: str):
-        result = await self.session.execute(text(MONTHLY_REPORT_SQL), {"month": month})
+    async def get_monthly_report(self, month_start: datetime, month_end: datetime):
+        result = await self.session.execute(
+            text(MONTHLY_REPORT_SQL),
+            {"month_start": month_start, "month_end": month_end},
+        )
         return result.all()
 ```
 

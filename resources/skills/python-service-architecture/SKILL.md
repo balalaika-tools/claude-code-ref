@@ -1,18 +1,11 @@
 ---
 name: python-service-architecture
 description: >-
-  Design, scaffold, refactor, or review the internal folder structure of a
-  Python backend service or reusable internal library, including FastAPI
-  applications, workers, event consumers, scheduled jobs, business workflows,
-  AI-enabled services, and packages under `libs/` or `packages/`.
-  Standardize business execution under application, technology-neutral contracts
-  under ports, concrete integrations under adapters, and all GenAI code under
-  a root genai package, with clear bootstrap, API, persistence, configuration,
-  observability, and test-suite boundaries. Use when deciding where backend code
-  or its unit, integration, contract, and end-to-end tests belong, or when
-  standardizing package layouts. Use `python-repository-setup` instead for
-  top-level repository mode, uv workspace, dependency, Docker, Compose, or
-  repo-wide tooling decisions; do not use this skill for database mechanics alone.
+  Design, scaffold, refactor, or review modules and tests inside a Python backend
+  service or internal library. Use for application/domain/port boundaries,
+  adapters, bootstrap, APIs, workers, GenAI code, persistence ownership, and test
+  profiles. Use `python-repository-setup` for top-level workspace and tooling
+  decisions, and domain-specific skills for implementation mechanics.
 ---
 
 # Python Service Architecture

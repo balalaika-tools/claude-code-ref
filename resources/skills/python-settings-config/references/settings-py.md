@@ -176,7 +176,8 @@ top level, ungrouped. `environment_name` is required with no default in every
 pattern; resolve it from the process environment or `.env` before choosing the
 YAML file, and fail startup naming `ENVIRONMENT_NAME` when it is absent. In the YAML pattern, `_env_name()` reads
 `ENVIRONMENT_NAME` directly from `env_settings`/`dotenv_settings` before
-`Settings` is constructed, so it must stay a flat, unaliased top-level key.
+`Settings` is constructed, so it must stay a flat top-level key with the stable
+`ENVIRONMENT_NAME` validation alias.
 
 Before adopting nested groups, account for these mechanics:
 
@@ -186,10 +187,11 @@ Before adopting nested groups, account for these mechanics:
   `.env.example` entry for grouped fields; treat it as a breaking change, not
   a transparent refactor.
 - Per-field `alias=` on nested model fields does not compose cleanly with
-  `env_nested_delimiter`. On grouped fields, drop the individual `alias=`
-  and let the delimiter plus the SCREAMING_SNAKE_CASE-matching field name
-  resolve the env var instead. Keep `case_sensitive=True` so the nested path
-  matches exactly.
+  `env_nested_delimiter`. Keep snake_case Python names and use
+  `case_sensitive=False` for conventional uppercase variables such as
+  `SERVER__APP_PORT`, or add explicit validation aliases and contract tests if
+  case sensitivity is required. Do not claim uppercase names will bind to
+  lowercase fields under `case_sensitive=True`.
 - In the YAML pattern, nested YAML maps onto nested models directly
   (`server: {app_port: ...}` onto `ServerSettings`), but alias/
   `populate_by_name` precedence gets harder to verify with nesting. Test the
@@ -198,8 +200,14 @@ Before adopting nested groups, account for these mechanics:
 ### Nested Grouping Scaffold
 
 ```python
+from functools import lru_cache
+from typing import Literal
+
 from pydantic import BaseModel, Field, PositiveFloat, PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+EnvironmentName = Literal["local", "staging", "production"]
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class ServerSettings(BaseModel):
@@ -228,12 +236,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=True,
+        case_sensitive=False,
         extra="ignore",
         env_nested_delimiter="__",
     )
 
-    environment_name: EnvironmentName = Field(default="local", alias="ENVIRONMENT_NAME")
+    environment_name: EnvironmentName = Field(..., alias="ENVIRONMENT_NAME")
     log_level: LogLevel = Field(default="INFO", alias="LOG_LEVEL")
 
     server: ServerSettings = Field(default_factory=ServerSettings)
@@ -279,7 +287,7 @@ class Settings(BaseSettings):
     )
 
     environment_name: EnvironmentName = Field(
-        default="local",
+        ...,
         alias="ENVIRONMENT_NAME",
         description="Deployment environment name for logging/telemetry.",
     )

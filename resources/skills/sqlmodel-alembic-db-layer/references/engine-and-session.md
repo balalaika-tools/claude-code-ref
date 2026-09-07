@@ -82,7 +82,7 @@ from collections.abc import AsyncIterator
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from .engine import engine
+from myservice.db.engine import engine
 
 AsyncSessionLocal = async_sessionmaker(
     engine,

@@ -1,11 +1,11 @@
 # `base.py` and `models/`
 
-## `base.py`: shared metadata + mixins
+## `base.py`: shared metadata + reusable table base
 
 `SQLModel.metadata` is a single global `MetaData` object — every
 `table=True` class in the process attaches to it, the same way a classic
 SQLAlchemy declarative `Base` works. `base.py` is where you configure that
-metadata once and define mixins every table model reuses, so `models/` files
+metadata once and define any shared non-table SQLModel base, so `models/` files
 stay pure data-shape declarations.
 
 Two things belong here:
@@ -28,41 +28,39 @@ NAMING_CONVENTION = {
 SQLModel.metadata.naming_convention = NAMING_CONVENTION
 ```
 
-**2. Reusable mixins** — plain classes, not tables themselves, that concrete
-models inherit from alongside `SQLModel`:
+**2. A reusable non-table base** for fields that every table genuinely shares.
+It inherits `SQLModel` but omits `table=True`, so concrete table models can
+inherit its fields reliably without creating another table:
 
 ```python
 import uuid
 from datetime import datetime
 
-from sqlalchemy import func
-from sqlmodel import Field
+from sqlalchemy import Column, DateTime, func
+from sqlmodel import Field, SQLModel
 
 
-class TimestampMixin:
-    created_at: datetime = Field(
-        default=None,
-        sa_column_kwargs={"server_default": func.now()},
-    )
-    updated_at: datetime = Field(
-        default=None,
-        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
-    )
-
-
-class UUIDPrimaryKeyMixin:
+class TableBase(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
+    )
+    updated_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
+    )
 ```
 
-Use `server_default`/`onupdate` at the **database** level, not an
-application-side `datetime.now()` default — the DB clock is the one source of
-truth every replica agrees on, an app-side default is per-process and drifts
-under clock skew or when two processes write concurrently.
+Use a database `server_default`, not an application-side `datetime.now()`
+default, for creation timestamps. Update `updated_at` explicitly in repository
+writes, or create and migrate a database trigger when the database must own that
+behavior. SQLAlchemy's `onupdate=` is client-side SQL generation; it is not a
+database trigger or server-side update default.
 
-There is no separate abstract `Base` class layered on top of `SQLModel`
-itself — `SQLModel.metadata` already *is* the shared registry, so a plain
-`class Base(SQLModel): pass` adds nothing. Mixins are the mechanism for
-sharing fields; `SQLModel` is still the direct parent of every table model.
+A fieldless `class Base(SQLModel): pass` adds nothing: `SQLModel.metadata`
+already provides the shared registry. Add a non-table base only when it owns
+real shared fields or behavior, and avoid a lattice of overlapping mixins.
 
 ## `models/`: one file per table
 
@@ -70,10 +68,10 @@ sharing fields; `SQLModel` is still the direct parent of every table model.
 # models/user.py
 from sqlmodel import Field, Relationship
 
-from ..base import TimestampMixin, UUIDPrimaryKeyMixin
+from myservice.db.base import TableBase
 
 
-class User(UUIDPrimaryKeyMixin, TimestampMixin, SQLModel, table=True):
+class User(TableBase, table=True):
     __tablename__ = "users"
 
     email: str = Field(unique=True, index=True)
@@ -84,8 +82,8 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, SQLModel, table=True):
 - `models/__init__.py` re-exports every model class:
 
   ```python
-  from .user import User
-  from .report import Report
+  from myservice.db.models.report import Report
+  from myservice.db.models.user import User
 
   __all__ = ["User", "Report"]
   ```
