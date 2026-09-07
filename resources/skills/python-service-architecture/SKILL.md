@@ -88,8 +88,13 @@ These are requirements, not optional examples:
    root. See `boundaries.md` for the complete dependency and contract rules.
 3. **Concrete integrations have stable owners.** HTTP belongs in `api/`,
    persistence in `db/`, and all other non-GenAI integrations in root
-   `adapters/`, grouped by provider or technology. Do not create root
-   `messaging/` or place concrete integrations in business packages.
+   `adapters/`. Keep adapter modules flat initially and encode the provider or
+   technology in the filename when needed. Introduce a provider or technology
+   subpackage only after multiple cohesive modules, independent change or setup,
+   distinct test infrastructure, or demonstrated naming pressure justifies it;
+   provider identity alone does not justify a folder. Do not create root
+   `messaging/`, one-file provider subpackages, or place concrete integrations
+   in business packages.
 4. **Every GenAI concern lives in root `genai/`.** This includes every LLM,
    agent, prompt, AI schema, tool, graph, model binding, and AI middleware.
    Application code sees a typed port and business result. Every GenAI task
@@ -118,6 +123,14 @@ These are requirements, not optional examples:
 9. **All Python imports are absolute.** Always import through the full package
    path in production code, tests, scripts, migrations, and support modules.
    Never use relative imports, including single-dot imports within one package.
+10. **Do not confuse Python configuration code with YAML ownership.** A
+   service's `src/<package>/config/` contains Python modules such as
+   `settings.py` and `secrets.py`; it is not the location for committed YAML
+   baselines. In a multi-service repository, YAML baselines live in the shared
+   repository-root `config/` by default, even though every service owns its
+   `pyproject.toml`. Create service-local YAML `config/` directories only when
+   the user explicitly requests the per-service alternative. Use
+   `settings-config` for the shared layout and merge order.
 
 Create only directories required by the current member. The canonical tree is
 a placement policy, not permission to add empty packages.

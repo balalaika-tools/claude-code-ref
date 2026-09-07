@@ -109,11 +109,16 @@ business shape exists.
 Keep application-facing ports under root `ports/` and concrete integrations
 under root `adapters/`. Do not colocate concrete S3, SQS, Kafka, browser, remote
 HTTP, or vendor SDK implementations inside `application/` or a business-named
-package. Group adapter modules by technology or external system when that makes
-ownership clearer, such as `adapters/aws/` or `adapters/salesforce/`.
+package. Provider grouping is a growth outcome, not a starting layout. Keep
+small adapter sets flat and encode the provider or technology in the filename
+when needed, such as `s3_manual_store.py`, `cognito_jwks_verifier.py`, or
+`nats_publisher.py`. Provider identity alone does not justify a subpackage, and
+one-file provider subpackages are not allowed.
 
-The generic flat-first rule applies here too. For three to five cohesive provider
-modules, prefer
+Promote a provider or technology to a subpackage when multiple cohesive modules,
+independent change or lifecycle setup, distinct test infrastructure, or
+demonstrated naming pressure makes ownership clearer. For three to five cohesive
+AWS modules, prefer
 `adapters/aws/sqs_consumer.py`, `sqs_serialization.py`, and
 `s3_raw_email_store.py`. When SQS or S3 develops several independently changing
 modules, promote only that slice to `adapters/aws/sqs/` or `adapters/aws/s3/`.
@@ -314,7 +319,8 @@ Before accepting a structure, search imports and verify:
 - no root, `core/errors.py`, or `common/errors.py` centralizes failures from
   different owners;
 - small packages remain flat across every boundary, without speculative
-  file-per-class or one-file subpackages;
+  file-per-class or one-file subpackages; provider identity by itself has not
+  been used to justify a folder;
 - no deployable imports another deployable's private package;
 - no Python file uses a relative import;
 - tests can replace costly boundaries with small typed fakes without patching

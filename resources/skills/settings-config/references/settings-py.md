@@ -1,6 +1,6 @@
 # `settings.py`
 
-Use this reference when creating or changing `src/<package>/core/settings.py`.
+Use this reference when creating or changing `src/<package>/config/settings.py`.
 
 ## Purpose
 
@@ -27,7 +27,10 @@ YAML environment baselines (default):
 1. Explicit kwargs for tests.
 2. Process environment variables.
 3. `.env` for local overrides.
-4. `config/{ENVIRONMENT_NAME}.yaml` for committed environment baselines.
+4. The merged repository-root YAML layers, from broadest to most specific:
+   `config/base.yaml`, `config/{ENVIRONMENT_NAME}.yaml`,
+   `config/services/<service>.yaml`, and
+   `config/services/<service>.{ENVIRONMENT_NAME}.yaml`.
 5. Class defaults.
 
 Do not ask the user to choose when they have expressed no preference: use YAML.
@@ -42,6 +45,12 @@ path until a real ancestor-owned `config/` directory is found. Do not hard-code
 source-tree installs. Non-editable Docker installs commonly put the module
 under `.venv/.../site-packages` while `config/` is copied to the app root, so a
 fixed parent index can point inside `.venv` and miss the deployed YAML files.
+
+In a multi-service repository, discovery must continue past the service root to
+the repository-owned `config/`; a service-local `config/` containing Python
+modules is not a YAML root. A narrow service-specific env override such as
+`MY_SERVICE_CONFIG_DIR` may select another YAML root, including the explicitly
+requested per-service layout.
 
 Do not walk upward from the process's working directory. The CWD is launch
 context, not package layout. A narrow service-specific env override such as
@@ -214,7 +223,7 @@ class ModelSettings(BaseModel):
 
 
 class Settings(BaseSettings):
-    """Non-secret settings. Secrets belong in core/secrets.py."""
+    """Non-secret settings. Secrets belong in config/secrets.py."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -260,7 +269,7 @@ LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class Settings(BaseSettings):
-    """Non-secret settings. Secrets belong in core/secrets.py."""
+    """Non-secret settings. Secrets belong in config/secrets.py."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -346,7 +355,7 @@ from pydantic_settings import (
 
 
 def _discover_config_dir(module_file: Path) -> Path | None:
-    """Find the nearest ancestor-owned `config` directory.
+    """Find the nearest ancestor-owned YAML `config` directory.
 
     Source-tree runs place `config` next to `src`. Non-editable Docker installs
     can place this module under `.venv/.../site-packages` while copying
@@ -355,17 +364,22 @@ def _discover_config_dir(module_file: Path) -> Path | None:
     """
     for parent in module_file.resolve().parents:
         candidate = parent / "config"
-        if candidate.is_dir():
+        if (candidate / "base.yaml").is_file():
             return candidate
     return None
 
 
-_CONFIG_DIR = _discover_config_dir(Path(__file__)) or (Path.cwd() / "config")
+_CONFIG_DIR = _discover_config_dir(Path(__file__))
+SERVICE_NAME = "my-service"
 
 
 def _config_dir() -> Path:
     override = os.environ.get("MY_SERVICE_CONFIG_DIR")
-    return Path(override) if override else _CONFIG_DIR
+    if override:
+        return Path(override)
+    if _CONFIG_DIR is None:
+        raise FileNotFoundError("Could not discover the repository-root config directory")
+    return _CONFIG_DIR
 
 
 def _env_name(
@@ -382,12 +396,16 @@ def _env_name(
     return (
         env_settings().get("ENVIRONMENT_NAME")
         or dotenv_settings().get("ENVIRONMENT_NAME")
-        or "local"
+        or raise_missing_environment_name()
     )
 
 
+def raise_missing_environment_name() -> str:
+    raise ValueError("Missing required environment variable: ENVIRONMENT_NAME")
+
+
 class Settings(BaseSettings):
-    """Non-secret settings. Secrets belong in core/secrets.py."""
+    """Non-secret settings. Secrets belong in config/secrets.py."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -398,7 +416,7 @@ class Settings(BaseSettings):
     )
 
     environment_name: Literal["local", "staging", "production"] = Field(
-        default="local",
+        ...,
         alias="ENVIRONMENT_NAME",
         description="Deployment environment; selects config/{environment}.yaml.",
     )
@@ -451,13 +469,26 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        yaml_file = _config_dir() / f"{_env_name(env_settings, dotenv_settings)}.yaml"
-        if not yaml_file.exists():
+        config_dir = _config_dir()
+        environment = _env_name(env_settings, dotenv_settings)
+        required_files = [config_dir / "base.yaml", config_dir / f"{environment}.yaml"]
+        missing_files = [path for path in required_files if not path.is_file()]
+        if missing_files:
             raise FileNotFoundError(
-                f"Missing config file: {yaml_file}. "
-                "Create the matching config/{ENVIRONMENT_NAME}.yaml file."
+                "Missing required config file(s): "
+                + ", ".join(str(path) for path in missing_files)
             )
-        yaml_source = YamlConfigSettingsSource(settings_cls, yaml_file=yaml_file)
+        candidate_files = [
+            *required_files,
+            config_dir / "services" / f"{SERVICE_NAME}.yaml",
+            config_dir / "services" / f"{SERVICE_NAME}.{environment}.yaml",
+        ]
+        yaml_files = [path for path in candidate_files if path.is_file()]
+        yaml_source = YamlConfigSettingsSource(
+            settings_cls,
+            yaml_file=yaml_files,
+            deep_merge=True,
+        )
         return (
             init_settings,
             env_settings,

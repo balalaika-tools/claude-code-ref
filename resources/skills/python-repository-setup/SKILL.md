@@ -36,6 +36,15 @@ For workspace mode, apply this rule:
 > the workspace and repo-wide development tooling, but no runtime dependencies
 > any service ships.**
 
+Service dependency ownership and YAML configuration ownership are independent.
+Although every deployable owns its `pyproject.toml`, a multi-service repository
+uses one repository-root `config/` for committed YAML application baselines by
+default. Do not create `services/<name>/config/*.yaml` merely because each
+service has its own project file. Use service-local YAML directories only when
+the user explicitly requests per-service configuration ownership. Apply the
+layout and merge precedence defined by `settings-config`; package-local Python
+settings modules remain governed by `python-service-architecture`.
+
 Workspace mode applies once a repository holds more than one independently built artifact
 (more than one Dockerfile, more than one Lambda, more than one deployed
 process). A single-service repository uses one ordinary root project and still

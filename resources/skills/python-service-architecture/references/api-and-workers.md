@@ -86,7 +86,18 @@ to an exit code, and exits.
 ## SQS, Kafka, or another broker
 
 Broker code is a concrete inbound or outbound adapter. Keep it below root
-`adapters/`, grouped by provider or technology; do not create root `messaging/`:
+`adapters/`; do not create root `messaging/`. Start flat when the broker is a
+single integration module:
+
+```text
+src/<package>/
+├── adapters/
+│   └── nats_publisher.py          # Single outbound NATS integration
+└── ports/
+    └── message_publisher.py       # Application-facing capability
+```
+
+Promote a provider or technology only after it owns multiple cohesive modules:
 
 ```text
 src/<package>/
@@ -103,9 +114,11 @@ src/<package>/
     └── message_publisher.py         # Only if an application action publishes
 ```
 
-Use `adapters/kafka/` for Kafka or `adapters/rabbitmq/` for RabbitMQ. Delivery
-types and heartbeat contracts used only inside the adapter remain private
-there; promote only application-facing contracts to root `ports/`.
+Use `adapters/kafka/` or `adapters/rabbitmq/` only after the integration has
+earned a subpackage under the flat-first criteria. Until then prefer names such
+as `kafka_consumer.py` or `rabbitmq_publisher.py`. Delivery types and heartbeat
+contracts used only inside the adapter remain private there; promote only
+application-facing contracts to root `ports/`.
 
 Keep `adapters/aws/` flat while the selected SQS/S3 integration is only a few
 modules. If SQS later grows separate consumer, publisher, serialization,

@@ -128,7 +128,7 @@ secret, and only then construct SDK clients or perform external I/O.
   .env.example
   src/
     <package>/
-      core/
+      config/
         settings.py
         secrets.py
 ```
@@ -136,7 +136,8 @@ secret, and only then construct SDK clients or perform external I/O.
 In a multi-service repository (a uv workspace with `services/*`), every deployable
 service directory owns its own `.env.example` describing that service's complete
 runtime contract, and the repository-root `.env.example` documents only what the
-deployment tool (Compose, Helm, Terraform) consumes and passes through. Add a
+deployment tool (Compose, Helm, Terraform) consumes and passes through. This
+per-service `.env.example` rule does not imply per-service YAML ownership. Add a
 contract test per service that parses the service file and compares each section
 with the settings class, so the file cannot drift. See `references/env-example.md`,
 "Per-Service Files and Section Taxonomy".
@@ -146,6 +147,7 @@ For the YAML application-baseline pattern, also include:
 ```text
 <project-root>/
   config/
+    base.yaml
     local.yaml
     staging.yaml
     production.yaml
@@ -154,13 +156,41 @@ For the YAML application-baseline pattern, also include:
 Keep existing environment names when a repo already uses them, such as `dev`
 or `prod`.
 
+For a multi-service repository, the default is one centralized YAML tree at the
+repository root:
+
+```text
+<repository-root>/
+  config/
+    base.yaml
+    local.yaml
+    dev.yaml
+    staging.yaml
+    prod.yaml
+    services/
+      <service>.yaml
+      <service>.local.yaml
+      <service>.dev.yaml
+      <service>.staging.yaml
+      <service>.prod.yaml
+```
+
+Create only the environment files the repository actually uses. Resolve a
+service's settings from least to most specific: `base.yaml`, the selected
+`{environment}.yaml`, `services/<service>.yaml`, then
+`services/<service>.{environment}.yaml`. `.env`, process environment variables,
+and explicit constructor kwargs continue to override the merged YAML result in
+that order. Do not create `services/<service>/config/*.yaml` unless the user
+explicitly requests per-service YAML configuration. A separate `pyproject.toml`
+per service does not count as that request.
+
 ## Reference Routing
 
 Load only the reference needed for the file you are creating or changing:
 
-- `references/settings-py.md`: `core/settings.py`, `Settings`, pattern-specific
+- `references/settings-py.md`: `config/settings.py`, `Settings`, pattern-specific
   source ordering, Pydantic field conventions, and startup validation.
-- `references/secrets-py.md`: `core/secrets.py`, `SecretStr`, stable logical
+- `references/secrets-py.md`: `config/secrets.py`, `SecretStr`, stable logical
   secret-source variables, provider routing, payload validation, async loading,
   and local resolution.
 - `references/config-yaml.md`: root `config/*.yaml`, environment baselines,
@@ -182,6 +212,9 @@ For a small field addition, read only the affected reference files.
   baseline. Do not put a key in YAML when deployment normally injects the same
   key as an env var; that makes YAML stale documentation with runtime side
   effects. See `references/config-yaml.md`.
+- In a multi-service repository, centralize YAML under the repository-root
+  `config/` by default. Treat per-service YAML directories as an explicit opt-in,
+  independently of per-service `pyproject.toml` and `.env.example` ownership.
 - For the env vars + Pydantic defaults pattern, put safe application defaults
   directly on the Pydantic fields with `Field(default=...)`. Do not create
   defaults for values that the app cannot safely choose; use `Field(...)` and

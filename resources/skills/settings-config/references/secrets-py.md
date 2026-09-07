@@ -1,6 +1,6 @@
 # `secrets.py`
 
-Use this reference when creating or changing `src/<package>/core/secrets.py`.
+Use this reference when creating or changing `src/<package>/config/secrets.py`.
 
 ## Purpose
 

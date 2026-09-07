@@ -28,6 +28,12 @@ src/<package>/
 └── diagnostics/                    # Optional operator diagnostics
 ```
 
+This `config/` is a Python package containing configuration-loading and secret
+resolution code. It does not own committed YAML files. For a multi-service
+repository, keep YAML baselines in the repository-root `config/` by default;
+use service-local YAML directories only after an explicit user request. See the
+`settings-config` skill for that layout and its merge precedence.
+
 `core/` is deliberately absent. Add it only for a dependency-light primitive
 already shared across several boundaries, such as immutable application
 context. For APIs, workers, consumers, and hybrid processes, use the concrete

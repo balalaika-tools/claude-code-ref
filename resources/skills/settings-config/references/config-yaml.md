@@ -19,8 +19,14 @@ source of truth and the YAML value is likely to become stale or misleading.
 
 ## Conventions
 
-- Keep `config/` at the project root, sibling to `src/` and `pyproject.toml`.
-- Use one YAML file per environment.
+- In a single-service repository, keep `config/` at the project root, sibling
+  to `src/` and `pyproject.toml`.
+- In a multi-service repository, keep one shared `config/` at the repository
+  root by default. Do not interpret each service's `pyproject.toml` as a reason
+  to create a service-local YAML directory.
+- Use service-local `services/<service>/config/*.yaml` only when the user
+  explicitly requests per-service YAML ownership.
+- Use layered YAML files as described below.
 - Prefer `local.yaml`, `staging.yaml`, and `production.yaml` for new services.
 - Preserve existing names such as `dev.yaml` or `prod.yaml` in established
   repos.
@@ -35,6 +41,37 @@ source of truth and the YAML value is likely to become stale or misleading.
 - Do not include keys that are normally supplied by deployment env vars.
   If a key is always overridden in real deployments, remove it from YAML and
   document it in `.env.example` instead.
+
+## Multi-Service Default Layout And Precedence
+
+```text
+config/
+├── base.yaml
+├── local.yaml
+├── dev.yaml
+├── staging.yaml
+├── prod.yaml
+└── services/
+    ├── <service>.yaml
+    ├── <service>.local.yaml
+    ├── <service>.dev.yaml
+    ├── <service>.staging.yaml
+    └── <service>.prod.yaml
+```
+
+Create only files for environments that actually exist. Merge mappings
+recursively from least to most specific:
+
+1. `config/base.yaml`
+2. `config/{environment}.yaml`
+3. `config/services/<service>.yaml`
+4. `config/services/<service>.{environment}.yaml`
+
+After YAML merging, `.env` overrides YAML, process environment variables
+override `.env`, and explicit constructor kwargs override process environment
+variables. Reject duplicate YAML ownership when a value belongs at only one
+layer; use an override layer only when it intentionally changes a broader
+baseline.
 
 ## Secret vs. Non-Secret Is Not About Volatility
 
