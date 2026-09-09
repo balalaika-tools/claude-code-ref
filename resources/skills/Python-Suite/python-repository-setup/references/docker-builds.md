@@ -1,5 +1,3 @@
-π
-
 # Production Docker Builds
 
 ## Contents

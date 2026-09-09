@@ -94,7 +94,10 @@ These are requirements, not optional examples:
    keeps model construction in an `llm.py` factory; an agent adds an `agent.py`
    factory; `bootstrap/` calls those factories with resolved configuration and
    dependencies. An application-facing implementation is named after its port
-   capability. Read `ai.md` for the enforced internal shape and ownership rules.
+   capability and wraps the model or agent harness before application code sees
+   it; never inject a raw framework agent or compiled graph as though structural
+   typing made it technology-neutral. Read `ai.md` for the enforced internal
+   shape, tool organization, and ownership rules.
 5. **Package growth is flat-first.** Start with the fewest cohesive modules and
    introduce only the narrower subpackage whose independent ownership, change,
    setup, or naming pressure justifies it. Do not create file-per-class layouts,
@@ -103,7 +106,10 @@ These are requirements, not optional examples:
    caller-needed external capabilities, not implementations or deterministic
    in-process logic. Never create global `utils`, `common`, `shared`, root
    `constants.py`, or root/`core`/`common` error collections. Translate concrete
-   failures to the port-owned contract before application code sees them.
+   failures to the port-owned contract inside the concrete implementation before
+   application code sees them. Observability is not automatically an application
+   port; prefer outer instrumentation, and keep any unavoidable observer contract
+   minimal rather than mirroring the concrete telemetry object.
 7. **Tests belong to their member and actual execution profile.** Keep them
    beside the member's `src/`. When multiple profiles exist, classify them as
    `unit`, `integration`, `contract`, or `e2e` by what they execute, then by
@@ -157,3 +163,5 @@ requests both.
   Alembic structure.
 - Use `otel-observability` for actual OpenTelemetry implementation or audit,
   including the lifecycle and logging contract of a shared observability library.
+- Use `python-service-architecture-audit` for an evidence-based final audit of
+  an established or refactored service and for deterministic boundary checks.

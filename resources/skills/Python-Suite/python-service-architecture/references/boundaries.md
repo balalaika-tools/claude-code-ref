@@ -104,6 +104,21 @@ Keep typed inputs and outputs at the boundary. Avoid weak contracts such as
 `dict[str, Any]`, unvalidated JSON, or raw provider responses when a stable
 business shape exists.
 
+Do not mistake a framework object that happens to satisfy a Protocol for a clean
+adapter. A port leaks its implementation when its methods or parameters encode
+SDK operations, graph configuration, provider messages, checkpoint internals,
+stream modes, durability flags, or vendor exception classes. Define the contract
+from the application action's vocabulary, then write a concrete adapter that
+translates to and from the framework.
+
+Instrumentation does not earn a port merely because it is injected. Prefer
+automatic instrumentation or an outer API/consumer/worker wrapper. When an
+application action must emit a lifecycle fact that cannot be observed outside,
+use the smallest event or observer contract that expresses that fact. Do not
+mirror a concrete telemetry handle with activation context managers, stream
+wrappers, exporter types, or broad `Any` methods, and do not let telemetry state
+control business outcomes.
+
 ## Centralized ports and adapters
 
 Keep application-facing ports under root `ports/` and concrete integrations
@@ -248,6 +263,13 @@ cross-action use-case failures in `application/`, stable external failure
 contracts in `ports/`, and implementation-private failures in their adapter or
 GenAI owner.
 
+Do not introduce a universal `AdapterError` hierarchy or a central translator
+that imports several SDKs and guesses meaning from `getattr(error, "code")`.
+Each concrete implementation catches its own SDK exceptions and raises the
+specific failure contract owned by its port. The API maps application-visible
+failure codes to HTTP status and problem details; it does not duplicate a second
+catalog of business messages already owned elsewhere.
+
 Apply the same ownership rule to static values. Do not create root
 `constants.py`, `core/constants.py`, or another global collection of unrelated
 values:
@@ -325,3 +347,10 @@ Before accepting a structure, search imports and verify:
 - no Python file uses a relative import;
 - tests can replace costly boundaries with small typed fakes without patching
   SDK internals.
+
+For an established service, encode the important internal directions in an AST
+or import-graph contract test. Checking only that domain/application avoid SDKs
+is insufficient: also reject application imports of `db` or `genai`, GenAI
+imports of `db`, and domain/port imports of outer boundaries. Add a focused
+assertion that bootstrap injects a capability adapter rather than a raw model,
+agent, graph, or checkpointer whenever static import rules cannot prove it.
