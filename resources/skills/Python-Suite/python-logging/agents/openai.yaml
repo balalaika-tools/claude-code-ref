@@ -1,0 +1,4 @@
+interface:
+  display_name: "Python Logging"
+  short_description: "Design reliable structured application logs"
+  default_prompt: "Use $python-logging to add or review low-noise structured logging and meaningful application events."

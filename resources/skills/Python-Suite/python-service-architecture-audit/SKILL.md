@@ -74,6 +74,68 @@ authorized repair, move one coherent boundary at a time, update all consumers,
 add or strengthen behavior/contract tests for the defect, and run focused tests
 before the complete relevant suite.
 
+## Repair planning gate
+
+After the audit, unless the user explicitly requested a report-only review,
+choose exactly one workflow for confirmed violations and worthwhile
+improvements. Preferences alone do not justify either workflow.
+
+Use the following rubric to decide whether the repair deserves a durable
+specification.
+
+**OpenSpec hard triggers.** Use the
+[`openspec-propose`](../openspec-propose/SKILL.md) skill when any one is true:
+
+- the repair intentionally changes a public API, event or message shape,
+  persisted data schema, CLI contract, shared-library interface, authorization
+  rule, or other behavior relied on outside the owning module; restoring behavior
+  already established by tests or documentation is not a contract change;
+- old and new behavior or data must coexist, consumers must migrate in a
+  coordinated order, or the change needs a backfill, deprecation, feature flag,
+  compatibility shim, or rollback design;
+- implementation cannot start safely until the user chooses between viable
+  designs with materially different behavior, ownership, compatibility, data,
+  security, or operational tradeoffs.
+
+**Complexity signals.** Also use OpenSpec when at least two are true:
+
+- the repair changes three or more of these boundaries with non-mechanical
+  consequences: process/API, application, port, adapter/infrastructure,
+  bootstrap/composition;
+- it spans multiple independently deployed services, publishable packages, or
+  separately owned components;
+- it introduces or removes a compatibility surface, abstraction, or dependency
+  direction rather than merely relocating an existing implementation;
+- acceptance criteria remain materially uncertain after inspecting current
+  tests, documentation, callers, and repository history.
+
+Follow `openspec-propose` completely, create the proposal artifacts, and then
+stop. Do not implement the proposed repair in the same response.
+
+Prefer the retained `PLAN*.md` workflow when there is no hard trigger and fewer
+than two complexity signals. Typical direct repairs are localized or mechanical,
+preserve an already established contract, have clear acceptance criteria, can be
+validated in one repository, and do not require coordinated rollout. File count
+and line count alone never determine the branch.
+
+When an OpenSpec change would be disproportionate, implement the repair
+directly through a retained Markdown plan:
+
+1. Create `PLAN.md` in the project root before editing project code. If that
+   file already exists, do not overwrite or modify it; use
+   `ARCHITECTURE-AUDIT-PLAN.md`, then add the first available numeric suffix
+   such as `ARCHITECTURE-AUDIT-PLAN-2.md` if necessary.
+2. Record every in-scope repair and validation step as a Markdown task checkbox.
+   Keep the plan focused on confirmed violations and worthwhile improvements.
+3. Implement all items in the plan, updating each checkbox as work completes.
+   Add brief notes for any item that cannot be completed and leave it unchecked.
+4. Run the completion gate below, record the validation outcome in the same
+   plan, keep the plan file in the project root for review, and stop.
+
+Do not create both an OpenSpec proposal and a `PLAN*.md` repair plan for the same
+audit. The OpenSpec branch is planning-only; the retained-plan branch includes
+implementation.
+
 ## Completion gate
 
 Before declaring a structural repair complete:

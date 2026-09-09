@@ -28,7 +28,7 @@ uses.
 The infrastructure side — Terraform, `deploy-app-<service>.sh`, the applying role
 — belongs to the sibling `terraform-aws` and `deploy-scripts` skills. The handoff
 contract that joins the two is one file:
-`deploy-scripts/references/split-repo-releases.md`. Read it before wiring a
+`../deploy-scripts/references/split-repo-releases.md`. Read it before wiring a
 pipeline; it defines the artifact file, both trust policies, and the promotion and
 rollback paths. If that skill is unavailable, follow [The Handoff
 Contract](#the-handoff-contract) below and do not invent a different mechanism.
@@ -95,14 +95,16 @@ CI. Keep each service independently releasable inside it — its own `paths:` fi
 its own artifact, its own role, its own lockfile.
 
 For Python Lambda layout, the `handler.py`/`src/` boundary, and uv dependency
-policy, follow `terraform-aws`'s `references/python-lambda.md`. It applies verbatim
-here; only the absent `Terraform/` differs.
+policy, follow the `terraform-aws` skill's
+`../terraform-aws/references/python-lambda.md`. It applies verbatim here;
+only the absent `Terraform/` differs.
 
 ## Build Scripts
 
-Do not write a new build script pattern. `deploy-scripts`'
-`references/build-scripts.md` holds the Lambda ZIP/uv and Docker/ECR listings and
-`references/ami-builds.md` holds the AMI path; both apply unchanged, because
+Do not write a new build script pattern. The `deploy-scripts` skill's
+`../deploy-scripts/references/build-scripts.md` holds the Lambda ZIP/uv and
+Docker/ECR listings and `../deploy-scripts/references/ami-builds.md` holds
+the AMI path; both apply unchanged, because
 `REPO_ROOT` resolved from `${BASH_SOURCE[0]}` is already this repository's root.
 Duplicating those listings here would give one convention two copies that drift.
 
@@ -138,7 +140,7 @@ deploy history, and makes rollback a `git revert` against an artifact that is st
 in the registry.
 
 Full listing of `open-release-pr.sh`, the workflow that calls it, and the direct
-dispatch alternative: `deploy-scripts/references/split-repo-releases.md`.
+dispatch alternative: `../deploy-scripts/references/split-repo-releases.md`.
 
 Four failure modes to get right, in rough order of how often they bite:
 
@@ -165,7 +167,7 @@ Run them on pull request, and make the release depend on them:
 - Unit and integration tests for the service, at the version being released.
 - `uv lock --check` — a lockfile that has drifted from `pyproject.toml` fails
   fast here. The build script runs the same check again immediately before
-  packaging (see `deploy-scripts/references/build-scripts.md`); running it in
+  packaging (see `../deploy-scripts/references/build-scripts.md`); running it in
   both places is deliberate defense in depth, not a sign one of them is
   redundant — the test job gives quick feedback on a pull request, and the
   build's own check is what actually protects a build invoked outside this
@@ -204,7 +206,7 @@ ordering is now yours to get right.
    and, for Python, its own `pyproject.toml` and `uv.lock`.
 2. Copy the nearest `build-<service>.sh` and update the source directory, artifact
    name, and artifact destination. Follow
-   `deploy-scripts/references/build-scripts.md` for the body.
+   `../deploy-scripts/references/build-scripts.md` for the body.
 3. Add `release-<service>.yml`: a `paths:` filter for that service, a test job, and
    a publish job that builds, publishes, then opens the release pull request.
 4. Request the two AWS resources this needs from the infrastructure repository —

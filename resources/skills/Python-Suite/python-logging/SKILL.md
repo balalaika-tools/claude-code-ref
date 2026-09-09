@@ -1,9 +1,9 @@
 ---
-name: structured-logging
+name: python-logging
 description: Add, audit, repair, or standardize low-noise structured application logging and meaningful operational or business events, including exception ownership, correlation, redaction, and verification. Use for services, workers, jobs, CLIs, and GenAI applications whether logs go to stdout, files, a platform log service, or a vendor backend; OpenTelemetry and OTLP are optional and are not introduced unless the user requests them.
 ---
 
-# Structured Logging
+# Python Logging
 
 Make an application's behavior searchable through a small, intentional catalogue of structured events. Preserve what the application does and its established log destination. This skill owns application logging, not tracing, metrics, or an observability transport.
 
