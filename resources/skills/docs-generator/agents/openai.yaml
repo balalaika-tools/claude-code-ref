@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repository Docs Generator"
+  short_description: "Build and maintain repository operating manuals"
+  default_prompt: "Use $docs-generator to create or update this repository’s docs/ operating manual from the code, configuration, tests, and deployment definitions."
