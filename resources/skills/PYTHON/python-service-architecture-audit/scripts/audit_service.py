@@ -56,6 +56,13 @@ FRAMEWORK_PORT_NAMES = {
     "recursion_limit",
     "stream_mode",
 }
+TRANSPORT_COORDINATE_FIELDS = {
+    "ack_token",
+    "consumer_group",
+    "offset",
+    "partition",
+    "receipt_handle",
+}
 
 
 @dataclass(frozen=True, order=True)
@@ -74,6 +81,66 @@ def imports(tree: ast.AST) -> list[tuple[str, int, int]]:
         elif isinstance(node, ast.ImportFrom):
             found.append((node.module or "", node.level, node.lineno))
     return found
+
+
+def dotted_name(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        prefix = dotted_name(node.value)
+        return f"{prefix}.{node.attr}" if prefix else node.attr
+    return ""
+
+
+def class_fields(node: ast.ClassDef) -> set[str]:
+    return {
+        child.target.id
+        for child in node.body
+        if isinstance(child, ast.AnnAssign) and isinstance(child.target, ast.Name)
+    }
+
+
+def application_lifecycle_findings(tree: ast.AST, display: str) -> list[Finding]:
+    findings: list[Finding] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.AsyncFunctionDef) or node.name not in {"run", "start"}:
+            continue
+        has_loop = any(isinstance(child, ast.While) for child in ast.walk(node))
+        has_stop_event = any(
+            dotted_name(annotation) == "asyncio.Event"
+            for argument in (*node.args.args, *node.args.kwonlyargs)
+            if (annotation := argument.annotation) is not None
+        )
+        if has_loop and has_stop_event:
+            findings.append(
+                Finding(
+                    display,
+                    node.lineno,
+                    "application appears to own a long-running loop and stop-event lifecycle",
+                    "REVIEW",
+                )
+            )
+    return findings
+
+
+def transport_contract_findings(tree: ast.AST, display: str, owner: str | None) -> list[Finding]:
+    if owner not in {"application", "domain", "ports"}:
+        return []
+    findings: list[Finding] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        leaked = sorted(class_fields(node) & TRANSPORT_COORDINATE_FIELDS)
+        if leaked:
+            findings.append(
+                Finding(
+                    display,
+                    node.lineno,
+                    f"{owner} contract exposes transport delivery coordinates: {', '.join(leaked)}",
+                    "REVIEW",
+                )
+            )
+    return findings
 
 
 def boundary_for(path: Path, root: Path) -> str | None:
@@ -108,6 +175,10 @@ def audit_file(path: Path, root: Path, package: str) -> list[Finding]:
 
     if relative in GENERIC_COLLECTIONS:
         findings.append(Finding(display, 1, "generic root/core error or constant collection"))
+
+    if owner == "application":
+        findings.extend(application_lifecycle_findings(tree, display))
+    findings.extend(transport_contract_findings(tree, display, owner))
 
     if owner == "ports":
         for node in ast.walk(tree):
@@ -148,7 +219,8 @@ def main() -> int:
         print(f"{finding.severity} {finding.path}:{finding.line}: {finding.message}")
     violations = sum(item.severity == "VIOLATION" for item in findings)
     reviews = len(findings) - violations
-    print(f"architecture audit: {violations} violation(s), {reviews} review notice(s)")
+    print(f"static architecture checks: {violations} violation(s), {reviews} review notice(s)")
+    print("semantic architecture audit still required")
     return 1 if violations else 0
 
 

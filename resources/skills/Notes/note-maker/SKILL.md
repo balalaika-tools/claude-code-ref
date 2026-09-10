@@ -44,13 +44,20 @@ For a MkDocs collection, `docs/index.md` is the canonical learning map. Read
 For a Markdown-only collection, the root `README.md` remains the canonical learning map.
 
 Key rules:
-- Lead with a reader-oriented **Explore by area** overview, not a filesystem tree
-- In MkDocs Material, use a restrained card grid linking to section indexes; in Markdown-only
-  collections, use a compact Area / Covers / Start here table
+- After the short introduction, lead with **Start here** choices organized by reader goal and
+  visible outcome; do not make a first-time reader decode the taxonomy before choosing an entry
+- Follow with a reader-oriented **Contents** overview by area, not a filesystem tree
+- Use two navigation levels: the canonical landing page lists sections and routes to their indexes;
+  each section index owns the detailed list of notes in that section
+- Do not duplicate every leaf note on the canonical landing page when it already appears in a
+  section index; learning paths may still link directly to selected leaf notes
+- In MkDocs Material, the area overview may use a restrained card grid linking to section indexes;
+  in Markdown-only collections, use compact grouped Area / Covers / Start here tables
 - Keep directory layout out of the landing page unless it communicates information that the
   navigation cannot; if included, put a small plain tree in a secondary `Repository layout` section
-- Contents section: one markdown table per category, grouped by category
-- Reading Order: 2–4 named paths for different experience levels or goals
+- Group the Contents overview into a few meaningful categories so the complete collection remains
+  discoverable without turning the landing page into an exhaustive catalog
+- Learning paths: 2–4 named paths for different experience levels or goals
 - At least one path is explicitly for a first-time reader, states the capability reached, and produces a runnable result or concrete worked outcome within its first two entries
 - Every path says who can stop at its first useful milestone and what new requirement justifies continuing
 - Paths follow **do → understand → harden**; if a path revisits an earlier note for depth, say so explicitly
@@ -63,7 +70,9 @@ Key rules:
 
 In MkDocs collections, every section uses `index.md`. In existing Markdown-only collections, keep
 using `README.md`. These files are **intentionally minimal** — just enough to orient the reader
-within that section. Do not repeat the landing page's area overview.
+within that section while listing its child sections and notes in useful reading order. They own
+the detailed catalog that the landing page deliberately omits; do not repeat the landing page's
+cross-collection area overview.
 
 Read `references/templates/directory_readme.md` for the template.
 

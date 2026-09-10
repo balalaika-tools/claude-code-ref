@@ -29,12 +29,22 @@ python scripts/audit_service.py path/to/src/package
 ```
 
 Treat script failures as concrete violations. Its review notices are prompts for
-semantic inspection, not proof.
+semantic inspection, not proof. Report its result as **static checks**, never as
+the result of the architecture audit as a whole. A zero-finding script run does
+not reduce or replace the semantic work below.
+
+Before tracing individual paths, inventory every public application action and
+long-running process runner. For each one, record its input and output contract,
+caller, injected collaborators, business decisions, external effects, and the
+owner of any loop or lifecycle. Use that inventory to ensure a healthy action
+does not hide drift in an uninspected sibling. Then trace every action far enough
+to assign its decisions and effects to owners, with at least one complete
+process-to-implementation trace for each distinct external capability family.
 
 ## Semantic audit
 
-Trace at least one real business action from its process boundary through
-application code, ports, concrete implementations, and bootstrap. Check:
+Trace real business actions from their process boundary through application
+code, ports, concrete implementations, and bootstrap. Check:
 
 - dependencies point inward and application code never imports concrete DB,
   adapter, API, bootstrap, or GenAI implementations;
@@ -44,6 +54,23 @@ application code, ports, concrete implementations, and bootstrap. Check:
 - concrete implementations translate their SDK failures into the port-owned
   failure contract, without a universal adapter hierarchy or central translator;
 - errors, constants, validation, and helpers stay with their semantic owner;
+- application actions contain the business decision they claim to represent;
+  a method that only delegates an intent-named operation such as `complete`,
+  `fail`, `expire`, or `approve` is a review prompt, especially when the concrete
+  DB or adapter implementation chooses statuses, classifications, public error
+  codes, messages, or downstream transitions;
+- database and other concrete adapters execute queries and atomically realize
+  caller-owned decisions rather than inventing business transitions hidden
+  behind a broad command-shaped port;
+- long-running loops, stop events, idle sleeps, task creation, graceful
+  shutdown, and health supervision stay in bootstrap/supervisor code; keep the
+  independently invokable `*_once`, `execute`, or equivalent business action in
+  `application/`;
+- inbound API, broker, and SDK DTOs are translated at the process adapter;
+  inspect fields recursively rather than trusting a wrapper named `domain` or
+  `command`, and reject receipt handles, acknowledgements, Kafka topics,
+  partitions, offsets, provider messages, raw requests/responses, and equivalent
+  delivery metadata that cross into application, domain, or ports;
 - bootstrap injects a capability implementation rather than a raw client,
   model, agent, graph, checkpointer, session, or telemetry handle;
 - GenAI tasks own their model binding, prompts, schemas, tools, middleware, and
@@ -59,6 +86,17 @@ application code, ports, concrete implementations, and bootstrap. Check:
 Search for unused ports and protocols, but inspect callers before recommending
 deletion. Structural typing, a passing type checker, and test fakes do not prove
 that a port is technology-neutral or useful.
+
+For each application action, compare its focused unit tests with its concrete
+integration tests. Missing unit coverage is not automatically an architecture
+violation, but if business outcomes can only be demonstrated through a real DB,
+broker, model, or SDK, inspect whether policy has escaped into that concrete
+implementation.
+
+Summarize the semantic pass with a compact ownership matrix containing, as
+applicable: action, business decision, boundary input, port, concrete
+implementation, state-transition owner, and lifecycle owner. Explicitly label
+static-script findings separately from semantic findings.
 
 ## Findings and repair
 

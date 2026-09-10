@@ -26,7 +26,7 @@ orient the reader within that section. Don't repeat the landing page's area over
 
 ---
 
-## Reading Order
+## Learning path
 
 **Working result by entry 2**: {the smallest runnable result or concrete worked outcome}.
 
