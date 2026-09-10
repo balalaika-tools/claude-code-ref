@@ -25,6 +25,7 @@ observability/
     tracing.py           <- Resource, TracerProvider, span processors, propagators
     metrics.py           <- MeterProvider, readers, instrument definitions
     logging.py           <- structlog configuration and trace correlation
+    genai.py             <- model callbacks, tool middleware, agent wrappers
     genai_attributes.py  <- GenAI convention constants        }
     genai_usage.py       <- token usage normalization         } GenAI
     genai_content.py     <- message/payload serializers       } services
@@ -36,7 +37,7 @@ Pick the second when the service has GenAI instrumentation, more than one bounda
 
 ---
 
-## What belongs in the shared package
+## What belongs in the service observability package
 
 Within one service, "shared package" below means its common observability
 module. When extracting a workspace library consumed by several deployables,
@@ -44,7 +45,7 @@ read `shared_library.md`; it adds the reuse threshold, dependency boundary,
 explicit lifecycle, shared-logging contract, and consumer-by-consumer migration
 rules.
 
-Only generic, framework-agnostic SDK wiring:
+The package owns all code whose sole purpose is telemetry, including:
 
 - the `Resource`
 - `TracerProvider`, `MeterProvider`, and (if used) `LoggerProvider`
@@ -53,14 +54,17 @@ Only generic, framework-agnostic SDK wiring:
 - SDK initialization and shutdown, or the managed-runtime force-flush lifecycle
 - shared helper functions — a `set_usage_attributes()`, a stable cross-service
   outcome enum when one genuinely exists, or a duration-measuring context manager
+- framework-specific telemetry adapters such as LangChain model callbacks,
+  tool-tracing middleware, usage parsers, and agent-invocation wrappers
 
 ---
 
-## What must stay out of it
+## Keep setup and adapters in separate modules
 
-Framework and agent-specific instrumentation. A LangChain callback handler, a `@wrap_tool_call` middleware, or an OpenAI response parser does **not** belong in the module that builds the `TracerProvider`.
-
-Put them next to the code they instrument:
+A LangChain callback handler, a `@wrap_tool_call` middleware, or an OpenAI
+response parser does **not** belong in the module that builds the
+`TracerProvider`. Keep the separation inside the existing observability package
+by default:
 
 ```
 observability/
@@ -68,15 +72,19 @@ observability/
     metrics.py
     logging.py
     genai_attributes.py         shared constants — no framework imports
-
-agents/
-    observability/
-        callbacks.py            OTelModelCallback  (imports langchain_core)
-        middleware.py           trace_tool_call  (imports langchain.agents.middleware)
-        agent_span.py           invoke_agent wrapper
+    genai.py                    OTelModelCallback, trace_tool_call,
+                                invoke_agent wrapper; imports LangChain
 ```
 
-Why this split is worth enforcing: the generic module is imported by every entry point in the service, including ones with no LLM code. If it imports `langchain_core`, every worker and CLI job now depends on LangChain, startup slows, and a LangChain upgrade can break a service that never calls a model.
+Keep `observability/__init__.py` narrow so non-GenAI entry points do not eagerly
+load `observability.genai`. A module inside a package does not make every package
+consumer depend on its imports unless the package initializer or a common import
+path eagerly re-exports it.
+
+Do not create `agents/observability/`, `genai/observability/`, or another nested
+package merely because an adapter imports LangChain. Split only for a large,
+independently changing collection, distinct lifecycle/test setup, or demonstrated
+import pressure. One callback plus one tool middleware stays flat.
 
 ---
 

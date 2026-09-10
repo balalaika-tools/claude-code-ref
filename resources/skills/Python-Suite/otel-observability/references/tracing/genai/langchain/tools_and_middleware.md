@@ -9,7 +9,7 @@ Tool arguments and results are opt-in content on the same switch as prompts — 
 ## The tool tracing middleware
 
 ```python
-# agents/observability/middleware.py
+# observability/genai.py
 import time
 
 from langchain.agents.middleware import wrap_tool_call

@@ -472,6 +472,17 @@ supported, but validate each service's uniqueness, length, and syntax rules: S3
 bucket names are globally unique within a partition and length limited, while ECR
 repositories and CloudFront distributions are not.
 
+For project-owned resources in global or shared naming namespaces, prefer a
+deterministic name derived from the stable scope components needed for uniqueness,
+such as project, environment, account ID, and region. Do not require an operator to
+invent and repeat an arbitrary name in environment tfvars when Terraform can derive
+it safely. When a service length limit requires truncation, truncate the descriptive
+prefix and preserve the account, region, or other uniqueness-bearing suffix. Accept
+an explicit nullable name override only when adopting a pre-existing resource,
+referencing an externally owned allocation, or complying with an established
+organization naming policy; document that exceptional ownership path and test both
+the generated and override branches.
+
 ### Account-Singleton Resources
 
 Some resources may exist only once per account, so a stack that creates one

@@ -88,16 +88,17 @@ These are requirements, not optional examples:
    provider identity alone does not justify a folder. Do not create root
    `messaging/`, one-file provider subpackages, or place concrete integrations
    in business packages.
-4. **Every GenAI concern lives in root `genai/`.** This includes every LLM,
-   agent, prompt, AI schema, tool, graph, model binding, and AI middleware.
-   Application code sees a typed port and business result. Every GenAI task
-   keeps model construction in an `llm.py` factory; an agent adds an `agent.py`
-   factory; `bootstrap/` calls those factories with resolved configuration and
+4. **Every GenAI implementation concern lives in root `genai/`; telemetry stays
+   in root `observability/`.** LLMs, agents, prompts, AI schemas, tools, graphs,
+   model bindings, and behavior-changing AI middleware belong in `genai/`.
+   Telemetry-only callbacks, tracing middleware, usage adapters, and agent-span
+   wrappers belong in the service's existing `observability/` boundary by
+   default, even when they import LangChain or another framework. Application
+   code sees a typed port and business result. Every GenAI task keeps model
+   construction in an `llm.py` factory; an agent adds an `agent.py` factory;
+   `bootstrap/` calls those factories with resolved configuration and
    dependencies. An application-facing implementation is named after its port
-   capability and wraps the model or agent harness before application code sees
-   it; never inject a raw framework agent or compiled graph as though structural
-   typing made it technology-neutral. Read `ai.md` for the enforced internal
-   shape, tool organization, and ownership rules.
+   capability. Read `ai.md` for the enforced internal shape and ownership rules.
 5. **Package growth is flat-first.** Start with the fewest cohesive modules and
    introduce only the narrower subpackage whose independent ownership, change,
    setup, or naming pressure justifies it. Do not create file-per-class layouts,
@@ -106,10 +107,7 @@ These are requirements, not optional examples:
    caller-needed external capabilities, not implementations or deterministic
    in-process logic. Never create global `utils`, `common`, `shared`, root
    `constants.py`, or root/`core`/`common` error collections. Translate concrete
-   failures to the port-owned contract inside the concrete implementation before
-   application code sees them. Observability is not automatically an application
-   port; prefer outer instrumentation, and keep any unavoidable observer contract
-   minimal rather than mirroring the concrete telemetry object.
+   failures to the port-owned contract before application code sees them.
 7. **Tests belong to their member and actual execution profile.** Keep them
    beside the member's `src/`. When multiple profiles exist, classify them as
    `unit`, `integration`, `contract`, or `e2e` by what they execute, then by
@@ -163,5 +161,3 @@ requests both.
   Alembic structure.
 - Use `otel-observability` for actual OpenTelemetry implementation or audit,
   including the lifecycle and logging contract of a shared observability library.
-- Use `python-service-architecture-audit` for an evidence-based final audit of
-  an established or refactored service and for deterministic boundary checks.

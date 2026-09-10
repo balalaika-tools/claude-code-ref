@@ -96,7 +96,8 @@ Use these questions in order when ownership is ambiguous:
 | Is it a reusable business noun, value object, or pure rule? | `domain/` |
 | Does it define an external or nondeterministic capability an action needs? | `ports/` |
 | Does it implement that need with an ordinary external SDK or system? | `adapters/` |
-| Does it contain any LLM, agent, prompt, AI schema, tool, graph, or model binding? | `genai/` |
+| Does it contain an LLM, agent, prompt, AI schema, tool, graph, model binding, or behavior-changing AI middleware? | `genai/` |
+| Does it exist only to trace, meter, log, or correlate GenAI execution? | `observability/` |
 | Does it expose HTTP transport concerns? | `api/` |
 | Does it execute persistence queries or own sessions/repositories? | `db/` |
 | Does it construct or dispose the runtime graph? | `bootstrap/` |

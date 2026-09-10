@@ -31,7 +31,7 @@ The single most common defect in a hand-written callback is a hardcoded model na
 `on_chat_model_start` receives the model identity in more than one place depending on the provider and LangChain version, so resolve it with fallbacks:
 
 ```python
-# agents/observability/callbacks.py
+# observability/genai.py
 from typing import Any
 
 

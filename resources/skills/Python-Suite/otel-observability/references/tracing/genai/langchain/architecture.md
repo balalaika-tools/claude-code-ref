@@ -94,7 +94,9 @@ If the agent does retrieval, add embedding and retrieval spans as well — they 
 
 ## Where the code lives
 
-Framework-specific instrumentation stays out of the generic SDK module (`../../../setup/package_layout.md`):
+Framework-specific instrumentation stays out of the generic SDK module but in
+the service's existing observability package by default
+(`../../../setup/package_layout.md`):
 
 ```
 observability/
@@ -106,17 +108,15 @@ observability/
     genai_content.py         message and payload serializers
     genai_metrics.py         record_model_operation() and friends
     agent_counters.py        invocation_counters() / current_counters()
-
-agents/
-    observability/
-        callbacks.py         OTelModelCallback and extract_usage_metadata() —
-                             the LangChain usage adapter, specified in
-                             ../token_usage.md
-        middleware.py        trace_tool_call
-        agent_span.py        invoke_agent / streaming wrappers, agent_step()
+    genai.py                 OTelModelCallback, trace_tool_call, and agent
+                             invocation wrappers; may import LangChain
 ```
 
-The split is load-bearing: `observability/` is imported by every entry point, including workers with no LLM code. Nothing in it may import `langchain_core`.
+The module split is load-bearing: `observability/tracing.py` and the package
+initializer must not import LangChain. A sibling `observability/genai.py` may do
+so and is loaded only by GenAI composition. Do not add a parallel nested
+observability package until the framework-specific surface has real size,
+independent change, lifecycle/test needs, or demonstrated import pressure.
 
 ---
 
@@ -132,8 +132,7 @@ from langchain.agents.middleware import (
 )
 from langchain.chat_models import init_chat_model
 
-from agents.observability.callbacks import OTelModelCallback
-from agents.observability.middleware import trace_tool_call
+from observability.genai import OTelModelCallback, trace_tool_call
 
 # One handler instance is enough; it keys its state by run_id.
 otel_model_callback = OTelModelCallback()

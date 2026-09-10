@@ -52,7 +52,7 @@ LangGraph's mutable execution state is different and belongs in
         ├── schemas.py              # Agent input/output and response schemas
         ├── prompts.py              # Prompt definitions/builders, when used
         ├── tools.py                # A few cohesive tools, when used
-        ├── middleware.py           # A few custom middleware, when used
+        ├── middleware.py           # Behavior/policy middleware, when used
         ├── agent.py                # Agent harness factory
         └── pricer.py               # Pricer port implementation
 ```
@@ -66,39 +66,29 @@ invoked only by another GenAI capability, do not manufacture an application
 port or capability adapter for it. Use generic `adapter.py` only when that is an
 established repository convention.
 
-For an application-facing agent, returning the raw object built by `agent.py`
-from bootstrap does not satisfy this rule. Structural conformance is insufficient
-when the port exposes framework operations or controls such as `ainvoke`,
-`astream`, graph configuration, stream modes, durability, checkpoint tuples, or
-provider messages. Inject the harness into a capability-named implementation
-such as `investigator.py`; that implementation exposes the caller's business
-operation and translates inputs, streamed events, results, and failures into the
-port contract.
-
 Create `prompts.py`, `tools.py`, and `middleware.py` only when those
 responsibilities exist. A LangChain agent created with `create_agent()` does not
 by itself justify a project-owned `graph/` package. Add `graph/` only when the
 application explicitly defines LangGraph state, nodes, routing, or edges.
-
-The standard shape is a placement vocabulary, not a whitelist of allowed
-filenames. Keep a cohesive task-owned concept flat under the task with a precise
-semantic name such as `grounding.py`, `retrieval.py`, `ranking.py`, `policy.py`,
-or `evaluation.py`. Such a module owns behavior; it is not a schema merely
-because its inputs are typed, and it is not middleware merely because a
-middleware hook calls it. Promote that concept to a same-named package only
-after several independently changing modules or distinct test setup justify the
-extra level.
 
 ## Expanded multi-agent shape
 
 ```text
 <package>/
 └── genai/
-    ├── shared/                         # Only demonstrated multi-task reuse
-    │   ├── llm.py                      # Shared construction policy, if earned
-    │   ├── retry.py                    # Shared retry mechanics, if identical
-    │   ├── structured_output.py        # Shared structured-call behavior
-    │   └── middleware.py               # A few actual shared middleware hooks
+    ├── shared/                         # Only demonstrated multi-agent reuse
+    │   ├── middleware/
+    │   │   └── limits.py
+    │   ├── prompts/
+    │   │   └── safety.py
+    │   ├── schemas/
+    │   │   └── citations.py
+    │   ├── tools/
+    │   │   └── knowledge_search.py
+    │   └── retrieval/
+    │       ├── retriever.py
+    │       ├── reranking.py
+    │       └── context.py
     │
     ├── pricing_agent/                  # Standard create_agent agent
     │   ├── llm.py
@@ -144,28 +134,6 @@ modules. Keep retrieval local to one agent until another agent actually reuses
 the same tool contract, retrieval, reranking, or context semantics; promote only
 the reused pieces to `genai/shared/`. `shared/` is not a staging area for code
 expected to become reusable later.
-
-## Shared GenAI ownership
-
-Apply flat-first inside `genai/shared/` as strictly as inside a task. A shared
-module must have at least two current task consumers and identical policy
-semantics; bootstrap-only access to a registry does not by itself prove that the
-underlying behavior is shared. Name the module after the behavior it owns:
-
-- `schemas.py` contains declarative provider-facing data contracts, not runners,
-  protocols, invocation code, or arbitrary typed helpers;
-- `middleware.py` contains actual framework middleware hooks or their small
-  factories, not every policy called by middleware;
-- `retry.py` contains retry policy and execution mechanics;
-- `structured_output.py` contains shared structured-model invocation behavior.
-
-When one category develops multiple independently changing implementations,
-promote only that category to a package, for example
-`shared/middleware/tracing.py` and `shared/middleware/limits.py`. Do not begin
-with category subpackages, central role registries, or generic names such as
-`helpers.py`, `factory.py`, or `models.py`. Keep task-specific binding and policy
-in each task's `llm.py`, even when those factories reuse a small provider
-constructor from `shared/llm.py`.
 
 ## Simple structured-output capability
 
@@ -357,13 +325,6 @@ input plus explicit application context, calls an application port, and returns 
 typed business result. The concrete GenAI implementation must not expose provider
 message objects, LangGraph internal state, raw JSON, callbacks, or SDK exceptions.
 
-Before accepting an application-facing agent boundary, trace bootstrap all the
-way to the application constructor. The injected object must be the
-capability-named GenAI implementation, not the raw model, `create_agent()` result,
-compiled graph, or checkpointer. Confirm that application tests fake the
-business-capability port without reproducing LangChain or LangGraph method
-signatures.
-
 An LLM boundary especially merits a port because it is remote,
 nondeterministic, costly, and failure-prone. Put the application Protocol, typed
 result, and failure taxonomy in root `ports/`. Let `llm.py` build and bind the
@@ -394,26 +355,6 @@ Agent tools are adapters over application ports and application actions:
 - expose bounded behavior and safe error messages;
 - keep provider/MCP connection setup outside tool business logic.
 
-Organize tools vertically by the capability a reader is trying to understand:
-
-- With one exposed tool, use a flat `tools.py`.
-- With multiple independently meaningful tools, use `tools/` with one module per
-  exposed tool, named after the tool: `search_evidence.py`, `query_records.py`,
-  and `find_connections.py`.
-- Keep each `@tool`, its tool-only input/output schema, result normalization into
-  the agent's artifact contract, and its small private helpers in that tool's
-  module.
-- Let `tools/__init__.py` perform only small composition/export work such as
-  `build_tools(...)`; it must not become the hidden implementation module.
-- Do not split one tool horizontally across generic `factory.py`, `outcomes.py`,
-  `schemas.py`, `constants.py`, and `helpers.py` files. Extract behavior only when
-  it is genuinely shared by multiple tools and give the shared concept a precise
-  name.
-
-A file below `tools/` need not itself contain `@tool` only when it owns a
-demonstrated cross-tool capability. Merely being called by tools is not enough;
-otherwise keep the behavior beside the decorated tool that uses it.
-
 `mcp.py` loads and adapts MCP tools for one agent. Shared MCP connection
 factories may move to `genai/shared/` after reuse exists. Never let tool discovery
 silently broaden the permissions granted by the calling application.
@@ -438,10 +379,23 @@ capability with its own port and lifecycle, prefer a sibling capability such as
 
 ## Middleware and observability
 
-AI middleware owns cross-call mechanics such as attempt budgets, timeout,
-fallback, token limits, and agent-specific tracing. General telemetry SDK setup
-remains in top-level `observability/`. AI middleware may call those narrow
-helpers; top-level observability must not import agents or prompts.
+Classify middleware by purpose, not by the framework hook it uses. Middleware
+that changes agent behavior or policy—attempt budgets, timeout, fallback,
+summarization, token limits, or tool execution policy—belongs to the owning
+`genai/` task or demonstrated shared GenAI capability. A callback, middleware,
+usage parser, or invocation wrapper whose only effect is tracing, metrics,
+logging, or correlation belongs in the service's top-level `observability/`
+package by default, even when it imports LangChain.
+
+Keep generic SDK/provider construction in a separate module such as
+`observability/tracing.py`; do not mix framework adapters into that module and do
+not make `observability/__init__.py` eagerly import optional GenAI dependencies.
+Start flat with a precise module such as `observability/genai.py` or
+`observability/langchain.py`. Introduce a nested GenAI-observability package only
+when a large collection of independently changing adapters, distinct lifecycle
+or test setup, or demonstrated import pressure makes the split valuable. One
+callback plus one tool middleware does not meet that threshold. Observability
+must not import task agents or prompts.
 
 Retries belong at the boundary that can classify provider failures. Business
 execution receives a stable transient/permanent failure contract and decides

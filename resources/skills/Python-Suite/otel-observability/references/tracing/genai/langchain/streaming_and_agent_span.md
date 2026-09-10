@@ -21,7 +21,7 @@ POST /chat                          SERVER
 ## Non-streaming
 
 ```python
-# agents/observability/agent_span.py
+# observability/genai.py
 import asyncio
 import time
 

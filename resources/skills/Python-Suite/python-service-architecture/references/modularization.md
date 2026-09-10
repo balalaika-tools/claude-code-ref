@@ -65,8 +65,6 @@ than preserve a conflicting legacy layout for cosmetic compatibility.
 8. Update API/consumer entry points, diagnostics, configuration, deployment
    entry points, telemetry names, tests, markers, hooks, and CI selectors.
 9. Remove compatibility imports only after all internal consumers migrate.
-10. Add internal dependency tests and composition tests for every boundary whose
-    previous violation compiled successfully through structural typing.
 
 Use temporary re-exports only when consumers cannot migrate atomically. Mark
 them as transitional. Move one coherent boundary or action at a time, run its
@@ -89,12 +87,6 @@ verification proportional to the change.
 - Do errors, static values, and helpers remain with their semantic owner?
 - Does any deployable import another deployable's private source?
 - Were any empty packages or abstractions created without a current consumer?
-- Does bootstrap inject a capability implementation, or does a framework model,
-  agent, graph, checkpointer, session, or telemetry handle leak into application?
-- For multiple agent tools, is each decorated tool colocated with its schemas,
-  normalization, and helpers rather than split horizontally by technical role?
-- Does every port pass the admission test and expose caller vocabulary instead
-  of mirroring one concrete implementation?
 
 ## Reporting a structural review
 

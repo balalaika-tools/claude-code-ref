@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pytest"
+  short_description: "Write high-signal production Python tests"
+  default_prompt: "Use $pytest to design, write, or review a risk-driven pytest suite for this Python backend."

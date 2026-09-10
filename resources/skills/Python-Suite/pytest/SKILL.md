@@ -1,0 +1,228 @@
+---
+name: pytest
+description: >-
+  Design, write, refactor, or review high-value pytest suites for production
+  Python backends, especially FastAPI APIs, async code, workers and task
+  queues, databases and external integrations, and LangChain or LangGraph
+  agents. Use for test strategy, regression tests, fixtures and test doubles,
+  integration or contract boundaries, flaky tests, and deciding what is not
+  worth testing. Optimize for failure detection and operational confidence,
+  not coverage targets or tests that merely mirror implementation. Do not use
+  for non-Python test frameworks or load and performance testing alone.
+---
+
+# Pytest
+
+Write the smallest maintainable test portfolio that would stop a credible
+production regression. Tests are executable risk controls, not proof that lines
+ran. Every test must protect a behavior, invariant, failure mode, compatibility
+surface, or previously observed bug.
+
+## Non-negotiable standard
+
+- Be able to finish this sentence before adding a test: **"This test fails if
+  ..."** The answer must describe a meaningful regression, not a changed private
+  implementation or uncovered line.
+- Assert observable behavior: returned values, public errors, protocol data,
+  persisted state, emitted messages, idempotency records, or another stable
+  effect. Assert calls only when the interaction itself is a contract, such as
+  no charge before approval or exactly one acknowledgement.
+- Use the cheapest boundary that faithfully exercises the suspected failure.
+  Do not replace a database, broker, framework lifecycle, serializer, or model
+  provider and then claim that integration with it works.
+- Keep the default suite hermetic: no developer credentials, shared staging
+  state, paid models, or accidental network. Live checks are explicit, bounded,
+  marked, and selected by a separate command or job.
+- Make failures reproducible. Control clocks, IDs, randomness, scheduling, and
+  external responses. Use bounded waits on observable conditions; never use a
+  sleep as the assertion mechanism.
+- Do not add weak assertions, duplicate tests, snapshots of incidental output,
+  or framework self-tests to raise coverage. Coverage is a map for finding
+  questions, not a test-quality score or completion criterion.
+- Preserve the repository's supported Python and dependency versions, test
+  layout, async plugin, marker vocabulary, and CI commands unless changing them
+  is part of the request.
+- A request for tests does not by itself authorize production refactors, new
+  dependencies, live-provider calls, or CI changes. Use existing seams first;
+  explain a missing seam and request the necessary scope when production code
+  must change.
+
+## Proportionate discovery
+
+Inspect enough context to make the requested decision accurately. A narrow
+regression test may need only the owning behavior, direct collaborators, nearby
+fixtures, and targeted command. A suite design, integration change, or broad
+review needs the wider discovery below:
+
+1. Inspect the production behavior, public entry points, dependency boundaries,
+   configuration, and lifecycle. Trace the success path and the credible
+   failures, including partial effects and retry behavior.
+2. Inspect `pyproject.toml` or equivalent pytest configuration, lock files,
+   plugins, existing tests, fixture scopes, markers, warning policy, coverage
+   configuration, and the exact local and CI commands. Do not copy examples for
+   a different installed framework version.
+3. Classify each real dependency: in-process collaborator, database, filesystem,
+   HTTP service, broker or worker, clock, random source, model provider,
+   checkpointer, or whole deployed process.
+4. Look for production evidence: incidents, bug reports, migrations, provider
+   changes, concurrency promises, security requirements, and compatibility
+   contracts. These determine test priority.
+5. Identify what is already proved at a cheaper layer. Do not repeat the same
+   branch matrix through unit, API, integration, and E2E tests.
+
+When the requested behavior or oracle is genuinely unspecified, surface that
+gap rather than inventing a contract from the current implementation.
+If production code or locked configuration is unavailable for an advisory
+request, do not pretend it was inspected: return clearly labeled scaffolding,
+list the discovery facts still needed, mark version-sensitive assumptions, and
+do not claim that example code ran.
+
+## Make a risk-to-proof map
+
+For non-trivial work, record a compact matrix before implementation:
+
+| Behavior or risk | Regression the test catches | Stable oracle | Cheapest faithful profile | Controlled or real dependencies |
+| --- | --- | --- | --- | --- |
+
+Drop or redesign any proposed test whose regression, oracle, or boundary cannot
+be explained. Prioritize irreversible effects, money or permissions, data loss,
+security boundaries, compatibility, retries, concurrency, and common user
+journeys over getters, constructors, and incidental branches.
+
+## Select the proof boundary
+
+Classify by what the test actually executes, not by its filename or the package
+under test:
+
+- **Unit:** wholly in process and deterministic. Exercise domain rules,
+  application actions, parsers, routers, graph nodes, and concrete adapters with
+  a fake of their direct external collaborator.
+- **Component or API slice:** exercise the in-process application boundary while
+  deliberately replacing outer effects. In repositories that group these under
+  `unit/`, preserve that convention and describe the boundary accurately.
+- **Contract:** verify an externally consumed compatibility surface such as a
+  schema, serialized message, package export, configuration document, or
+  provider/client conformance without claiming the live system works.
+- **Integration:** run a concrete adapter against a real disposable
+  implementation: the production database dialect, broker, filesystem,
+  checkpointer, protocol endpoint, or service emulator.
+- **End to end:** start the deployable and prove a small number of critical
+  journeys across its real internal boundaries.
+- **Live:** call a shared or paid external provider. Keep this opt-in and treat
+  it as current-provider compatibility or an evaluation, not a deterministic
+  unit test.
+
+Move upward only when the lower boundary cannot expose the intended defect.
+Keep a higher-level test when its wiring, lifecycle, serialization, process, or
+real-infrastructure coverage adds distinct confidence.
+
+## Required references
+
+Read [references/core-principles.md](references/core-principles.md) for every
+task using this skill. Then read only the references relevant to the system:
+
+- Read
+  [references/integration-boundaries.md](references/integration-boundaries.md)
+  for framework-neutral database or SQLAlchemy, filesystem, subprocess,
+  external-service, contract, E2E, live, marker, or CI design. The framework
+  references below contain their specialized integration guidance; do not load
+  this one as well unless the task genuinely crosses both concerns.
+- Read [references/fastapi.md](references/fastapi.md) for FastAPI or Starlette
+  request tests, ASGI lifespan, async clients, dependency overrides, streaming,
+  WebSockets, or SQLAlchemy sessions and migrations exercised through FastAPI
+  dependencies and request paths.
+- Read [references/workers.md](references/workers.md) for task queues, Celery,
+  consumers, schedulers, retries, acknowledgements, duplicate delivery, or
+  worker-process integration.
+- Read
+  [references/langchain-langgraph.md](references/langchain-langgraph.md) for
+  LangChain agents, LangGraph graphs, tools, model fakes, state, checkpointing,
+  interrupts, streaming, live providers, or evals.
+
+When producing concrete code, fixtures, or pytest configuration, read the
+matching example reference or references. A task that genuinely crosses domains
+may require more than one; do not load unrelated examples:
+
+- [references/examples-core.md](references/examples-core.md) for plain Python
+  units, parametrization, Hypothesis, or pytest configuration;
+- [references/examples-fastapi.md](references/examples-fastapi.md) for FastAPI
+  or async ASGI patterns;
+- [references/examples-integration.md](references/examples-integration.md) for
+  framework-neutral SQLAlchemy integration patterns;
+- [references/examples-workers.md](references/examples-workers.md) for Celery
+  task adapters or worker round trips;
+- [references/examples-langchain-langgraph.md](references/examples-langchain-langgraph.md)
+  for graph routing, checkpoint isolation, or interrupt/resume.
+
+For strategy-only work, load an example only when it materially clarifies the
+recommendation. Examples are scaffolding, not project contracts; adapt them to
+the repository's APIs and installed versions.
+
+## Writing workflow
+
+1. Name the behavior in domain or protocol language. Prefer names such as
+   `test_duplicate_delivery_does_not_charge_twice` over names that repeat a
+   method name.
+2. Choose the stable oracle before arranging doubles. A test with no meaningful
+   oracle is not rescued by elaborate setup.
+3. Arrange only facts relevant to the behavior. Use typed builders or explicit
+   values when a fixture would hide the scenario.
+4. Perform one meaningful action. Multiple calls are appropriate when the
+   behavior is inherently sequential, such as retry, idempotency, resume, or
+   state-machine behavior.
+5. Assert the complete semantic outcome, including the absence of dangerous
+   partial effects. Do not assert every field merely because it exists.
+6. Put the test at the narrowest owner and fixture scope. Prefer one behavioral
+   owner and execution profile per module; split a mixed module when the
+   distinction affects setup, selection, or readability.
+7. Prove test sensitivity when practical. A regression test should fail against
+   the known broken behavior; new behavior should have a meaningful red phase;
+   a controlled collaborator can force the error branch. Never leave temporary
+   mutations in production code.
+8. Run the smallest useful test command, then the containing profile and any
+   affected integration or contract command. Expand verification in proportion
+   to the change and risk.
+
+## Quality gate
+
+Reject or rewrite a test that does any of the following without a specific
+contractual reason:
+
+- patches or reimplements the subject under test;
+- asserts only that a mock returned what the test configured it to return;
+- locks private helper calls, incidental call order, exact log prose, generated
+  IDs, timestamps, token chunks, or full natural-language responses;
+- checks a framework, Pydantic, SQLAlchemy, Celery, or LangGraph feature without
+  exercising application-owned policy or wiring;
+- broadens fixtures or uses distant `autouse` setup to make dependencies less
+  visible;
+- shares mutable state, a fake with a call counter, a checkpointer, a database
+  row, or a queue across tests without deterministic isolation;
+- silently skips because required integration infrastructure is absent;
+- relies on retries to conceal flakiness, arbitrary sleeps, execution order, or
+  an unbounded wait;
+- marks a known bug `xfail` without a narrow condition, expected failure mode,
+  owner or issue, and strict unexpected-pass behavior;
+- duplicates a lower-level behavior matrix at a more expensive layer;
+- exists only to hit a line, branch, percentage, or test-count target.
+
+When the requested review or refactor explicitly includes test removal, delete
+redundant or misleading tests only when actual risk coverage is preserved or
+improved. Otherwise report them as candidates and leave them unchanged. Test
+code is production code: type it where the repository types tests, keep helpers
+cohesive, and make failures readable to the engineer on call.
+
+## Verification and handoff
+
+Report:
+
+- the behaviors and failure modes now protected;
+- the exact commands run and their collected, passed, failed, skipped, xfailed,
+  and xpassed outcomes;
+- which dependencies were fake, disposable-real, deployed-real, or not tested;
+- any tests not run and the concrete prerequisite;
+- remaining risks that need a different boundary, live provider, load test,
+  security review, or production observability.
+
+Never claim that an integration, migration, worker, checkpoint, live-provider,
+or E2E path is covered when only a unit substitute ran.
