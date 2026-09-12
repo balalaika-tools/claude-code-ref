@@ -7,8 +7,19 @@ Apply before delivering generated or updated documentation. Scale checks to the 
 - Every page intended for navigation is reachable from the documentation index; related procedures and references link to one another.
 - Local page links, image targets, source references, and heading anchors resolve from the containing page. Check case sensitivity for Linux-hosted renderers even when working on a case-insensitive filesystem.
 - Respect the existing renderer's link and anchor conventions. Prefer the project's docs build or link checker when available. If checked manually, describe it as manual review; do not claim a complete link crawl.
-- New pages have descriptive titles, stable headings, and useful scope/source information. Remove scaffold placeholders and empty sections; retain explicitly explained unknowns and necessary example substitutions.
+- New pages start with descriptive titles and useful content, not repeated provenance blocks. Source links are contextual or in a short end-of-page reference section. Remove scaffold placeholders and empty sections; retain explicitly explained unknowns and necessary example substitutions.
 - Existing generated sections, navigation conventions, and authored material remain intact unless the requested update requires changing them.
+
+## Coverage gates
+
+- Compare with the agreed structure and applicable reader tasks; an example blueprint does not make deployment, authentication, telemetry or any other absent feature mandatory. After a clean rebuild, no competing authentication/deployment procedures or orphaned legacy pages remain in scope.
+- Where supported, walk first deployment, redeployment, fresh-terminal credential reuse, local readiness and a complete smoke separately. Check dependency order and test data; identity creation must not be required for each test.
+- Reconcile configuration against all public fields/aliases, selectors, secret-provider inputs and applicable deployment inputs. Distinguish defaults, environment values and unused/unwired knobs.
+- Reconcile inbound routes and outbound operations against contracts, including failure/async/write semantics.
+- Reconcile metrics, important span/log call sites and configured export pipelines against observability documentation.
+
+- Check README roles: the root has a clear summary, accurate shallow repository tree and documentation entry; the docs index provides complete task navigation without duplicating the root overview. A small repository may need only one index.
+- Keep generation history, source-revision audit notes, check totals and test outcomes out of permanent pages. `Known gaps` contains only material unresolved inputs or defects, their practical impact and a link to the affected workflow.
 
 ## Factual consistency
 
@@ -24,7 +35,9 @@ Use existing Markdown/link/docs checks where available and permitted. Review com
 
 Do not deploy, apply infrastructure, modify remote state, run destructive migrations, replay live jobs, or exercise production systems merely to verify a guide. A documentation request authorizes documenting procedures; operational execution needs its own authorization.
 
-For commands described in the docs, distinguish:
+Extract executable shell blocks and check zsh syntax where available, individually and as sequential procedures where appropriate. Review variable dependencies, interactive reads, quoting, reserved names, command existence and failure/timeout handling. Syntax checks must not execute embedded substitutions or cloud operations. Record syntax checks separately from execution: `zsh -n` does not verify flags, credentials or runtime success.
+
+Track the following command-verification statuses in working notes and the final handoff/PR; do not render this audit table or repeat its statuses at the top of every page:
 
 | Status | Meaning |
 |---|---|
@@ -55,6 +68,6 @@ Do not count a heading as coverage. If completing a procedure requires guessing 
 
 ## Gap reporting and handoff
 
-Keep material unresolved gaps near the affected procedure, with a short index summary when several gaps block onboarding or operations. For each gap, identify the missing fact, sources inspected, practical impact, and next verification step. Do not create pages of repeated `Unknown` entries for irrelevant topics.
+Keep concrete unresolved gaps near the affected procedure, with a short `Known gaps` index summary only when they materially affect applicable reader tasks. State what is missing or broken, its practical impact and the next action; link to source evidence where useful. Keep investigation history and lists of places searched in working notes. Do not list irrelevant topics, deliberate configuration choices or generic “not executed during generation” disclaimers as gaps.
 
-Report the entry path, coverage, checks and outcomes, and remaining limitations. If an important procedure is only source-reviewed, make that visible. Avoid “complete” or “production-ready” claims when deployment, recovery, or other applicable workflows remain unverified or undocumented.
+In the final handoff or PR, report the entry path, coverage, checks and outcomes, source revision when useful, and remaining limitations. Distinguish source review from runtime execution there. In the manual, retain only procedure-specific limitations that affect the reader’s decision or ability to proceed. Avoid “complete” or “production-ready” claims when deployment, recovery, or other applicable workflows remain unverified or undocumented.
