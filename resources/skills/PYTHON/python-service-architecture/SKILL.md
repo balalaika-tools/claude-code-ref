@@ -37,6 +37,13 @@ Before proposing or changing a structure:
    library modules.
 6. Preserve repository conventions unless changing them provides a clear,
    stated benefit. Never reorganize unrelated services merely for symmetry.
+7. Before adding or copying technical plumbing in a workspace member, inspect
+   existing libraries and matching implementations in current consumers. Compare
+   operational meaning, lifecycle, inputs, and dependency needs, not just syntax.
+   When a stable capability is repeated, evaluate shared ownership and state why
+   it should be extracted or remain local. Read-only comparison does not expand
+   the edit scope; propose a later extraction when consumer migration is outside
+   the task. Prefer an existing compatible public library API over another copy.
 
 ## Reference routing
 
@@ -62,8 +69,10 @@ additional references that apply:
 - Read [references/modularization.md](references/modularization.md) when splitting
   existing modules, migrating an established service, or reviewing structure
   that has grown unclear.
-- Keep [references/shared-libraries.md](references/shared-libraries.md) loaded
-  when extracting service code into `libs/*` or reorganizing an existing library.
+- Read [references/shared-libraries.md](references/shared-libraries.md) when
+  discovery finds a shared-capability candidate, even during a service task.
+  Keep it loaded when extracting service code into `libs/*` or reorganizing an
+  existing library.
 
 ## Enforced invariants
 
@@ -89,8 +98,9 @@ These are requirements, not optional examples:
    `messaging/`, one-file provider subpackages, or place concrete integrations
    in business packages.
 4. **Every GenAI implementation concern lives in root `genai/`; telemetry stays
-   in root `observability/`.** LLMs, agents, prompts, AI schemas, tools, graphs,
-   model bindings, and behavior-changing AI middleware belong in `genai/`.
+   in root `observability/` or a justified observability library.** LLMs, agents,
+   prompts, AI schemas, tools, graphs, model bindings, and behavior-changing AI
+   middleware belong in `genai/`.
    Telemetry-only callbacks, tracing middleware, usage adapters, and agent-span
    wrappers belong in the service's existing `observability/` boundary by
    default, even when they import LangChain or another framework. Application

@@ -1,0 +1,233 @@
+{
+  "requester": {
+    "library": "Lucide",
+    "icon": "user-round",
+    "path": "requester.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/user-round.svg",
+    "retrieved": "2026-09-12T05:57:51.276330+00:00",
+    "upstream_sha256": "84870f26f3faf8da45da84174517519e81b9e8f00319c78954fcbb74f50038a1",
+    "sha256": "790afa8e6eb9841bdcc9b3507fafdad40b6a6a0d2a75d6a1964d9d4ee7194bca",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Role color; 48px dimensions; consistent 1.8 stroke width; original geometry"
+  },
+  "gateway": {
+    "library": "Lucide",
+    "icon": "server-cog",
+    "path": "gateway.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/server-cog.svg",
+    "retrieved": "2026-09-12T05:57:51.276591+00:00",
+    "upstream_sha256": "6c48e7bf726c71ced40e79b1961258b24b5a752c6cec158a68a49f6f01a3852a",
+    "sha256": "e5e36912a56565ad75aaccbd1ad60bc5f553f4446312826aac422010b7727029",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Role color; 48px dimensions; consistent 1.8 stroke width; original geometry"
+  },
+  "orchestrator": {
+    "library": "Lucide",
+    "icon": "workflow",
+    "path": "orchestrator.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/workflow.svg",
+    "retrieved": "2026-09-12T05:57:51.276764+00:00",
+    "upstream_sha256": "ae99ea8f56a2835a2cca35b2fbb57643ab73443610970dba23e24bd9df75cfec",
+    "sha256": "3e4beca8bc356ffae962bb575169efe1cb27c38c4a284a25fcdb81aed089ba47",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Role color; 48px dimensions; consistent 1.8 stroke width; original geometry"
+  },
+  "database": {
+    "library": "Lucide",
+    "icon": "database",
+    "path": "database.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/database.svg",
+    "retrieved": "2026-09-12T05:57:51.276933+00:00",
+    "upstream_sha256": "471eb14bc8d144896a82dfc4aa9daf350f769f0896f4bef33e50aabdbb51130d",
+    "sha256": "9b4600c1e1c6bb239c28165c07758093419bf7502d660aa5f0627ffac54cbb3e",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Role color; 48px dimensions; consistent 1.8 stroke width; original geometry"
+  },
+  "queue": {
+    "library": "Lucide",
+    "icon": "list-ordered",
+    "path": "queue.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/list-ordered.svg",
+    "retrieved": "2026-09-12T05:57:51.277085+00:00",
+    "upstream_sha256": "df549e10677b86c9a9f07c0c696b40a4937019212e73bc982a4e8dae7c557d8f",
+    "sha256": "ed0daa894f57c41b71b6dfab7136bc4d50b30a24868f6d834aa91b8eab42f5e5",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Role color; 48px dimensions; consistent 1.8 stroke width; original geometry"
+  },
+  "tool": {
+    "library": "Lucide",
+    "icon": "bot",
+    "path": "tool.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/bot.svg",
+    "retrieved": "2026-09-12T05:57:51.277234+00:00",
+    "upstream_sha256": "e46fe72fc5b33d7a17b0112df85da9ded851860312e8353f4fe23d87a4ce77f5",
+    "sha256": "65d49f2613ed36c76b74dbd843c447aa96e3c344d11345c64c366ebee2d81142",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Role color; 48px dimensions; consistent 1.8 stroke width; original geometry"
+  },
+  "storage": {
+    "library": "Lucide",
+    "icon": "hard-drive",
+    "path": "storage.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/hard-drive.svg",
+    "retrieved": "2026-09-12T06:11:59.765585+00:00",
+    "upstream_sha256": "324363c40f54e4ca843de0ad1d023b063b70a26a83bb2e0a9e9f4aad9af37378",
+    "sha256": "94658851d7db20b504e085064c720407d7ea3a28cd0ca68c422483504dbedeb4",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Role color; 48px dimensions; consistent 1.8 stroke width; original geometry"
+  },
+  "integration": {
+    "library": "Lucide",
+    "icon": "router",
+    "path": "integration.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/router.svg",
+    "retrieved": "2026-09-12T06:11:59.765871+00:00",
+    "upstream_sha256": "6266881cf691541259ea5e07e5e40ffeba1f61b95c76707d967ebe7827414428",
+    "sha256": "898d74bb199cc8bddf0da963a53ac85b2325166ec72d5ac09f5428cfdeec9d0b",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Role color; 48px dimensions; consistent 1.8 stroke width; original geometry"
+  },
+  "model": {
+    "library": "Lucide",
+    "icon": "brain-circuit",
+    "path": "model.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/brain-circuit.svg",
+    "retrieved": "2026-09-12T06:11:59.766070+00:00",
+    "upstream_sha256": "a338cb589935721dc00da71ea7d7457ab7fbb85cff90a62cc3ac6b2ebc68cd82",
+    "sha256": "17e2ecb45a8264a830acf03be15308629a6637bf1f377d4586a58916370d1478",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Role color; 48px dimensions; consistent 1.8 stroke width; original geometry"
+  },
+  "shield-check": {
+    "library": "Lucide",
+    "icon": "shield-check",
+    "path": "shield-check.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/shield-check.svg",
+    "retrieved": "2026-09-12T06:53:46.839969+00:00",
+    "upstream_sha256": "8d4fcdbde5bba4abb1a2f6fe53e37ceb6343a1d5449a9d88f6f97c1971d26c4e",
+    "sha256": "bcd3554e986c6ad42504bb2427db9ff2b1dcf132c91904df6778533196086364",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "file-text": {
+    "library": "Lucide",
+    "icon": "file-text",
+    "path": "file-text.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/file-text.svg",
+    "retrieved": "2026-09-12T06:53:46.840892+00:00",
+    "upstream_sha256": "52ca55846c202335fb870c8aa23e9345630ec10489303756d62e750f7109605c",
+    "sha256": "0f94bbfabce06fc94253f09943bec6d85489c259a3bb61412cf30706f0166cc8",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "scan-text": {
+    "library": "Lucide",
+    "icon": "scan-text",
+    "path": "scan-text.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/scan-text.svg",
+    "retrieved": "2026-09-12T06:53:46.841628+00:00",
+    "upstream_sha256": "6c05f5346bf0a9c7cdf6132f7ae3428ea932e2206ace2480f41a3d3bdc6efd80",
+    "sha256": "5c7ce4f4cabadb6c3a79138ee9c52c4c2adef787164ba5a6998ba7a973867b06",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "funnel": {
+    "library": "Lucide",
+    "icon": "funnel",
+    "path": "funnel.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/funnel.svg",
+    "retrieved": "2026-09-12T06:53:46.842199+00:00",
+    "upstream_sha256": "288f869330602e29a640099ffc5d6ac01caadad2ef6f8aac1138b8bf91ccd752",
+    "sha256": "57b622039f982db8d29d79268bcf2bcde9d9b8a6cef8f4b52b41eb14d8a9ab73",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "scissors": {
+    "library": "Lucide",
+    "icon": "scissors",
+    "path": "scissors.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/scissors.svg",
+    "retrieved": "2026-09-12T06:53:46.842626+00:00",
+    "upstream_sha256": "4c831fc2c903825f68565c28ffab945c34b2c60b6c564e2ae54250e1099fa550",
+    "sha256": "cdbf484c563773c2b673bef3b3daf77b19fc9d88bb2bc35eec710a88a332a994",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "list-plus": {
+    "library": "Lucide",
+    "icon": "list-plus",
+    "path": "list-plus.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/list-plus.svg",
+    "retrieved": "2026-09-12T06:53:46.842956+00:00",
+    "upstream_sha256": "416b579ca6f60752c31769fced8b30d6271940775dacf980ab85ec8c15268b0c",
+    "sha256": "33d8313c3b9cf8b9b1d491765fa6ce69fe3126059698a29b842eb225ca97ce78",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "triangle-alert": {
+    "library": "Lucide",
+    "icon": "triangle-alert",
+    "path": "triangle-alert.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/triangle-alert.svg",
+    "retrieved": "2026-09-12T06:53:46.843535+00:00",
+    "upstream_sha256": "4866f38b8560d410f21e3226413e0b77997b6dfbb6931fadfe0a0d5aef9ffeb4",
+    "sha256": "436c49458b3e521d248f26c0526983ab587852469fdfcf2abb6f144550355c93",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "flask-conical": {
+    "library": "Lucide",
+    "icon": "flask-conical",
+    "path": "flask-conical.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/flask-conical.svg",
+    "retrieved": "2026-09-12T06:53:46.844093+00:00",
+    "upstream_sha256": "a2ce857c159bef4c128a6d9f0b6dcbd6504ecf1a2a670ee220efd14fd032b561",
+    "sha256": "a7126813763dbb02ffe131c1583c9b7f19295ca5177390d9f3c1537c8f6c0ace",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "activity": {
+    "library": "Lucide",
+    "icon": "activity",
+    "path": "activity.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/activity.svg",
+    "retrieved": "2026-09-12T06:53:46.844433+00:00",
+    "upstream_sha256": "050fbcda05e13c2051cf857683645e19c6b180861ef4d0cc28a6f09ba1ea1666",
+    "sha256": "e09a8f93d6588b6eeb6f92263141c6fca833f875a9fa20d65493030bbbe06bda",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "plug": {
+    "library": "Lucide",
+    "icon": "plug",
+    "path": "plug.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/plug.svg",
+    "retrieved": "2026-09-12T06:53:46.844772+00:00",
+    "upstream_sha256": "11ba780e4b6f15d37906a8a73537144b59720333d7a9fc8048a437d0389422f8",
+    "sha256": "fbee219519810bcb7a909dead99ad27897fa49ce6d4244afdc220159d741aa80",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "wrench": {
+    "library": "Lucide",
+    "icon": "wrench",
+    "path": "wrench.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/wrench.svg",
+    "retrieved": "2026-09-12T06:53:46.845334+00:00",
+    "upstream_sha256": "b5f3bf792743edb9e81b543dd1b13ccc26d3afe1d33500a1cd8dee2e052d6197",
+    "sha256": "5d3e02b7ff16fe8b5b6eeea0ef3a5388f27af0066287d7e3def493edc257bbb9",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  },
+  "search": {
+    "library": "Lucide",
+    "icon": "search",
+    "path": "search.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/search.svg",
+    "retrieved": "2026-09-12T06:53:46.846009+00:00",
+    "upstream_sha256": "283d371c2e433817bb9c0c8310caa6c77fa4177c0f4f1168d9c83b97af7389dc",
+    "sha256": "f401dbf311db9800ec3e0125057270b3284be3a63870e33f32c7930c4eb2e890",
+    "license": "ISC; see LICENSE",
+    "adaptations": "Neutral stroke; 48px dimensions; 1.8 stroke width; original geometry"
+  }
+}

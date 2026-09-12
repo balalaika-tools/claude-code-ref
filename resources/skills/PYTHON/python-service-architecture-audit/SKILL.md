@@ -4,15 +4,16 @@ description: >-
   Audit or repair architectural drift inside an established Python backend
   service. Use for hexagonal dependency violations, misplaced modules, leaking
   framework contracts, speculative ports, centralized errors, GenAI boundary
-  problems, or the final verification of a structural refactor. Do not use for
+  problems, duplicated cross-service infrastructure, or the final verification
+  of a structural refactor. Do not use for
   ordinary feature edits that do not change or review service boundaries.
 ---
 
 # Python Service Architecture Audit
 
 Find architectural defects from repository evidence, distinguish enforceable
-violations from judgment calls, and repair only when the user's request includes
-changes. This is an operational review skill; `python-service-architecture` is
+violations from judgment calls, and route confirmed findings to planning or
+focused repair as described below. This is an operational review skill; `python-service-architecture` is
 the canonical source of structure and ownership rules.
 
 ## Required context
@@ -100,17 +101,80 @@ static-script findings separately from semantic findings.
 
 ## Findings and repair
 
+### Shared-capability review
+
+In a workspace, compare the reviewed service's technical plumbing with existing
+libraries and matching code in current consumers. Explicitly search for overlapping
+modules and duplicated capabilities, including service-local copies of capabilities
+already provided by shared libraries. Keep this read-only comparison
+focused on candidate capabilities; it does not authorize repairs to siblings.
+Read `python-service-architecture/references/shared-libraries.md` when a candidate
+emerges, and `otel-observability/references/setup/shared_library.md` for repeated
+provider lifecycle, logging processors, or propagation policy.
+
+For each candidate, report the source paths and consumers, shared operational
+meaning, actual differences, proposed minimal public inputs, service-local
+policy, dependency/lifecycle costs, and smallest consumer-by-consumer migration.
+Check that library inputs would be explicit typed values: environment, YAML,
+secrets, and service settings remain service-owned and are mapped by bootstrap.
+Recommend extraction when stable reuse removes duplicated policy or lifecycle;
+explain retention when similar code has different semantics or dependency needs.
+Classify justified extraction as an **Improvement**, unless an existing ownership
+or compatibility contract is already violated. Do not recommend generic shared
+dumping grounds or wrappers that merely rename SDK calls. Static import checks
+and textual similarity cannot establish semantic reuse.
+
+### Classification
+
 Classify every finding as:
 
 - **Violation:** dependency direction, contract leakage, or ownership is wrong.
 - **Improvement:** a different shape materially improves isolation or navigation.
 - **Preference:** cosmetic difference without architectural consequence.
 
-Do not present preferences as violations. For an audit-only request, report
-evidence and the smallest migration sequence without writing files. For an
-authorized repair, move one coherent boundary at a time, update all consumers,
-add or strengthen behavior/contract tests for the defect, and run focused tests
-before the complete relevant suite.
+Do not present preferences as violations. Move one coherent boundary at a time
+when repairing, update all consumers, add or strengthen behavior/contract tests
+for the defect, and run focused tests before the complete relevant suite.
+
+### Route the findings
+
+After completing the semantic and shared-capability review, choose and explain
+one route. A normal invocation includes this follow-through; do not stop at a
+chat-only report just because the user called the task an audit. An explicit
+read-only, report-only, or no-changes instruction overrides this default: report
+the findings and recommended route without writing files or implementing repairs.
+
+- **No actionable findings:** report the checks and remaining uncertainty. Do
+  not create an empty feedback file or proposal, or implement preferences.
+- **Substantial findings or planning needed:** invoke
+  [openspec-propose](../openspec-propose/SKILL.md) to create a complete change
+  proposal, delta specs, design, and implementation tasks using that workflow's
+  resolved paths and required artifacts. Choose this route for numerous findings,
+  coordinated changes across boundaries or consumers, shared-library extraction,
+  state-transition or compatibility changes, or material design uncertainty.
+  Count alone does not decide: one consequential finding can require a proposal.
+  Include evidence, classification, acceptance criteria, shared-capability
+  conclusions, migration order, and verification tasks. Stop after presenting the
+  completed planning artifacts; do not implement any of the proposed repairs in
+  the same turn. Wait for a new user request to start the apply workflow.
+- **Few, bounded findings:** when the fixes are local, understood, reversible,
+  and do not require the coordination or decisions above, create `FEEDBACK.md`
+  at the reviewed repository root before editing code, then implement the fixes
+  directly. If that file already exists, preserve it and choose an unused
+  descriptive prefix such as `worker-architecture-FEEDBACK.md`, adding a numeric
+  prefix if needed. Record each finding's classification, source evidence,
+  intended fix, and acceptance/verification steps as Markdown checkboxes. Start
+  pending work with `- [ ]`; change it to `- [x]` only after the fix and its
+  required checks succeed. Run the completion gate below and record results and
+  any remaining unchecked work in the same file. Do not ask for redundant repair
+  confirmation within this default scope.
+
+Keep repairs scoped to the reviewed service and its necessary consumers. A
+read-only comparison with sibling services does not authorize repairing them.
+If focused repair reveals a need for coordinated design, preserve the feedback
+and completed work, route the remaining work through `openspec-propose`, and
+stop after planning. If the proposal workflow is unavailable, explain the
+blocker and report the findings; do not substitute unplanned implementation.
 
 ## Completion gate
 

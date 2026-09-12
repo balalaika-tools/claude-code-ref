@@ -1,0 +1,152 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net">
+  <diagram id="architecture" name="Architecture">
+    <mxGraphModel grid="0" page="0" archLegend="1" archProvider="aws">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" vertex="1" value="AWS asynchronous request processing" style="archRole=title;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=30;fontStyle=1;align=left;">
+          <mxGeometry as="geometry" x="40" y="25" width="980" height="42" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" vertex="1" value="Illustrative proposal · API, background work and shared persistence" style="archRole=title;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;fontSize=16;">
+          <mxGeometry as="geometry" x="40" y="78" width="980" height="32" />
+        </mxCell>
+        <mxCell id="title-separator" parent="1" vertex="1" connectable="0" value="" style="archRole=title;shape=line;strokeWidth=2;strokeColor=#FF9900;fontFamily=Helvetica;">
+          <mxGeometry as="geometry" x="40" y="126" width="980" height="2" />
+        </mxCell>
+        <mxCell id="system" parent="1" vertex="1" value="AWS Cloud" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#F4F6FA;strokeColor=#232F3E;verticalAlign=top;align=left;spacing=0;fontStyle=1;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;spacingLeft=40;spacingTop=8;archHeaderHeight=30;fontColor=#232F3E;container=0;collapsible=0;pointerEvents=0;" connectable="0">
+          <mxGeometry as="geometry" x="270" y="170" width="720" height="530" />
+        </mxCell>
+        <mxCell id="card-0" parent="1" vertex="1" value="External" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#F5F5F5;strokeColor=#667085;strokeWidth=1.5;verticalAlign=top;spacingTop=8;fontSize=12;fontStyle=1;">
+          <mxGeometry as="geometry" x="40" y="240" width="140" height="130" />
+        </mxCell>
+        <mxCell id="icon-0" parent="card-0" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.users;fillColor=#667085;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="46" y="30" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-0" parent="card-0" vertex="1" value="Client" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=12;align=center;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="88" width="128" height="34" />
+        </mxCell>
+        <mxCell id="card-1" parent="1" vertex="1" value="Entry" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#EDE7F6;strokeColor=#8C4FFF;strokeWidth=1.5;verticalAlign=top;spacingTop=8;fontSize=12;fontStyle=1;">
+          <mxGeometry as="geometry" x="300" y="240" width="140" height="130" />
+        </mxCell>
+        <mxCell id="icon-1" parent="card-1" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;fillColor=#8C4FFF;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="46" y="30" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-1" parent="card-1" vertex="1" value="Amazon API Gateway" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=12;align=center;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="88" width="128" height="34" />
+        </mxCell>
+        <mxCell id="card-2" parent="1" vertex="1" value="Execution" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#FFF2E8;strokeColor=#ED7100;strokeWidth=1.5;verticalAlign=top;spacingTop=8;fontSize=12;fontStyle=1;">
+          <mxGeometry as="geometry" x="560" y="240" width="140" height="130" />
+        </mxCell>
+        <mxCell id="icon-2" parent="card-2" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fillColor=#ED7100;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="46" y="30" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-2" parent="card-2" vertex="1" value="AWS Lambda" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=12;align=center;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="88" width="128" height="34" />
+        </mxCell>
+        <mxCell id="card-3" parent="1" vertex="1" value="Persistence" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#F5E6F7;strokeColor=#C925D1;strokeWidth=1.5;verticalAlign=top;spacingTop=8;fontSize=12;fontStyle=1;">
+          <mxGeometry as="geometry" x="820" y="240" width="140" height="130" />
+        </mxCell>
+        <mxCell id="icon-3" parent="card-3" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;fillColor=#C925D1;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="46" y="30" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-3" parent="card-3" vertex="1" value="Amazon DynamoDB" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=12;align=center;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="88" width="128" height="34" />
+        </mxCell>
+        <mxCell id="card-4" parent="1" vertex="1" value="Dispatch" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#FCE4EC;strokeColor=#E7157B;strokeWidth=1.5;verticalAlign=top;spacingTop=8;fontSize=12;fontStyle=1;">
+          <mxGeometry as="geometry" x="560" y="520" width="140" height="130" />
+        </mxCell>
+        <mxCell id="icon-4" parent="card-4" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;fillColor=#E7157B;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="46" y="30" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-4" parent="card-4" vertex="1" value="Amazon SQS" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=12;align=center;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="88" width="128" height="34" />
+        </mxCell>
+        <mxCell id="card-5" parent="1" vertex="1" value="Background work" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#FFF2E8;strokeColor=#ED7100;strokeWidth=1.5;verticalAlign=top;spacingTop=8;fontSize=12;fontStyle=1;">
+          <mxGeometry as="geometry" x="820" y="520" width="140" height="130" />
+        </mxCell>
+        <mxCell id="icon-5" parent="card-5" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fillColor=#ED7100;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="46" y="30" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-5" parent="card-5" vertex="1" value="AWS Lambda" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=12;align=center;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="88" width="128" height="34" />
+        </mxCell>
+        <mxCell id="flow-1" edge="1" parent="1" source="card-0" target="card-1" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=1;fontFamily=Helvetica;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="badge-1" parent="1" vertex="1" value="1" style="archRole=badge;archStep=1;fontSize=16;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="230" y="255" width="28" height="28" />
+        </mxCell>
+        <mxCell id="flow-2" edge="1" parent="1" source="card-1" target="card-2" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=2;fontFamily=Helvetica;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="badge-2" parent="1" vertex="1" value="2" style="archRole=badge;archStep=2;fontSize=16;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="490" y="255" width="28" height="28" />
+        </mxCell>
+        <mxCell id="flow-3" edge="1" parent="1" source="card-2" target="card-3" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=3;fontFamily=Helvetica;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="badge-3" parent="1" vertex="1" value="3" style="archRole=badge;archStep=3;fontSize=16;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="750" y="255" width="28" height="28" />
+        </mxCell>
+        <mxCell id="flow-4" edge="1" parent="1" source="card-2" target="card-4" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=4;fontFamily=Helvetica;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="badge-4" parent="1" vertex="1" value="4" style="archRole=badge;archStep=4;fontSize=16;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="650" y="430" width="28" height="28" />
+        </mxCell>
+        <mxCell id="flow-5" edge="1" parent="1" source="card-4" target="card-5" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=5;fontFamily=Helvetica;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="badge-5" parent="1" vertex="1" value="5" style="archRole=badge;archStep=5;fontSize=16;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="750" y="535" width="28" height="28" />
+        </mxCell>
+        <mxCell id="flow-6" edge="1" parent="1" source="card-5" target="card-3" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=0.5;exitY=0;entryX=0.5;entryY=1;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=6;fontFamily=Helvetica;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="badge-6" parent="1" vertex="1" value="6" style="archRole=badge;archStep=6;fontSize=16;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="910" y="430" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend" parent="1" vertex="1" value="Flow" style="archRole=legend;rounded=0;fillColor=#EDF3FF;strokeColor=#6C8EBF;strokeWidth=1;verticalAlign=top;align=left;spacing=14;fontStyle=1;fontSize=14;fontFamily=Helvetica;">
+          <mxGeometry as="geometry" x="1050" y="25" width="410" height="675" />
+        </mxCell>
+        <mxCell id="legend-1" parent="1" vertex="1" value="&lt;b&gt;Receive request&lt;/b&gt;&lt;br&gt;The client submits a request to the API." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;archStep=1;">
+          <mxGeometry as="geometry" x="1122" y="75" width="318" height="80" />
+        </mxCell>
+        <mxCell id="legend-2" parent="1" vertex="1" value="&lt;b&gt;Invoke handler&lt;/b&gt;&lt;br&gt;API Gateway invokes the Lambda handler." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;archStep=2;">
+          <mxGeometry as="geometry" x="1122" y="173" width="318" height="80" />
+        </mxCell>
+        <mxCell id="legend-3" parent="1" vertex="1" value="&lt;b&gt;Persist request&lt;/b&gt;&lt;br&gt;The handler stores request state in DynamoDB." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;archStep=3;">
+          <mxGeometry as="geometry" x="1122" y="271" width="318" height="80" />
+        </mxCell>
+        <mxCell id="legend-4" parent="1" vertex="1" value="&lt;b&gt;Queue work&lt;/b&gt;&lt;br&gt;The handler sends background work to SQS." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;archStep=4;">
+          <mxGeometry as="geometry" x="1122" y="369" width="318" height="80" />
+        </mxCell>
+        <mxCell id="legend-5" parent="1" vertex="1" value="&lt;b&gt;Process job&lt;/b&gt;&lt;br&gt;A Lambda consumer processes queued work." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;archStep=5;">
+          <mxGeometry as="geometry" x="1122" y="467" width="318" height="80" />
+        </mxCell>
+        <mxCell id="legend-6" parent="1" vertex="1" value="&lt;b&gt;Store result&lt;/b&gt;&lt;br&gt;The consumer writes the outcome to DynamoDB." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;archStep=6;">
+          <mxGeometry as="geometry" x="1122" y="565" width="318" height="80" />
+        </mxCell>
+        <mxCell id="legend-badge-1" parent="1" vertex="1" connectable="0" value="1" style="archRole=legend-badge;archStep=1;fontSize=22;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="1070" y="77" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-badge-2" parent="1" vertex="1" connectable="0" value="2" style="archRole=legend-badge;archStep=2;fontSize=22;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="1070" y="175" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-badge-3" parent="1" vertex="1" connectable="0" value="3" style="archRole=legend-badge;archStep=3;fontSize=22;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="1070" y="273" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-badge-4" parent="1" vertex="1" connectable="0" value="4" style="archRole=legend-badge;archStep=4;fontSize=22;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="1070" y="371" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-badge-5" parent="1" vertex="1" connectable="0" value="5" style="archRole=legend-badge;archStep=5;fontSize=22;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="1070" y="469" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-badge-6" parent="1" vertex="1" connectable="0" value="6" style="archRole=legend-badge;archStep=6;fontSize=22;rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontFamily=Helvetica;shadow=1;glass=0;align=center;verticalAlign=middle;labelBackgroundColor=none;">
+          <mxGeometry as="geometry" x="1070" y="567" width="40" height="38" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,9 +1,9 @@
 # Shared observability library
 
-Use this reference only when the user explicitly asks to create, extract, or
-change a reusable observability package consumed by multiple deployables. For a
-normal service-local instrumentation task, keep the one-service scope in
-`SKILL.md`.
+Use this reference when creating or changing a reusable observability package,
+or when discovery identifies repeated provider lifecycle, logging processors,
+or propagation policy across current deployables. Evaluation does not authorize
+consumer migration outside the task's scope; preserve the scope in `SKILL.md`.
 
 ## Read next
 
@@ -31,8 +31,8 @@ Good shared responsibilities include:
 - OTLP endpoint resolution and resource construction from explicit inputs;
 - trace-context normalization, injection, extraction, and linked-root helpers;
 - safe span context managers and narrowly scoped decorators;
-- trace/log correlation, common JSON rendering, redaction, and environment-
-  scoped exception projection;
+- trace/log correlation, common JSON rendering, redaction, and explicitly
+  configured exception projection;
 - stable cross-service semantic constants whose meaning is genuinely shared.
 
 Keep these service-local unless a stable cross-service contract already exists:
@@ -52,10 +52,10 @@ shared observability package
   common structured-logging processors and safety policy
 
 service config/
-  validates environment and constructs the service-specific config value
+  reads environment/secrets/YAML and validates service settings
 
 service bootstrap/
-  explicitly configures logging/telemetry and owns shutdown order
+  maps settings to library inputs, configures telemetry, owns shutdown order
 
 service observability/
   service vocabulary, instruments, projections, and integration adapters
@@ -67,7 +67,29 @@ application boundary
 The shared package must not import a deployable's private package, settings
 class, application action, domain type, or test helper. Accept typed values or a
 library-owned frozen configuration object at the public boundary. Do not read
-environment variables inside the library.
+environment variables inside the library. Library input types are ordinary
+values, not `BaseSettings`, `.env` loaders, YAML baselines, or secret resolution.
+Keep a small input dataclass beside its consuming function; a separate
+`config.py` is optional and never implies ownership of deployment configuration.
+
+For example, this illustrates the input boundary only, not a complete SDK setup:
+
+```python
+# Library: providers.py
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class TelemetryConfig:
+    service_name: str
+    otlp_endpoint: str | None
+
+# Service bootstrap: settings were resolved by the service.
+config = TelemetryConfig(
+    service_name="worker",
+    otlp_endpoint=settings.otlp_endpoint,
+)
+providers = configure_observability(config)
+```
 
 ## Suggested package growth
 
@@ -76,8 +98,7 @@ Start flat and create only modules with a current responsibility:
 ```text
 src/company_observability/
 ├── __init__.py          # small intentional public API
-├── config.py            # library-owned input values, no environment reads
-├── providers.py         # provider construction and lifecycle
+├── providers.py         # provider lifecycle and its typed input values
 ├── spans.py             # context managers and optional decorators
 ├── propagation.py       # bounded W3C carriers and links
 └── logging.py           # shared processors/configuration, when justified

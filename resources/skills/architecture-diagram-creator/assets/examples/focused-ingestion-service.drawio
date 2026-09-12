@@ -1,0 +1,233 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" archIconLicense="ISC License&#10;&#10;Copyright (c) 2026 Lucide Icons and Contributors&#10;&#10;Permission to use, copy, modify, and/or distribute this software for any&#10;purpose with or without fee is hereby granted, provided that the above&#10;copyright notice and this permission notice appear in all copies.&#10;&#10;THE SOFTWARE IS PROVIDED &quot;AS IS&quot; AND THE AUTHOR DISCLAIMS ALL WARRANTIES&#10;WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF&#10;MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR&#10;ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES&#10;WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN&#10;ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF&#10;OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.&#10;&#10;---&#10;&#10;The following Lucide icons are derived from the Feather project:&#10;&#10;airplay, alert-circle, alert-octagon, alert-triangle, aperture, arrow-down-circle, arrow-down-left, arrow-down-right, arrow-down, arrow-left-circle, arrow-left, arrow-right-circle, arrow-right, arrow-up-circle, arrow-up-left, arrow-up-right, arrow-up, at-sign, calendar, cast, check, chevron-down, chevron-left, chevron-right, chevron-up, chevrons-down, chevrons-left, chevrons-right, chevrons-up, circle, clipboard, clock, code, columns, command, compass, corner-down-left, corner-down-right, corner-left-down, corner-left-up, corner-right-down, corner-right-up, corner-up-left, corner-up-right, crosshair, database, divide-circle, divide-square, dollar-sign, download, external-link, feather, frown, hash, headphones, help-circle, info, italic, key, layout, life-buoy, link-2, link, loader, lock, log-in, log-out, maximize, meh, minimize, minimize-2, minus-circle, minus-square, minus, monitor, moon, more-horizontal, more-vertical, move, music, navigation-2, navigation, octagon, pause-circle, percent, plus-circle, plus-square, plus, power, radio, rss, search, server, share, shopping-bag, sidebar, smartphone, smile, square, table-2, tablet, target, terminal, trash-2, trash, triangle, tv, type, upload, x-circle, x-octagon, x-square, x, zoom-in, zoom-out&#10;&#10;The MIT License (MIT) (for the icons listed above)&#10;&#10;Copyright (c) 2013-present Cole Bemis&#10;&#10;Permission is hereby granted, free of charge, to any person obtaining a copy&#10;of this software and associated documentation files (the &quot;Software&quot;), to deal&#10;in the Software without restriction, including without limitation the rights&#10;to use, copy, modify, merge, publish, distribute, sublicense, and/or sell&#10;copies of the Software, and to permit persons to whom the Software is&#10;furnished to do so, subject to the following conditions:&#10;&#10;The above copyright notice and this permission notice shall be included in all&#10;copies or substantial portions of the Software.&#10;&#10;THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR&#10;IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,&#10;FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE&#10;AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER&#10;LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,&#10;OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE&#10;SOFTWARE.&#10;">
+  <diagram id="focused" name="Focused view">
+    <mxGraphModel grid="0" page="0" archLegend="1" archProvider="neutral" archView="focused" archScope="Ingestion service">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" vertex="1" value="Ingestion service · internal processing pipeline" style="archRole=title;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=30;fontStyle=1;align=left;">
+          <mxGeometry as="geometry" x="40" y="25" width="1660" height="45" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" vertex="1" value="Focused view · Illustrative proposal · Internal stages are components of one service" style="archRole=title;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=16;align=left;">
+          <mxGeometry as="geometry" x="40" y="85" width="1660" height="40" />
+        </mxCell>
+        <mxCell id="title-separator" parent="1" vertex="1" value="" style="archRole=title;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=line;strokeColor=#FF9900;strokeWidth=2;">
+          <mxGeometry as="geometry" x="40" y="143" width="1660" height="2" />
+        </mxCell>
+        <mxCell id="ingestion-service" parent="1" vertex="1" value="Ingestion Service · internal stages, not separate deployments" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;strokeColor=#507EAE;fillColor=#F2F7FC;strokeWidth=1;verticalAlign=top;align=left;spacing=0;fontStyle=1;dashed=0;spacingLeft=48;spacingTop=14;archHeaderHeight=28;">
+          <mxGeometry as="geometry" x="250" y="270" width="1100" height="780" />
+        </mxCell>
+        <mxCell id="card-source" parent="1" vertex="1" value="External input" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=external;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#667085;fillColor=#F5F5F5;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="40" y="420" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-source" parent="card-source" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiM2NjcwODUiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNNiAyMmEyIDIgMCAwIDEtMi0yVjRhMiAyIDAgMCAxIDItMmg4YTIuNCAyLjQgMCAwIDEgMS43MDQuNzA2bDMuNTg4IDMuNTg4QTIuNCAyLjQgMCAwIDEgMjAgOHYxMmEyIDIgMCAwIDEtMiAyeiIgLz4KICA8cGF0aCBkPSJNMTQgMnY1YTEgMSAwIDAgMCAxIDFoNSIgLz4KICA8cGF0aCBkPSJNMTAgOUg4IiAvPgogIDxwYXRoIGQ9Ik0xNiAxM0g4IiAvPgogIDxwYXRoIGQ9Ik0xNiAxN0g4IiAvPgo8L3N2Zz4K;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-source" parent="card-source" vertex="1" value="Document source" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-validate" parent="1" vertex="1" value="Validate" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=stage;archService=ingestion-service;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#3979B5;fillColor=#EAF3FC;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="300" y="420" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-validate" parent="card-validate" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiMzOTc5QjUiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMjAgMTNjMCA1LTMuNSA3LjUtNy42NiA4Ljk1YTEgMSAwIDAgMS0uNjctLjAxQzcuNSAyMC41IDQgMTggNCAxM1Y2YTEgMSAwIDAgMSAxLTFjMiAwIDQuNS0xLjIgNi4yNC0yLjcyYTEuMTcgMS4xNyAwIDAgMSAxLjUyIDBDMTQuNTEgMy44MSAxNyA1IDE5IDVhMSAxIDAgMCAxIDEgMXoiIC8+CiAgPHBhdGggZD0ibTkgMTIgMiAyIDQtNCIgLz4KPC9zdmc+Cg==;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-validate" parent="card-validate" vertex="1" value="Input validation" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-parse" parent="1" vertex="1" value="Extract" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=stage;archService=ingestion-service;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#C77724;fillColor=#FFF2E8;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="580" y="420" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-parse" parent="card-parse" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiNDNzc3MjQiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMyA3VjVhMiAyIDAgMCAxIDItMmgyIiAvPgogIDxwYXRoIGQ9Ik0xNyAzaDJhMiAyIDAgMCAxIDIgMnYyIiAvPgogIDxwYXRoIGQ9Ik0yMSAxN3YyYTIgMiAwIDAgMS0yIDJoLTIiIC8+CiAgPHBhdGggZD0iTTcgMjFINWEyIDIgMCAwIDEtMi0ydi0yIiAvPgogIDxwYXRoIGQ9Ik03IDhoOCIgLz4KICA8cGF0aCBkPSJNNyAxMmgxMCIgLz4KICA8cGF0aCBkPSJNNyAxNmg2IiAvPgo8L3N2Zz4K;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-parse" parent="card-parse" vertex="1" value="Document parser" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-normalize" parent="1" vertex="1" value="Transform" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=stage;archService=ingestion-service;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#C77724;fillColor=#FFF2E8;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="860" y="420" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-normalize" parent="card-normalize" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiNDNzc3MjQiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTAgMjBhMSAxIDAgMCAwIC41NTMuODk1bDIgMUExIDEgMCAwIDAgMTQgMjF2LTdhMiAyIDAgMCAxIC41MTctMS4zNDFMMjEuNzQgNC42N0ExIDEgMCAwIDAgMjEgM0gzYTEgMSAwIDAgMC0uNzQyIDEuNjdsNy4yMjUgNy45ODlBMiAyIDAgMCAxIDEwIDE0eiIgLz4KPC9zdmc+Cg==;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-normalize" parent="card-normalize" vertex="1" value="Normalization" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-chunk" parent="1" vertex="1" value="Prepare" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=stage;archService=ingestion-service;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#C77724;fillColor=#FFF2E8;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="1140" y="420" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-chunk" parent="card-chunk" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiNDNzc3MjQiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8Y2lyY2xlIGN4PSI2IiBjeT0iNiIgcj0iMyIgLz4KICA8cGF0aCBkPSJNOC4xMiA4LjEyIDEyIDEyIiAvPgogIDxwYXRoIGQ9Ik0yMCA0IDguMTIgMTUuODgiIC8+CiAgPGNpcmNsZSBjeD0iNiIgY3k9IjE4IiByPSIzIiAvPgogIDxwYXRoIGQ9Ik0xNC44IDE0LjggMjAgMjAiIC8+Cjwvc3ZnPgo=;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-chunk" parent="card-chunk" vertex="1" value="Chunk builder" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-embed" parent="1" vertex="1" value="External model" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=external;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#238879;fillColor=#E4F4F1;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="1480" y="420" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-embed" parent="card-embed" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiMyMzg4NzkiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTIgNWEzIDMgMCAxIDAtNS45OTcuMTI1IDQgNCAwIDAgMC0yLjUyNiA1Ljc3IDQgNCAwIDAgMCAuNTU2IDYuNTg4QTQgNCAwIDEgMCAxMiAxOFoiIC8+CiAgPHBhdGggZD0iTTkgMTNhNC41IDQuNSAwIDAgMCAzLTQiIC8+CiAgPHBhdGggZD0iTTYuMDAzIDUuMTI1QTMgMyAwIDAgMCA2LjQwMSA2LjUiIC8+CiAgPHBhdGggZD0iTTMuNDc3IDEwLjg5NmE0IDQgMCAwIDEgLjU4NS0uMzk2IiAvPgogIDxwYXRoIGQ9Ik02IDE4YTQgNCAwIDAgMS0xLjk2Ny0uNTE2IiAvPgogIDxwYXRoIGQ9Ik0xMiAxM2g0IiAvPgogIDxwYXRoIGQ9Ik0xMiAxOGg2YTIgMiAwIDAgMSAyIDJ2MSIgLz4KICA8cGF0aCBkPSJNMTIgOGg4IiAvPgogIDxwYXRoIGQ9Ik0xNiA4VjVhMiAyIDAgMCAxIDItMiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjEzIiByPSIuNSIgLz4KICA8Y2lyY2xlIGN4PSIxOCIgY3k9IjMiIHI9Ii41IiAvPgogIDxjaXJjbGUgY3g9IjIwIiBjeT0iMjEiIHI9Ii41IiAvPgogIDxjaXJjbGUgY3g9IjIwIiBjeT0iOCIgcj0iLjUiIC8+Cjwvc3ZnPgo=;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-embed" parent="card-embed" vertex="1" value="Embedding endpoint" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-index" parent="1" vertex="1" value="Persist" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=stage;archService=ingestion-service;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#8054B3;fillColor=#F0EAFB;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="1140" y="780" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-index" parent="card-index" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiM4MDU0QjMiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTYgNUgzIiAvPgogIDxwYXRoIGQ9Ik0xMSAxMkgzIiAvPgogIDxwYXRoIGQ9Ik0xNiAxOUgzIiAvPgogIDxwYXRoIGQ9Ik0xOCA5djYiIC8+CiAgPHBhdGggZD0iTTIxIDEyaC02IiAvPgo8L3N2Zz4K;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-index" parent="card-index" vertex="1" value="Index writer" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-store" parent="1" vertex="1" value="External storage" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=external;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#8054B3;fillColor=#F0EAFB;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="1480" y="780" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-store" parent="card-store" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiM4MDU0QjMiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8ZWxsaXBzZSBjeD0iMTIiIGN5PSI1IiByeD0iOSIgcnk9IjMiIC8+CiAgPHBhdGggZD0iTTMgNVYxOUE5IDMgMCAwIDAgMjEgMTlWNSIgLz4KICA8cGF0aCBkPSJNMyAxMkE5IDMgMCAwIDAgMjEgMTIiIC8+Cjwvc3ZnPgo=;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-store" parent="card-store" vertex="1" value="Vector / search store" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-checkpoint" parent="1" vertex="1" value="Recovery state" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=stage;archService=ingestion-service;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#8054B3;fillColor=#F0EAFB;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="860" y="780" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-checkpoint" parent="card-checkpoint" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiM4MDU0QjMiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8ZWxsaXBzZSBjeD0iMTIiIGN5PSI1IiByeD0iOSIgcnk9IjMiIC8+CiAgPHBhdGggZD0iTTMgNVYxOUE5IDMgMCAwIDAgMjEgMTlWNSIgLz4KICA8cGF0aCBkPSJNMyAxMkE5IDMgMCAwIDAgMjEgMTIiIC8+Cjwvc3ZnPgo=;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-checkpoint" parent="card-checkpoint" vertex="1" value="Progress checkpoint" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-reject" parent="1" vertex="1" value="Invalid input" style="archRole=card;fontFamily=Helvetica;fontSize=13;html=1;whiteSpace=wrap;archKind=stage;archService=ingestion-service;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;strokeWidth=1.5;strokeColor=#B94D75;fillColor=#FCEBF0;verticalAlign=top;spacingTop=10;fontStyle=1;">
+          <mxGeometry as="geometry" x="300" y="780" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-reject" parent="card-reject" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiNCOTRENzUiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJtMjEuNzMgMTgtOC0xNGEyIDIgMCAwIDAtMy40OCAwbC04IDE0QTIgMiAwIDAgMCA0IDIxaDE2YTIgMiAwIDAgMCAxLjczLTMiIC8+CiAgPHBhdGggZD0iTTEyIDl2NCIgLz4KICA8cGF0aCBkPSJNMTIgMTdoLjAxIiAvPgo8L3N2Zz4K;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-reject" parent="card-reject" vertex="1" value="Rejected records" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="flow-intake" parent="1" edge="1" source="card-source" target="card-validate" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=1;fontFamily=Helvetica;dashed=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-parse" parent="1" edge="1" source="card-validate" target="card-parse" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=2;fontFamily=Helvetica;dashed=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-normalize" parent="1" edge="1" source="card-parse" target="card-normalize" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=3;fontFamily=Helvetica;dashed=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-chunk" parent="1" edge="1" source="card-normalize" target="card-chunk" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=4;fontFamily=Helvetica;dashed=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-embed" parent="1" edge="1" source="card-chunk" target="card-embed" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=5;fontFamily=Helvetica;dashed=0;startArrow=block;startFill=1;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-index" parent="1" edge="1" source="card-chunk" target="card-index" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=6;fontFamily=Helvetica;dashed=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-store" parent="1" edge="1" source="card-index" target="card-store" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=7;fontFamily=Helvetica;dashed=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-checkpoint" parent="1" edge="1" source="card-index" target="card-checkpoint" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=0;exitY=0.3;entryX=1;entryY=0.3;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;archStep=8;fontFamily=Helvetica;dashed=1;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-reject" parent="1" edge="1" source="card-validate" target="card-reject" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#C65454;archStep=9;fontFamily=Helvetica;dashed=1;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="legend" parent="1" vertex="1" value="Flow" style="archRole=legend;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#EDF3FF;strokeColor=#6C8EBF;strokeWidth=1;verticalAlign=top;align=left;spacing=18;fontStyle=1;fontSize=18;">
+          <mxGeometry as="geometry" x="1740" y="25" width="590" height="1325" />
+        </mxCell>
+        <mxCell id="badge-1" parent="1" vertex="1" value="1" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=1;">
+          <mxGeometry as="geometry" x="230" y="445" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend-badge-1" parent="1" vertex="1" value="1" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=1;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="97.0" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-1" parent="1" vertex="1" value="&lt;b&gt;Receive input&lt;/b&gt;&lt;br&gt;The ingestion entry point receives a document for processing." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=1;">
+          <mxGeometry as="geometry" x="1812" y="95.0" width="494" height="100" />
+        </mxCell>
+        <mxCell id="badge-2" parent="1" vertex="1" value="2" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=2;">
+          <mxGeometry as="geometry" x="490" y="445" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend-badge-2" parent="1" vertex="1" value="2" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=2;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="213.66666666666669" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-2" parent="1" vertex="1" value="&lt;b&gt;Validate and parse&lt;/b&gt;&lt;br&gt;Accepted input is passed to the format-specific parser." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=2;">
+          <mxGeometry as="geometry" x="1812" y="211.66666666666669" width="494" height="100" />
+        </mxCell>
+        <mxCell id="badge-3" parent="1" vertex="1" value="3" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=3;">
+          <mxGeometry as="geometry" x="770" y="445" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend-badge-3" parent="1" vertex="1" value="3" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=3;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="330.33333333333337" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-3" parent="1" vertex="1" value="&lt;b&gt;Normalize content&lt;/b&gt;&lt;br&gt;Extracted text and metadata are normalized into the internal document representation." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=3;">
+          <mxGeometry as="geometry" x="1812" y="328.33333333333337" width="494" height="100" />
+        </mxCell>
+        <mxCell id="badge-4" parent="1" vertex="1" value="4" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=4;">
+          <mxGeometry as="geometry" x="1050" y="445" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend-badge-4" parent="1" vertex="1" value="4" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=4;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="447.0" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-4" parent="1" vertex="1" value="&lt;b&gt;Build chunks&lt;/b&gt;&lt;br&gt;The normalized document is partitioned into meaningful indexing units." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=4;">
+          <mxGeometry as="geometry" x="1812" y="445.0" width="494" height="100" />
+        </mxCell>
+        <mxCell id="badge-5" parent="1" vertex="1" value="5" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=5;">
+          <mxGeometry as="geometry" x="1380" y="445" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend-badge-5" parent="1" vertex="1" value="5" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=5;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="563.6666666666667" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-5" parent="1" vertex="1" value="&lt;b&gt;Create embeddings&lt;/b&gt;&lt;br&gt;The chunk stage calls the embedding endpoint and receives vectors." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=5;">
+          <mxGeometry as="geometry" x="1812" y="561.6666666666667" width="494" height="100" />
+        </mxCell>
+        <mxCell id="badge-6" parent="1" vertex="1" value="6" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=6;">
+          <mxGeometry as="geometry" x="1250" y="670" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend-badge-6" parent="1" vertex="1" value="6" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=6;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="680.3333333333334" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-6" parent="1" vertex="1" value="&lt;b&gt;Prepare index writes&lt;/b&gt;&lt;br&gt;Prepared chunks and vectors pass to the index writer." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=6;">
+          <mxGeometry as="geometry" x="1812" y="678.3333333333334" width="494" height="100" />
+        </mxCell>
+        <mxCell id="badge-7" parent="1" vertex="1" value="7" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=7;">
+          <mxGeometry as="geometry" x="1380" y="805" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend-badge-7" parent="1" vertex="1" value="7" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=7;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="797.0" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-7" parent="1" vertex="1" value="&lt;b&gt;Persist search records&lt;/b&gt;&lt;br&gt;The writer stores searchable records in the external vector/search store." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=7;">
+          <mxGeometry as="geometry" x="1812" y="795.0" width="494" height="100" />
+        </mxCell>
+        <mxCell id="badge-8" parent="1" vertex="1" value="8" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=8;">
+          <mxGeometry as="geometry" x="1060" y="775" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend-badge-8" parent="1" vertex="1" value="8" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=8;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="913.6666666666667" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-8" parent="1" vertex="1" value="&lt;b&gt;Record progress&lt;/b&gt;&lt;br&gt;Completed writes update recovery progress; this is an internal state component." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=8;">
+          <mxGeometry as="geometry" x="1812" y="911.6666666666667" width="494" height="100" />
+        </mxCell>
+        <mxCell id="badge-9" parent="1" vertex="1" value="9" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=9;">
+          <mxGeometry as="geometry" x="410" y="670" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend-badge-9" parent="1" vertex="1" value="9" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=9;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="1030.3333333333335" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-9" parent="1" vertex="1" value="&lt;b&gt;Isolate invalid input&lt;/b&gt;&lt;br&gt;Validation failures go to rejected-record handling and bypass the main processing path." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=9;">
+          <mxGeometry as="geometry" x="1812" y="1028.3333333333335" width="494" height="100" />
+        </mxCell>
+        <mxCell id="legend-key" parent="1" vertex="1" value="&lt;b&gt;Reading the pipeline&lt;/b&gt;&lt;br&gt;Solid: processing flow.&lt;br&gt;Two arrowheads: request / response.&lt;br&gt;Dashed gray: progress update.&lt;br&gt;Dashed red: invalid-input branch." style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=15;" connectable="0">
+          <mxGeometry as="geometry" x="1760" y="1180" width="550" height="145" />
+        </mxCell>
+        <mxCell id="scope-note" parent="1" vertex="1" value="Illustrative focused view. All stages inside the boundary belong to one service. Embeddings, rejection handling and checkpoints are example choices, not required features of every ingestion pipeline." style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=15;fontColor=#545B64;" connectable="0">
+          <mxGeometry as="geometry" x="260" y="1270" width="1400" height="65" />
+        </mxCell>
+        <mxCell id="ingestion-service-header-icon" parent="1" vertex="1" connectable="0" value="" style="archRole=icon;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiM1MDdFQUUiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiB4PSIzIiB5PSIzIiByeD0iMiIgLz4KICA8cGF0aCBkPSJNNyAxMXY0YTIgMiAwIDAgMCAyIDJoNCIgLz4KICA8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiB4PSIxMyIgeT0iMTMiIHJ4PSIyIiAvPgo8L3N2Zz4K;">
+          <mxGeometry as="geometry" x="262.0" y="282.0" width="24" height="24" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -142,6 +142,11 @@ An internal library:
 
 Prefer a small stable data or protocol boundary over passing a service's large
 settings/domain object into the library. Translate at the consumer boundary.
+Library-owned configuration means typed input values, not environment loading:
+the service resolves environment variables, secrets, and YAML through its settings
+and maps them at bootstrap. A small frozen input dataclass can live beside its
+consumer function; neither a separate `config.py` nor a library `BaseSettings`
+model is required. Deployment settings and loaders remain service-owned.
 
 ## Public API and compatibility
 

@@ -40,11 +40,11 @@ Pick the second when the service has GenAI instrumentation, more than one bounda
 ## What belongs in the service observability package
 
 Within one service, "shared package" below means its common observability
-module. When extracting a workspace library consumed by several deployables,
+module. For repeated operational contracts or a library across deployables,
 read `shared_library.md`; it adds the reuse threshold, dependency boundary,
 explicit lifecycle, shared-logging contract, and consumer-by-consumer migration
 rules.
-
+With a workspace library, generic plumbing belongs there; vocabulary and adapters stay local. The service maps resolved settings to explicit library inputs, which never load environment variables, YAML, or secrets.
 The package owns all code whose sole purpose is telemetry, including:
 
 - the `Resource`

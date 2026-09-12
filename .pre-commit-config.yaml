@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: check-resources-manifest
+        name: Check resources manifest
+        description: Fail if a tracked resource file went missing; auto-add new ones to the manifest.
+        entry: python3 scripts/check_resources_manifest.py
+        language: system
+        pass_filenames: false
+        always_run: true

@@ -14,11 +14,11 @@ This file is a router. It holds the rules that apply to every implementation and
 
 **Shared-library exception.** When the user explicitly requests a shared observability package or a cross-service consolidation, inspect every current consumer for compatibility, but extract and migrate one coherent capability and one consumer at a time. The shared package must earn its boundary through stable reuse; it is not permission to redesign unrelated services.
 
+**Discover reuse before duplicating plumbing.** For provider lifecycle, logging processors, or propagation policy in a workspace, compare existing libraries and current consumers. Repeated operational contracts route to `references/setup/shared_library.md` without an explicit extraction request. Prefer an existing compatible API or the smallest justified shared capability when migration is within scope; otherwise report the candidate. Similar SDK calls alone are insufficient.
 If the user has named neither a service nor an explicit shared-library scope and the repo contains more than one service, ask which one before editing anything.
 
 **Python, and FastAPI for HTTP.** Every code sample here is Python, and the HTTP framework hooks are FastAPI's. The routing, conventions, retention policy, and Collector material are language-neutral — for another runtime use those and skip `setup/`, `tracing/genai/`, and `logging/`, whose code does not transfer.
 ## Step 0 — Which kind of work is this?
-
 The description covers six modes and they do not need the same files. Pick one before loading anything else:
 
 | Mode | Load |
@@ -28,7 +28,7 @@ The description covers six modes and they do not need the same files. Pick one b
 | **Troubleshoot** a specific symptom — missing, duplicated, orphaned, or zero-valued signals | `references/troubleshooting.md` only, then the single file it points at |
 | **Upgrade** a package, convention revision, or Collector image | `references/compatibility.md` only, then the files its checklist names |
 | **Collector-only** change | `references/collector/*`, plus `references/tracing/production_policy.md` if production retention is involved |
-| **Shared observability library** | `references/setup/shared_library.md`, then the setup, logging, testing, and verification files it routes |
+| **Shared observability library or discovered reuse candidate** | `references/setup/shared_library.md`; for implementation, follow its setup, logging, testing, and verification routes |
 
 Only the first mode runs the whole workflow below. A one-line fix does not need a 23k-token intake, and an audit does not need `setup/`.
 

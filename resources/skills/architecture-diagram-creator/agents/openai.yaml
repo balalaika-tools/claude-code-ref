@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Diagram Creator"
+  short_description: "AWS and neutral architecture diagrams in draw.io XML"
+  default_prompt: "Use $architecture-diagram-creator to create an editable architecture diagram from my instructions and permitted repository evidence."

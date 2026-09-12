@@ -1,0 +1,284 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" archIconLicense="ISC License&#10;&#10;Copyright (c) 2026 Lucide Icons and Contributors&#10;&#10;Permission to use, copy, modify, and/or distribute this software for any&#10;purpose with or without fee is hereby granted, provided that the above&#10;copyright notice and this permission notice appear in all copies.&#10;&#10;THE SOFTWARE IS PROVIDED &quot;AS IS&quot; AND THE AUTHOR DISCLAIMS ALL WARRANTIES&#10;WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF&#10;MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR&#10;ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES&#10;WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN&#10;ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF&#10;OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.&#10;&#10;---&#10;&#10;The following Lucide icons are derived from the Feather project:&#10;&#10;airplay, alert-circle, alert-octagon, alert-triangle, aperture, arrow-down-circle, arrow-down-left, arrow-down-right, arrow-down, arrow-left-circle, arrow-left, arrow-right-circle, arrow-right, arrow-up-circle, arrow-up-left, arrow-up-right, arrow-up, at-sign, calendar, cast, check, chevron-down, chevron-left, chevron-right, chevron-up, chevrons-down, chevrons-left, chevrons-right, chevrons-up, circle, clipboard, clock, code, columns, command, compass, corner-down-left, corner-down-right, corner-left-down, corner-left-up, corner-right-down, corner-right-up, corner-up-left, corner-up-right, crosshair, database, divide-circle, divide-square, dollar-sign, download, external-link, feather, frown, hash, headphones, help-circle, info, italic, key, layout, life-buoy, link-2, link, loader, lock, log-in, log-out, maximize, meh, minimize, minimize-2, minus-circle, minus-square, minus, monitor, moon, more-horizontal, more-vertical, move, music, navigation-2, navigation, octagon, pause-circle, percent, plus-circle, plus-square, plus, power, radio, rss, search, server, share, shopping-bag, sidebar, smartphone, smile, square, table-2, tablet, target, terminal, trash-2, trash, triangle, tv, type, upload, x-circle, x-octagon, x-square, x, zoom-in, zoom-out&#10;&#10;The MIT License (MIT) (for the icons listed above)&#10;&#10;Copyright (c) 2013-present Cole Bemis&#10;&#10;Permission is hereby granted, free of charge, to any person obtaining a copy&#10;of this software and associated documentation files (the &quot;Software&quot;), to deal&#10;in the Software without restriction, including without limitation the rights&#10;to use, copy, modify, merge, publish, distribute, sublicense, and/or sell&#10;copies of the Software, and to permit persons to whom the Software is&#10;furnished to do so, subject to the following conditions:&#10;&#10;The above copyright notice and this permission notice shall be included in all&#10;copies or substantial portions of the Software.&#10;&#10;THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR&#10;IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,&#10;FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE&#10;AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER&#10;LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,&#10;OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE&#10;SOFTWARE.&#10;">
+  <diagram id="complex-platform" name="Application platform">
+    <mxGraphModel grid="0" page="0" archLegend="1" archProvider="aws">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" vertex="1" value="AWS agent processing platform" style="archRole=title;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=30;fontStyle=1;align=left;">
+          <mxGeometry as="geometry" x="40" y="25" width="2080" height="45" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" vertex="1" value="ECS Fargate services · Private application subnets · Durable asynchronous work" style="archRole=title;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=16;align=left;">
+          <mxGeometry as="geometry" x="40" y="85" width="2080" height="32" />
+        </mxCell>
+        <mxCell id="title-separator" parent="1" vertex="1" value="" style="archRole=title;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=line;strokeColor=#FF9900;strokeWidth=2;" connectable="0">
+          <mxGeometry as="geometry" x="40" y="134" width="2080" height="2" />
+        </mxCell>
+        <mxCell id="aws-cloud" parent="1" vertex="1" value="AWS Cloud" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#F5F7FA;strokeColor=#232F3E;strokeWidth=1;verticalAlign=top;align=left;spacing=0;fontStyle=1;dashed=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;spacingLeft=40;spacingTop=8;archHeaderHeight=30;fontColor=#232F3E;container=0;collapsible=0;pointerEvents=0;" connectable="0">
+          <mxGeometry as="geometry" x="240" y="225" width="1540" height="1135" />
+        </mxCell>
+        <mxCell id="vpc" parent="1" vertex="1" value="Agent VPC" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#F2EFFB;strokeColor=#8C4FFF;strokeWidth=1;verticalAlign=top;align=left;spacing=0;fontStyle=1;dashed=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_vpc2;spacingLeft=40;spacingTop=8;archHeaderHeight=30;fontColor=#8C4FFF;container=0;collapsible=0;pointerEvents=0;" connectable="0">
+          <mxGeometry as="geometry" x="280" y="275" width="1460" height="775" />
+        </mxCell>
+        <mxCell id="public-ingress" parent="1" vertex="1" value="Public subnets · ingress" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#F0F8EC;strokeColor=#248814;strokeWidth=1;verticalAlign=top;align=left;spacing=0;fontStyle=1;dashed=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_subnet;spacingLeft=40;spacingTop=8;archHeaderHeight=30;container=0;collapsible=0;pointerEvents=0;" connectable="0">
+          <mxGeometry as="geometry" x="300" y="335" width="230" height="300" />
+        </mxCell>
+        <mxCell id="private-app" parent="1" vertex="1" value="Private application subnets" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#EAF3FB;strokeColor=#147EBA;strokeWidth=1;verticalAlign=top;align=left;spacing=0;fontStyle=1;dashed=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_subnet;spacingLeft=40;spacingTop=8;archHeaderHeight=30;container=0;collapsible=0;pointerEvents=0;" connectable="0">
+          <mxGeometry as="geometry" x="590" y="335" width="670" height="660" />
+        </mxCell>
+        <mxCell id="ecs-cluster" parent="1" vertex="1" value="ECS cluster · representative service tasks" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#FFF8F2;strokeColor=#ED7100;strokeWidth=1;verticalAlign=top;align=left;spacing=0;fontStyle=1;dashed=1;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.ecs;spacingLeft=40;spacingTop=8;archHeaderHeight=30;container=0;collapsible=0;pointerEvents=0;fontColor=#9D4800;" connectable="0">
+          <mxGeometry as="geometry" x="610" y="375" width="630" height="590" />
+        </mxCell>
+        <mxCell id="public-egress" parent="1" vertex="1" value="Public subnet · egress" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#F0F8EC;strokeColor=#248814;strokeWidth=1;verticalAlign=top;align=left;spacing=0;fontStyle=1;dashed=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_subnet;spacingLeft=40;spacingTop=8;archHeaderHeight=30;container=0;collapsible=0;pointerEvents=0;" connectable="0">
+          <mxGeometry as="geometry" x="1410" y="335" width="280" height="280" />
+        </mxCell>
+        <mxCell id="private-data" parent="1" vertex="1" value="Private database subnets" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#EAF3FB;strokeColor=#147EBA;strokeWidth=1;verticalAlign=top;align=left;spacing=0;fontStyle=1;dashed=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_subnet;spacingLeft=40;spacingTop=8;archHeaderHeight=30;container=0;collapsible=0;pointerEvents=0;" connectable="0">
+          <mxGeometry as="geometry" x="1410" y="695" width="280" height="275" />
+        </mxCell>
+        <mxCell id="regional-services" parent="1" vertex="1" value="" style="archRole=boundary;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#F6F9FC;strokeColor=#8B9AAA;strokeWidth=1;verticalAlign=top;align=left;spacing=14;fontStyle=1;dashed=1;">
+          <mxGeometry as="geometry" x="590" y="1085" width="1100" height="235" />
+        </mxCell>
+        <mxCell id="card-client" parent="1" vertex="1" value="External" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#F5F5F5;strokeColor=#667085;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="40" y="440" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-client" parent="card-client" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiM2NjcwODUiCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8Y2lyY2xlIGN4PSIxMiIgY3k9IjgiIHI9IjUiIC8+CiAgPHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIiAvPgo8L3N2Zz4K;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-client" parent="card-client" vertex="1" value="Client" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-ingress" parent="1" vertex="1" value="Entry" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#EDE7F6;strokeColor=#8C4FFF;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="330" y="440" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-ingress" parent="card-ingress" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.application_load_balancer;fillColor=#8C4FFF;strokeColor=none;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-ingress" parent="card-ingress" vertex="1" value="Application Load Balancer" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-api" parent="1" vertex="1" value="Intake" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#FFF2E8;strokeColor=#ED7100;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="650" y="440" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-api" parent="card-api" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.fargate;fillColor=#ED7100;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-api" parent="card-api" vertex="1" value="ECS Fargate&lt;br&gt;API service task" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-orchestrator" parent="1" vertex="1" value="Coordination" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#FFF2E8;strokeColor=#ED7100;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="1000" y="440" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-orchestrator" parent="card-orchestrator" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.fargate;fillColor=#ED7100;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-orchestrator" parent="card-orchestrator" vertex="1" value="ECS Fargate&lt;br&gt;Orchestrator task" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-egress" parent="1" vertex="1" value="Outbound access" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#EDE7F6;strokeColor=#8C4FFF;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="1470" y="440" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-egress" parent="card-egress" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.nat_gateway;fillColor=#8C4FFF;strokeColor=none;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-egress" parent="card-egress" vertex="1" value="NAT Gateway" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-model" parent="1" vertex="1" value="External inference" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#E0F2F1;strokeColor=#008577;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="1940" y="440" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-model" parent="card-model" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iNDgiCiAgaGVpZ2h0PSI0OCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiMwMDg1NzciCiAgc3Ryb2tlLXdpZHRoPSIxLjgiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTIgNWEzIDMgMCAxIDAtNS45OTcuMTI1IDQgNCAwIDAgMC0yLjUyNiA1Ljc3IDQgNCAwIDAgMCAuNTU2IDYuNTg4QTQgNCAwIDEgMCAxMiAxOFoiIC8+CiAgPHBhdGggZD0iTTkgMTNhNC41IDQuNSAwIDAgMCAzLTQiIC8+CiAgPHBhdGggZD0iTTYuMDAzIDUuMTI1QTMgMyAwIDAgMCA2LjQwMSA2LjUiIC8+CiAgPHBhdGggZD0iTTMuNDc3IDEwLjg5NmE0IDQgMCAwIDEgLjU4NS0uMzk2IiAvPgogIDxwYXRoIGQ9Ik02IDE4YTQgNCAwIDAgMS0xLjk2Ny0uNTE2IiAvPgogIDxwYXRoIGQ9Ik0xMiAxM2g0IiAvPgogIDxwYXRoIGQ9Ik0xMiAxOGg2YTIgMiAwIDAgMSAyIDJ2MSIgLz4KICA8cGF0aCBkPSJNMTIgOGg4IiAvPgogIDxwYXRoIGQ9Ik0xNiA4VjVhMiAyIDAgMCAxIDItMiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjEzIiByPSIuNSIgLz4KICA8Y2lyY2xlIGN4PSIxOCIgY3k9IjMiIHI9Ii41IiAvPgogIDxjaXJjbGUgY3g9IjIwIiBjeT0iMjEiIHI9Ii41IiAvPgogIDxjaXJjbGUgY3g9IjIwIiBjeT0iOCIgcj0iLjUiIC8+Cjwvc3ZnPgo=;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-model" parent="card-model" vertex="1" value="Model API" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-worker" parent="1" vertex="1" value="Execution" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#FFF2E8;strokeColor=#ED7100;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="1000" y="790" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-worker" parent="card-worker" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.fargate;fillColor=#ED7100;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-worker" parent="card-worker" vertex="1" value="ECS Fargate&lt;br&gt;Worker service task" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-database" parent="1" vertex="1" value="State &amp; results" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#F5E6F7;strokeColor=#C925D1;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="1470" y="790" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-database" parent="card-database" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;fillColor=#C925D1;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-database" parent="card-database" vertex="1" value="Amazon RDS&lt;br&gt;PostgreSQL" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-langfuse" parent="1" vertex="1" value="Observability" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#FCE4EC;strokeColor=#D44A79;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="1940" y="790" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-langfuse" parent="card-langfuse" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MjIiIGhlaWdodD0iMjcyIiB2aWV3Qm94PSI0NSAxMjAgNDIyIDI3MiIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yNTQuNzUgMzAyLjI1TDI4NS4yNSAzMjYuNzVDMjg1LjI1IDMyNi43NSAzMDguNTg3IDMwOS40MTggMzI1Ljc1IDMwNi44NzVDMzQzLjc1IDMwNC4yMDggMzYyLjk1NCAzMTQuMjQ0IDM4MC43NSAzMjYuMjA4QzQwNy42MjkgMzQ0LjI3OSA0MzAuMjUgMzY3LjIwOCA0MzAuMjUgMzY3LjIwOEw0NTYuNzUgMzQxLjIwOEM0NTYuNzUgMzQxLjIwOCAzODMuNjg2IDI2Mi4wNDcgMzI1Ljc1IDI2OS4yMDhDMjg3Ljc1IDI3My45MDUgMjU0Ljc1IDMwMi4yNSAyNTQuNzUgMzAyLjI1WiIgZmlsbD0iI0ZGNUQ1RiIvPgo8cGF0aCBkPSJNODAuMjUgMTUxLjI4Nkw1NS4yNSAxNzguNzg2QzU1LjI1IDE3OC43ODYgMTI0LjkwMiAyNDMuNzg2IDE3OS43NSAyNDMuNzg2QzIwNC43NSAyNDMuNzg2IDIzOS40MTkgMjI0LjIwMSAyNjkuMjUgMTk4Ljc1N0MyODYuMjUgMTg0LjI1NyAzMDUuMjUgMTY3Ljc4NiAzMjQuMjUgMTY3Ljc4NkMzMzcuMDIxIDE2Ny43ODYgMzUzLjg2NiAxNzQuNTUxIDM2OS43NSAxOTIuMzE2QzM2OS43NSAxOTIuMzE2IDM4MC4wMDMgMTg2LjE2OCAzODYuMjUgMTgxLjc1QzM5MS43NCAxNzcuODY4IDM5OS44OTYgMTcxLjI1IDM5OS44OTYgMTcxLjI1QzM3Ny4wNDcgMTQ2Ljg2NCAzNDMuOTk4IDEyOS4wMzggMzI0LjI1IDEzMC43ODZDMjkyLjI1IDEzMC43OSAyNjkuMjUgMTUwLjcxMSAyNDAuNzUgMTczLjc1QzIxMi4yNSAxOTYuNzg5IDIwMC4yNSAyMDYuMjg2IDE3OS43NSAyMDYuMjg2QzE0NS4yNSAyMDYuMjg2IDgwLjI1IDE1MS4yODYgODAuMjUgMTUxLjI4NloiIGZpbGw9IiM0RTlDRkYiLz4KPHBhdGggZD0iTTgwLjI1IDM2MC43NUw1NS4yNSAzMzMuMjVDNTUuMjUgMzMzLjI1IDEyNC45MDIgMjY4LjI1IDE3OS43NSAyNjguMjVDMjA0Ljc1IDI2OC4yNSAyMzkuNDE5IDI4Ny44MzUgMjY5LjI1IDMxMy4yNzlDMjg2LjI1IDMyNy43NzkgMzA1LjI1IDM0NC4yNSAzMjQuMjUgMzQ0LjI1QzMzNy4wODMgMzQ0LjI1IDM1My43OTkgMzM3LjIwNyAzNjkuNzUgMzE5LjI1QzM2OS43NSAzMTkuMjUgMzc5LjMzOSAzMjUuMTYxIDM4NS4yNSAzMjkuMjVDMzkxLjMyOCAzMzMuNDU1IDQwMC4yNSAzNDAuNDA3IDQwMC4yNSAzNDAuNDA3QzM3Ny4zOSAzNjQuOTg3IDM0NC4xIDM4My4wMDcgMzI0LjI1IDM4MS4yNUMyOTIuMjUgMzgxLjI0NiAyNzMuMjUgMzY0LjI4OSAyNDQuNzUgMzQxLjI1QzIxNi4yNSAzMTguMjExIDIwMC4yNSAzMDUuNzUgMTc5Ljc1IDMwNS43NUMxNDUuMjUgMzA1Ljc1IDgwLjI1IDM2MC43NSA4MC4yNSAzNjAuNzVaIiBmaWxsPSIjNEU5Q0ZGIi8+CjxwYXRoIGQ9Ik00MDYuMjUgMjEzLjI1QzM5OS43NDUgMjE3Ljc0NiAzODkuMjUgMjI0LjI1IDM4OS4yNSAyMjQuMjVDMzg5LjI1IDIyNC4yNSAzOTUuMjUgMjM3LjI1IDM5NS4yNSAyNTQuNzVDMzk1LjI1IDI3Mi4yNSAzODkuNzUgMjg3LjI1IDM4OS43NSAyODcuMjVDMzg5Ljc1IDI4Ny4yNSAzOTkuMTcyIDI5My4xMzUgNDA1LjI1IDI5Ny4yNUM0MTEuNTY0IDMwMS41MjUgNDIxLjI1IDMwOC43NSA0MjEuMjUgMzA4Ljc1QzQyMS4yNSAzMDguNzUgNDMyLjc1IDI4NC43NSA0MzIuNzUgMjU0Ljc1QzQzMi43NSAyMjQuNzUgNDIxLjI1IDIwMi4yNSA0MjEuMjUgMjAyLjI1QzQyMS4yNSAyMDIuMjUgNDEyLjIyNiAyMDkuMTIgNDA2LjI1IDIxMy4yNVoiIGZpbGw9IiM0RTlDRkYiLz4KPHBhdGggZD0iTTI1Ni4yNSAyMDkuMjVMMjg1LjI1IDE4NS4yNUMyODUuMjUgMTg1LjI1IDMwOC41ODcgMjAyLjA0IDMyNS43NSAyMDQuNTgzQzM0My43NSAyMDcuMjUgMzYyLjk1NCAxOTcuMjE0IDM4MC43NSAxODUuMjVDNDA3LjYyOSAxNjcuMTc5IDQzMC4yNSAxNDQuMjUgNDMwLjI1IDE0NC4yNUw0NTYuNzUgMTcwLjI1QzQ1Ni43NSAxNzAuMjUgMzgzLjY4NiAyNDkuNDExIDMyNS43NSAyNDIuMjVDMjg3Ljc1IDIzNy41NTMgMjU2LjI1IDIwOS4yNSAyNTYuMjUgMjA5LjI1WiIgZmlsbD0iI0ZGNUQ1RiIvPgo8cGF0aCBkPSJNMTg2LjI1NSAxMzAuMjVDMjIzLjc1NSAxMzAuMjUgMjU1LjI1IDE2Mi4yNSAyNTUuMjUgMTYyLjI1QzI1NS4yNSAxNjIuMjUgMjQ2LjQ4NyAxNjkuMTU1IDI0MC43NSAxNzMuNzVDMjM0Ljc3NSAxNzguNTM2IDIyNS4yNSAxODYuMjUgMjI1LjI1IDE4Ni4yNUMyMjUuMjUgMTg2LjI1IDIwOC43NTUgMTY4Ljc1IDE4Ni4yNTUgMTY4Ljc1QzE3Ny4wMjggMTY4Ljc1IDE2NS4wMzkgMTc0LjI5MiAxNTIuMjU1IDE4NS4yNUMxNDIuMzkxIDE5My43MDUgMTMyLjEyOSAyMDQuMjE2IDEyNS4yNTUgMjE3LjI1QzExOS4zMSAyMjguNTIgMTE2LjA2OCAyNDEuODAyIDExNS43NTUgMjU1Ljc1QzExNS4zNjEgMjczLjI2OSAxMjEuNTcxIDI5MS42MzQgMTMxLjc1NSAzMDYuMjVDMTM4LjU4IDMxNi4wNDYgMTQ2LjcyNiAzMjMuNDE4IDE1NS4yNTUgMzI5Ljc1QzE2Ni4zMjMgMzM3Ljk2OCAxNzcuODY1IDM0My43NSAxODYuMjU1IDM0My43NUMxOTUuMjE3IDM0My43NSAyMDMuMjc0IDM0MC42MzUgMjA5LjI1NSAzMzcuNzVDMjE4Ljc1NSAzMzIuMjUgMjI2LjI1IDMyNS43NSAyMjYuMjUgMzI1Ljc1TDI1NS43NSAzNTAuMjVDMjU1Ljc1IDM1MC4yNSAyNDMuNzUgMzYyLjI1IDIyNy4yNTUgMzcxLjI1QzIxNi41OTUgMzc2LjUwNyAyMDIuODk1IDM4MS43NSAxODYuMjU1IDM4MS43NUMxNjkuNjI2IDM4MS43NSAxNTAuMzE1IDM3Mi45MTUgMTMyLjI1NSAzNTkuMjVDMTIwLjU3OSAzNTAuNDE2IDEwOS4xMzUgMzM5Ljk0OCAxMDAuMjU1IDMyNy4yNUM4NS43MDA1IDMwNi40MzggNzguMjAwNCAyODEuMTE4IDc4LjI1MDIgMjU1Ljc1Qzc4LjMwMDggMjMwLjA2NSA4Ni41ODIzIDIwNC42MjUgMTAxLjI1NSAxODMuNzVDMTI0LjI1NSAxNTMuNzUgMTU4LjI3MyAxMzAuMjUgMTg2LjI1NSAxMzAuMjVaIiBmaWxsPSIjRkY1RDVGIi8+Cjwvc3ZnPg==;" connectable="0">
+          <mxGeometry as="geometry" x="48" y="38" width="64" height="48" />
+        </mxCell>
+        <mxCell id="label-langfuse" parent="card-langfuse" vertex="1" value="Hosted Langfuse" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-queue" parent="1" vertex="1" value="Durable work" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#FCE4EC;strokeColor=#E7157B;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="650" y="1150" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-queue" parent="card-queue" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;fillColor=#E7157B;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-queue" parent="card-queue" vertex="1" value="Amazon SQS" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="card-storage" parent="1" vertex="1" value="Artifacts" style="archRole=card;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=rectangle;rounded=0;perimeter=rectanglePerimeter;container=1;collapsible=0;fillColor=#E8F5E9;strokeColor=#3F8624;strokeWidth=1.5;verticalAlign=top;spacingTop=10;fontSize=13;fontStyle=1;">
+          <mxGeometry as="geometry" x="1470" y="1150" width="160" height="150" />
+        </mxCell>
+        <mxCell id="icon-storage" parent="card-storage" vertex="1" value="" style="archRole=icon;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#3F8624;strokeColor=#FFFFFF;" connectable="0">
+          <mxGeometry as="geometry" x="56" y="38" width="48" height="48" />
+        </mxCell>
+        <mxCell id="label-storage" parent="card-storage" vertex="1" value="Amazon S3" style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=center;fontSize=13;" connectable="0">
+          <mxGeometry as="geometry" x="6" y="98" width="148" height="44" />
+        </mxCell>
+        <mxCell id="flow-client" parent="1" edge="1" source="card-client" target="card-ingress" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;fontFamily=Helvetica;archStep=1;dashed=0;startArrow=block;startFill=1;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-intake" parent="1" edge="1" source="card-ingress" target="card-api" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;fontFamily=Helvetica;archStep=2;dashed=0;startArrow=block;startFill=1;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-publish" parent="1" edge="1" source="card-api" target="card-queue" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;fontFamily=Helvetica;archStep=3;dashed=1;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-consume" parent="1" edge="1" source="card-queue" target="card-orchestrator" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.6;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;fontFamily=Helvetica;archStep=4;dashed=1;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="930" y="1225" />
+              <mxPoint x="930" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="flow-inference-egress" parent="1" edge="1" source="card-orchestrator" target="card-egress" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.4;entryX=0;entryY=0.4;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;fontFamily=Helvetica;archStep=5;dashed=0;startArrow=block;startFill=1;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-inference-model" parent="1" edge="1" source="card-egress" target="card-model" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.4;entryX=0;entryY=0.4;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;fontFamily=Helvetica;archStep=5;dashed=0;startArrow=block;startFill=1;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-dispatch" parent="1" edge="1" source="card-orchestrator" target="card-worker" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;fontFamily=Helvetica;archStep=6;dashed=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-save-result" parent="1" edge="1" source="card-worker" target="card-database" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;fontFamily=Helvetica;archStep=7;dashed=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-save-artifact" parent="1" edge="1" source="card-worker" target="card-storage" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#545B64;fontFamily=Helvetica;archStep=8;dashed=0;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1080" y="1225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="flow-trace-egress" parent="1" edge="1" source="card-orchestrator" target="card-egress" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=1;exitY=0.8;entryX=0;entryY=0.8;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#9D4A72;fontFamily=Helvetica;archStep=9;dashed=1;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="flow-trace-export" parent="1" edge="1" source="card-egress" target="card-langfuse" style="edgeStyle=none;noEdgeStyle=1;curved=0;rounded=0;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#9D4A72;fontFamily=Helvetica;archStep=9;dashed=1;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1550" y="665" />
+              <mxPoint x="1830" y="665" />
+              <mxPoint x="1830" y="865" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="badge-1" parent="1" vertex="1" value="1" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=1;">
+          <mxGeometry as="geometry" x="240" y="465" width="28" height="28" />
+        </mxCell>
+        <mxCell id="badge-2" parent="1" vertex="1" value="2" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=2;">
+          <mxGeometry as="geometry" x="550" y="465" width="28" height="28" />
+        </mxCell>
+        <mxCell id="badge-3" parent="1" vertex="1" value="3" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=3;">
+          <mxGeometry as="geometry" x="760" y="690" width="28" height="28" />
+        </mxCell>
+        <mxCell id="badge-4" parent="1" vertex="1" value="4" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=4;">
+          <mxGeometry as="geometry" x="850" y="1175" width="28" height="28" />
+        </mxCell>
+        <mxCell id="badge-5" parent="1" vertex="1" value="5" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=5;">
+          <mxGeometry as="geometry" x="1280" y="450" width="28" height="28" />
+        </mxCell>
+        <mxCell id="badge-6" parent="1" vertex="1" value="6" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=6;">
+          <mxGeometry as="geometry" x="1110" y="675" width="28" height="28" />
+        </mxCell>
+        <mxCell id="badge-7" parent="1" vertex="1" value="7" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=7;">
+          <mxGeometry as="geometry" x="1300" y="815" width="28" height="28" />
+        </mxCell>
+        <mxCell id="badge-8" parent="1" vertex="1" value="8" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=8;">
+          <mxGeometry as="geometry" x="1110" y="1030" width="28" height="28" />
+        </mxCell>
+        <mxCell id="badge-9" parent="1" vertex="1" value="9" style="archRole=badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=16;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=9;">
+          <mxGeometry as="geometry" x="1320" y="595" width="28" height="28" />
+        </mxCell>
+        <mxCell id="legend" parent="1" vertex="1" value="Flow" style="archRole=legend;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;rounded=0;fillColor=#EDF3FF;strokeColor=#6C8EBF;strokeWidth=1;verticalAlign=top;align=left;spacing=18;fontStyle=1;fontSize=18;">
+          <mxGeometry as="geometry" x="2200" y="25" width="570" height="1440" />
+        </mxCell>
+        <mxCell id="legend-badge-1" parent="1" vertex="1" value="1" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=1;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="97" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-1" parent="1" vertex="1" value="&lt;b&gt;Accept requests&lt;/b&gt;&lt;br&gt;The client sends HTTPS requests and receives responses through the public ALB." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=1;">
+          <mxGeometry as="geometry" x="2272" y="95" width="474" height="95" />
+        </mxCell>
+        <mxCell id="legend-badge-2" parent="1" vertex="1" value="2" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=2;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="222" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-2" parent="1" vertex="1" value="&lt;b&gt;Route to intake&lt;/b&gt;&lt;br&gt;The ALB forwards traffic to API tasks running in private application subnets." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=2;">
+          <mxGeometry as="geometry" x="2272" y="220" width="474" height="95" />
+        </mxCell>
+        <mxCell id="legend-badge-3" parent="1" vertex="1" value="3" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=3;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="347" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-3" parent="1" vertex="1" value="&lt;b&gt;Publish durable work&lt;/b&gt;&lt;br&gt;The API submits background jobs to SQS." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=3;">
+          <mxGeometry as="geometry" x="2272" y="345" width="474" height="95" />
+        </mxCell>
+        <mxCell id="legend-badge-4" parent="1" vertex="1" value="4" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=4;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="472" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-4" parent="1" vertex="1" value="&lt;b&gt;Receive queued work&lt;/b&gt;&lt;br&gt;The orchestrator polls SQS and receives jobs; the arrow follows message delivery." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=4;">
+          <mxGeometry as="geometry" x="2272" y="470" width="474" height="95" />
+        </mxCell>
+        <mxCell id="legend-badge-5" parent="1" vertex="1" value="5" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=5;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="597" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-5" parent="1" vertex="1" value="&lt;b&gt;Request model guidance&lt;/b&gt;&lt;br&gt;The orchestrator calls the external model through NAT egress and receives its response." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=5;">
+          <mxGeometry as="geometry" x="2272" y="595" width="474" height="95" />
+        </mxCell>
+        <mxCell id="legend-badge-6" parent="1" vertex="1" value="6" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=6;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="722" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-6" parent="1" vertex="1" value="&lt;b&gt;Dispatch execution&lt;/b&gt;&lt;br&gt;The orchestrator delegates bounded work to the worker service." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=6;">
+          <mxGeometry as="geometry" x="2272" y="720" width="474" height="95" />
+        </mxCell>
+        <mxCell id="legend-badge-7" parent="1" vertex="1" value="7" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=7;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="847" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-7" parent="1" vertex="1" value="&lt;b&gt;Persist the outcome&lt;/b&gt;&lt;br&gt;The worker stores execution state and results in RDS PostgreSQL." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=7;">
+          <mxGeometry as="geometry" x="2272" y="845" width="474" height="95" />
+        </mxCell>
+        <mxCell id="legend-badge-8" parent="1" vertex="1" value="8" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=8;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="972" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-8" parent="1" vertex="1" value="&lt;b&gt;Store artifacts&lt;/b&gt;&lt;br&gt;The worker writes generated artifacts to S3." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=8;">
+          <mxGeometry as="geometry" x="2272" y="970" width="474" height="95" />
+        </mxCell>
+        <mxCell id="legend-badge-9" parent="1" vertex="1" value="9" style="archRole=legend-badge;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;fontSize=22;rounded=1;fillColor=#007CBD;strokeColor=#000000;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;shadow=1;glass=0;align=center;verticalAlign=middle;archStep=9;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="1097" width="40" height="38" />
+        </mxCell>
+        <mxCell id="legend-9" parent="1" vertex="1" value="&lt;b&gt;Export execution traces&lt;/b&gt;&lt;br&gt;The orchestrator sends telemetry to hosted Langfuse through the same NAT egress." style="archRole=legend-step;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=16;archStep=9;">
+          <mxGeometry as="geometry" x="2272" y="1095" width="474" height="95" />
+        </mxCell>
+        <mxCell id="legend-key" parent="1" vertex="1" value="&lt;b&gt;Reading the connections&lt;/b&gt;&lt;br&gt;Solid gray: request or data flow.&lt;br&gt;Two arrowheads: request / response.&lt;br&gt;Dashed gray: queued work delivery.&lt;br&gt;Dashed rose: telemetry export.&lt;br&gt;Steps 7–9 are related effects, not a strict sequence." style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=15;" connectable="0">
+          <mxGeometry as="geometry" x="2220" y="1240" width="530" height="180" />
+        </mxCell>
+        <mxCell id="scope-note" parent="1" vertex="1" value="Illustrative deployment. Subnets/AZs are aggregated; service task replicas, internet gateway, routes and VPC endpoints are omitted. Arrows show selected logical flows, not a complete network path map." style="archRole=label;fontFamily=Helvetica;fontSize=14;html=1;whiteSpace=wrap;text;fillColor=none;strokeColor=none;align=left;verticalAlign=top;fontSize=15;fontColor=#545B64;" connectable="0">
+          <mxGeometry as="geometry" x="240" y="1395" width="1540" height="60" />
+        </mxCell>
+        <mxCell id="shared-services-heading" parent="1" vertex="1" connectable="0" value="Regional managed services · outside the VPC" style="archRole=label;text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontStyle=1;fontFamily=Helvetica;fontSize=14;">
+          <mxGeometry as="geometry" x="1130" y="1100" width="540" height="30" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

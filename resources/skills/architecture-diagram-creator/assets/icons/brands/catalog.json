@@ -1,0 +1,31 @@
+{
+  "langfuse": {
+    "path": "langfuse.svg",
+    "source": "User-provided aws-mcp/icons/langfuse-brand.svg; original upstream source unverified",
+    "sha256": "d6d03e2b3f70471ec314c23d31cffd6d6c6402e25bc074fa80228d3242419282",
+    "license_note": "Existing project brand asset; preserve brand identity and consult upstream usage terms before redistribution.",
+    "original_path": "langfuse-original.svg",
+    "original_sha256": "f76384964ac2a6facff527388cb8c627db2735c444a33e51c4958a23fe4c9ad3",
+    "adaptations": "Display viewBox removes surplus whitespace (45 120 422 272); original paths and colors unchanged. Centered 64 x 48 draw.io image cell preserves aspect ratio and matches neighboring icon optical weight."
+  },
+  "nats": {
+    "path": "nats.svg",
+    "source": "https://raw.githubusercontent.com/cncf/artwork/main/projects/nats/icon/color/nats-icon-color.svg",
+    "retrieved": "2026-09-12T07:16:21.869340+00:00",
+    "sha256": "121839fa79d3a4e7b40a4efcb699b3da95231710f7ee94e9e5b73e21c7415d6a",
+    "original_path": "nats-original.svg",
+    "original_sha256": "aeac64fac2ef4226a921508afc8097bd6300cdc9361779acdd19ec650a961992",
+    "license_note": "NATS/CNCF brand asset; https://nats.io/community/ and https://www.linuxfoundation.org/legal/trademark-usage",
+    "adaptations": "Static CSS converted to equivalent SVG presentation attributes; external DTD declaration removed where present. Original paths, colors, viewBox and aspect ratio preserved. Centered 48 x 48 diagram cell."
+  },
+  "postgresql": {
+    "path": "postgresql.svg",
+    "source": "https://wiki.postgresql.org/images/a/a4/PostgreSQL_logo.3colors.svg",
+    "retrieved": "2026-09-12T07:16:21.869719+00:00",
+    "sha256": "bfa0be952d636ec320a0b53b1bf6066bde3dc191dff6d92d8f2c3d52c81b15f9",
+    "original_path": "postgresql-original.svg",
+    "original_sha256": "51f93e19516081fc7d6fe6ab9bbab07abe5f7819e28016eefacea6dea691bc54",
+    "license_note": "PostgreSQL brand asset; https://wiki.postgresql.org/wiki/Logo and https://www.postgresql.org/about/policies/trademarks/",
+    "adaptations": "Static CSS converted to equivalent SVG presentation attributes; external DTD declaration removed where present. Original paths, colors, viewBox and aspect ratio preserved. Centered 48 x 48 diagram cell."
+  }
+}
