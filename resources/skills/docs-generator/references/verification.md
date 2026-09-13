@@ -12,7 +12,7 @@ Apply before delivering generated or updated documentation. Scale checks to the 
 
 ## Coverage gates
 
-- Compare with the agreed structure and applicable reader tasks; an example blueprint does not make deployment, authentication, telemetry or any other absent feature mandatory. After a clean rebuild, no competing authentication/deployment procedures or orphaned legacy pages remain in scope.
+- Compare with the agreed structure or preferred blueprint and applicable reader tasks. For new documentation or a full rebuild, retain applicable blueprint names and organization; departures should serve concrete project needs. Omit inapplicable topics and empty scaffolding, but retain material gaps about applicable workflows. The blueprint does not make absent features mandatory. After a clean rebuild, no competing authentication/deployment procedures or orphaned legacy pages remain in scope.
 - Where supported, walk first deployment, redeployment, fresh-terminal credential reuse, local readiness and a complete smoke separately. Check dependency order and test data; identity creation must not be required for each test.
 - Reconcile configuration against all public fields/aliases, selectors, secret-provider inputs and applicable deployment inputs. Distinguish defaults, environment values and unused/unwired knobs.
 - Reconcile inbound routes and outbound operations against contracts, including failure/async/write semantics.

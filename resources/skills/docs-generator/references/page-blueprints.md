@@ -2,9 +2,9 @@
 
 Read when planning a manual or adding substantial pages. Select only relevant topics and combine them when that improves navigation. These are questions to answer from evidence, not headings to reproduce mechanically.
 
-## Example blueprint for a deployable system
+## Preferred blueprint
 
-This example suits a multi-service application with deployment and operational workflows. Select and combine pages from repository evidence; do not require this directory tree in every repository.
+Use this blueprint as the preferred starting structure for new documentation or a full rebuild. It is especially suited to multi-service applications with deployment and operational workflows. Preserve its folder names, page names and topic organization where applicable; adapt it to repository evidence and reader needs using the rules below.
 
 ```text
 docs/
@@ -33,7 +33,7 @@ docs/
     └── recovery.md
 ```
 
-Do not create empty pages for nonexistent features. A library may need installation, public API, compatibility and release guidance; a small system may combine related topics. Preserve canonical supplied assets. Add pages only for distinct necessary reader tasks. For an authorized clean rebuild, integrate verified legacy information into the blueprint, remove superseded pages within scope and repair inbound links; do not create an archive of loose notes by default. Targeted updates keep established paths unless restructuring was requested.
+Omit folders and pages for inapplicable topics, combine thin related pages, and add pages or folders for substantial needs the blueprint does not cover. Each departure should address a concrete reader need or repository characteristic. Missing knowledge about an applicable workflow belongs near the affected content as a material gap; it is not a reason to omit the topic. Preserve canonical supplied assets. For an authorized clean rebuild, integrate verified legacy information into the adapted blueprint, remove superseded pages within scope and repair inbound links; do not create an archive of loose notes by default. Targeted updates keep established paths unless restructuring was requested.
 
 ## Adapt coverage to the repository
 
@@ -45,7 +45,7 @@ Do not create empty pages for nonexistent features. A library may need installat
 | Mobile/desktop app | Development setup, build/run, platform requirements and distribution where implemented |
 | Mixed monorepo | Shared overview/navigation plus component-specific coverage; a library member does not inherit service deployment pages |
 
-Use the smallest structure that answers the actual tasks. An agreed project blueprint can be retained without turning its service names, integrations or deployment assumptions into skill-wide requirements.
+Keep the familiar blueprint organization wherever it serves these tasks, adapting coverage and page granularity to the project. Organize around reader tasks and conceptual boundaries rather than reproducing the source-code directory tree. Honor an agreed project structure without turning its service names, integrations or deployment assumptions into skill-wide requirements.
 
 ## Guide completion contract
 
