@@ -71,6 +71,30 @@ The third one matters most: a job that never starts emits no duration and no fai
 
 Dependency latency and error rate per downstream, from the client instrumentation's duration histogram. If a dependency is called through a library with no instrumentation, add one histogram with a bounded `server.address` or a logical dependency name.
 
+For outgoing HTTP calls, always cover this baseline, whether or not the service
+has admission control or retries:
+
+| Signal | Source / breakdown |
+| --- | --- |
+| Request attempts | Duration histogram count, by dependency and `http.response.status_code` when a response exists |
+| 429 and 5xx rates | Matching status counts divided by all attempts for the same dependency and time window |
+| Timeouts and connection failures | Failed attempts by bounded `error.type`; do not invent an HTTP status when no response exists |
+| Request latency | Duration histogram (`s`), by dependency and bounded operation when useful |
+
+Prefer the existing `http.client.request.duration` instrument. Verify that it
+actually records these attributes and failure paths; supplement missing coverage
+at the client boundary without duplicating an existing instrument or adding a
+separate counter for each status code. Use bounded dependency names and operation
+templates, never raw URLs or request/user IDs as metric labels.
+
+Record every physical request attempt, including retries, exactly once. A 429
+followed by a successful retry means two attempts: one 429 and one success.
+Check SDK-internal retries too; a wrapper around the whole logical call can hide
+them. Keep final job/call outcomes separate from attempt outcomes.
+
+Apply the same status and latency breakdown to incoming HTTP requests through
+`http.server.request.duration`, including 429 responses returned by the service.
+
 ### Baseline selection report
 
 Before implementation, list the selected defaults and their source (`auto`,
