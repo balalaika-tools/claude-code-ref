@@ -972,6 +972,7 @@ skills/auto-review-code/SKILL.md
 skills/auto-review-code/agents/openai.yaml
 skills/docs-generator/SKILL.md
 skills/docs-generator/agents/openai.yaml
+skills/docs-generator/references/api-contract-template.md
 skills/docs-generator/references/page-blueprints.md
 skills/docs-generator/references/verification.md
 skills/fastapi-ai-service/SKILL.md
