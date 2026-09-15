@@ -1,0 +1,38 @@
+{
+  "audience": "Engineer new to the fixture subject",
+  "paths": [
+    {
+      "name": "First-time path",
+      "kind": "first-time",
+      "entries": ["01_first_result.md", "02_mental_model.md"],
+      "execution_payoff_by": 1,
+      "understanding_payoff_by": 2,
+      "stop_point": "Can run and explain the fixture"
+    }
+  ],
+  "notes": [
+    {
+      "path": "01_first_result.md",
+      "role": "implementation",
+      "prerequisites": [],
+      "entry_capability": "None",
+      "exit_capability": "Can observe the result"
+    },
+    {
+      "path": "02_mental_model.md",
+      "role": "foundation",
+      "prerequisites": ["01_first_result.md"],
+      "entry_capability": "Can observe the result",
+      "exit_capability": "Can explain the state transition"
+    }
+  ],
+  "mechanisms": [
+    {
+      "name": "fixture transition",
+      "owner": "02_mental_model.md",
+      "required_level": "demonstrated",
+      "reader_must_explain": ["why it exists", "what changes"],
+      "carrier": "one input and one state transition"
+    }
+  ]
+}

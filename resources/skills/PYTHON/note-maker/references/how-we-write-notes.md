@@ -42,7 +42,7 @@ The goal is not merely complete notes. It is a path that takes a first-time read
 3. **Production hardening** — the defaults and safeguards that make the mechanism safe under real load and failure.
 4. **Operational awareness** — failure symptoms, limits, trade-offs, recovery procedures, and the practitioner tricks that prevent or diagnose them.
 
-A single file does not need to carry all four layers. The **full learning path as a whole does**; shorter paths may stop at a declared milestone. Each file needs one primary role: foundation/tutorial, implementation, deep dive, decision guide, or reference. Do not turn every foundation note into a production reference in the name of completeness.
+A single file does not need to carry all four layers. The **full learning path as a whole does**; shorter paths may stop at a declared milestone. Each file needs one primary role: foundation, tutorial, implementation, deep dive, decision guide, or reference. A foundation owns a mental model and concrete trace; a tutorial owns a guided runnable result. Do not turn either into a production reference in the name of completeness.
 
 Four rules keep the progression usable:
 
@@ -53,6 +53,33 @@ Four rules keep the progression usable:
 
 A first-time path fails this contract if every individual note is accurate but the reader must learn several production mechanisms before they can explain or build the baseline.
 
+## Coverage has levels; a heading is not coverage
+
+Use five levels to state what a collection promises about a mechanism:
+
+1. **Mentioned** — named only for orientation.
+2. **Defined** — grounded with its kind and basic purpose.
+3. **Explained** — its need, owned state or decision, causal mechanism, and consequence are clear.
+4. **Demonstrated** — the explanation is carried by a named trace or faithful artifact, with a changed-input contrast when the distinction is non-obvious.
+5. **Operationalized** — the reader can verify it, recognize its first real failure, and apply its recovery, rollback, or production boundary.
+
+Core mechanisms on a first-time path normally reach at least **demonstrated** in their canonical
+owner. A definition plus a failure warning does not meet that bar. Production implementation notes
+reach **operationalized** for the behavior they promise to assemble.
+
+Keep each foundation note centered on one mental model. When several mechanisms have independently
+changing state, different prerequisites, or different faithful carriers, split them or explain why
+their composition is the lesson. A short note is welcome when the mechanism is simple; compactness
+is not permission to collapse several teachable mechanisms into a glossary with warnings.
+
+A deep dive may refine a core idea only after an earlier foundation owner establishes the first
+correct model. It cannot be the first place a beginner path actually teaches a required concept.
+
+At the end of a foundation note, test whether a reader can state, from the note itself: the problem,
+the state or decision the mechanism owns, who changes it, one named transition and result, the
+plausible wrong model it rules out, and the first failure that motivates the next layer. This is the
+evidence-backed teach-back; a bare `PASS` without those reconstructable elements is not evidence.
+
 ## Open with the payoff that fits the note's role
 
 Every teaching note gives the reader a useful reason to continue early, but it does not need a
@@ -61,7 +88,8 @@ declared role:
 
 | Note role | Useful opening payoff |
 |---|---|
-| Foundation/tutorial | A concrete situation and the first correct mental model or worked outcome. |
+| Foundation | A concrete situation, faithful trace, and the first correct mental model. |
+| Tutorial | The smallest runnable path, bounded inputs, visible output, and the explanation that makes it intelligible. |
 | Implementation | The smallest runnable path, its bounded inputs, and the observable result. |
 | Deep dive | The failure, constraint, or surprising behavior that requires this deeper mechanism. |
 | Decision guide | A named decision, the few criteria that change it, and an initial recommendation. |
@@ -85,10 +113,10 @@ The opening has two possible acceptance tests, applied only where the role warra
 
 - **Execution/decision:** the reader can run, trace, or make the promised first decision and observe
   the stated result.
-- **Restatement:** the reader can explain why the example, scenario, or criteria produce that result.
+- **Teach-back:** the reader can reconstruct why the example, scenario, or criteria produce that result from evidence in the note.
 
-A code block can pass execution and fail restatement. A conceptual or decision-oriented opening may
-need only the restatement test.
+A code block can pass execution and fail teach-back. A conceptual or decision-oriented opening may
+need only the teach-back test.
 
 ## Lead with the problem, then state the *why*
 
@@ -250,7 +278,7 @@ Safe deferrals include caching and connection reuse, retries and backoff, key ro
 
 One 60-line production block teaches less than a small baseline followed by a hardened diff.
 
-Concept-heavy foundation/tutorial notes follow the same ladder without pretending diagrams are code:
+Concept-heavy foundation notes follow the same ladder without pretending diagrams are code:
 
 1. Start with a small concrete trace: named actors or rows, one input, one transition, and one visible outcome.
 2. Explain the causal mechanism behind the outcome.
@@ -271,13 +299,16 @@ Rules, warnings, and correct/incorrect markers are conclusions. They follow the 
 
 Split notes over 500 lines unless one file is necessary for a concrete reason; record that reason near the top as `<!-- length-justification: ... -->`. Hardening may occupy most of a note, but never precedes the baseline.
 
-## Finish with the restatement test
+## Finish with evidence-backed teach-back
 
 Accuracy and runnable code are necessary, not sufficient. Before shipping, ask:
 
 > Could a competent engineer who is new to this subject, having read only this note, explain the concept correctly to a colleague in their own words without quoting it?
 
-If the reader can only recite rules, the note transferred instructions rather than understanding. Apply this test to the role-appropriate opening payoff, when it teaches a mechanism, and to the completed note as a whole.
+If the reader can only recite rules, the note transferred instructions rather than understanding.
+Make the verdict evidence-based: identify where the note supplies the problem, owned state or
+decision, actor, named transition and result, misconception boundary, and first failure. Apply this
+test to the role-appropriate opening payoff, each core mechanism, and the completed note as a whole.
 
 ## Headers make claims; one insight per note
 

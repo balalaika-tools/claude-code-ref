@@ -1,0 +1,14 @@
+{
+  "examples": [
+    {
+      "id": "fixture-command",
+      "note": "01_first_result.md",
+      "claim": "runnable",
+      "command": "printf 'fixture result\\n'",
+      "environment": "POSIX shell",
+      "exit_code": 0,
+      "observed_output": ["fixture result"],
+      "verified": true
+    }
+  ]
+}

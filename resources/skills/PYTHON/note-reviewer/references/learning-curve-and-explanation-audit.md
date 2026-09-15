@@ -18,7 +18,7 @@ Read this file completely for every audit. Apply its two axes independently to e
 - Preserve depth. Fix ordering with an entry point, a move, or a named split; do not delete hardening, citations, failure modes, or useful edge cases.
 - Give conceptual notes a concrete worked trace with named values and visible output; do not demand executable code where nothing is executable.
 - Treat a minimal example as safe only when it preserves correctness- and security-critical behavior. A warning or “simplified” label never excuses unsafe code.
-- Treat code as evidence of execution, not as explanation. Judge execution and restatement separately.
+- Treat code as a candidate for execution, not proof of it and not explanation. Judge reproduced behavior and evidence-backed teach-back separately.
 - Fix an explanation deficit with causal prose: the mechanism, consequence, or adversary sequence. Do not add another rule or warning.
 - Do not double-report one defect under overlapping labels. Prefer the most specific label. Buried baseline and assembly gap may both appear because one fixes the entry point and the other fixes composition.
 
@@ -27,15 +27,19 @@ Read this file completely for every audit. Apply its two axes independently to e
 For each note, record the following before writing findings:
 
 1. Count total physical lines.
-2. Identify the note's role, then locate its first complete payoff: a concrete situation and useful mental model for a foundation/tutorial; a runnable result for an implementation; the motivating failure or constraint and the deeper mechanism's consequence for a deep dive; a named decision with criteria and an initial recommendation for a decision guide; or a lookup map and useful defaults for a reference. Do not demand the same artifact from every role.
+2. Identify the note's role, then locate its first complete payoff: a concrete situation, trace, and useful mental model for a foundation; a guided runnable result for a tutorial; a runnable result for an implementation; the motivating failure or constraint and the deeper mechanism's consequence for a deep dive; a named decision with criteria and an initial recommendation for a decision guide; or a lookup map and useful defaults for a reference. Do not demand the same artifact from every role.
 3. Compute payoff distance as `payoff line / total lines`. Use `n/a` for a pure index, lookup reference, or link list whose role has no teaching sequence; record a reference's lookup orientation separately rather than inventing a runnable payoff.
 4. Count prescriptive markers: `> **Rule**:`, `> **Principle**:`, `⚠️`, `❌`, and `✅`.
 5. Count prose paragraphs that explain a mechanism, causal consequence, failure, or attack. Exclude headings, tables, code, captions, instructions that merely restate what to do, and the prescriptive markers themselves.
 6. Compute the register ratio as `prescriptive markers : explanatory paragraphs`. Report raw counts too; do not hide a zero denominator.
 7. Apply `example-selection.md` and inventory only the high-leverage mechanisms that meet its concrete-carrier triggers. Count how many lack a faithful local carrier at their point of need. Do not count all concepts, sections, code blocks, or examples.
-8. Run the restatement test last with code, tables, and rules mentally removed: can the target reader explain the central concept and why the mechanism works in their own words?
+8. Run the evidence-backed teach-back from `coverage-and-execution-audit.md` last. Record which of
+   problem, owned state/decision, actor, transition/result, misconception boundary, and first
+   failure cannot be reconstructed from this note and declared earlier prerequisites.
 
-Use semantic judgment for “composed,” “explanatory paragraph,” and the restatement test. Keyword counts can nominate candidates but cannot decide them.
+Use semantic judgment for “composed,” “explanatory paragraph,” and teach-back. Keyword counts can
+nominate candidates but cannot decide them. A pass requires cited evidence for every applicable
+teach-back element, not a general impression that the prose feels clear.
 
 ## Ordering checks
 
@@ -60,7 +64,8 @@ repeat the baseline.
 
 Require useful early traction, not `## The short version` or fixed fields:
 
-- foundation/tutorial: a concrete situation and first correct mental model or worked outcome;
+- foundation: a concrete situation, faithful trace, and first correct mental model;
+- tutorial: a bounded runnable path, visible output, and explanation;
 - implementation: the smallest runnable path, bounded inputs, and observable result;
 - deep dive: the failure, constraint, or surprising behavior that requires the deeper mechanism;
 - decision guide: a named decision, the criteria that change it, and an initial recommendation;
@@ -177,13 +182,18 @@ and state the behavior it must make predictable.
 
 Always report the register ratio in the explanation verdict. Flag ratios above 2:1 and name representative cold rules. Prescribe explanatory paragraphs at the sections that caused the imbalance; do not recommend removing useful warnings merely to improve the number.
 
-### Restatement test — FIX-HIGH
+### Evidence-backed teach-back — FIX-HIGH
 
-Identify the central concept and state PASS or FAIL. Fail when, after removing rules, code, and tables, the note leaves only instructions or disconnected definitions. Prescribe the smallest set of missing causal explanations that would let the intended reader explain the problem, mechanism, and consequence without quoting the note.
+Identify the central concept and reconstruct the six teach-back elements from
+`coverage-and-execution-audit.md`. Fail when any required element depends on auditor knowledge,
+later path entries, rules, code, or tables that the prose never explains. Name the missing elements
+and prescribe the smallest causal explanation or carrier that would make them reconstructable.
 
 ## Reading-path checks
 
-- `FIX-HIGH` a path when no runnable result or concrete worked outcome appears within its first two entries. Name the first payoff entry and reorder the path as do → understand → harden.
+- `FIX-HIGH` a path when no runnable result or concrete worked outcome appears within its first two entries.
+- Independently `FIX-HIGH` a path when evidence-backed teach-back does not succeed by entry two, even if a command already produced output.
+- `FIX-HIGH` a core beginner mechanism whose first canonical owner is a deep dive or whose owner reaches only `mentioned` or `defined`.
 - `FIX-LOW` divergent copies of the same baseline across notes when they differ only in presentation. Raise severity by reader harm when the copies disagree on correctness or safety.
 - Keep the existing cold-reader protocol: identify the earliest note responsible for an unexplained dependency or complexity jump, and do not borrow knowledge from later entries.
 
@@ -196,17 +206,22 @@ Ordering metrics:
 - teaching notes with a role-appropriate opening payoff;
 - notes whose payoff distance exceeds 0.25;
 - notes over 500 lines without a length justification;
-- reading paths with a runnable or worked result within two entries; and
+- reading paths with an execution payoff within two entries;
+- reading paths with an understanding payoff within two entries;
+- beginner mechanisms first owned by a deep dive; and
 - toy-not-correct examples.
 
 Explanation metrics:
 
 - repo-wide register ratio;
 - unglossed first uses of jargon;
-- notes containing any intuition-building construct;
-- notes passing the restatement test; and
+- notes containing any intuition-building construct (secondary trend only);
+- notes passing evidence-backed teach-back;
 - rules or defenses with no mechanism or adversary explanation.
 - example-demanding mechanisms without a local concrete carrier.
+- core mechanisms reaching their required coverage level;
+- executable claims reproduced and broken; and
+- current-landscape items absent or stale.
 
 The intuition-building count is a trend signal, not a phrase quota. Count genuine analogies, restatements, causal “why this works” passages, or concrete explanatory scenarios; never create a per-file finding solely because a preferred phrase is absent.
 

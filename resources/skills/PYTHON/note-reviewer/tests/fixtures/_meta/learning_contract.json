@@ -1,0 +1,52 @@
+{
+  "audience": "Engineer new to the fixture mechanisms",
+  "paths": [
+    {
+      "name": "Dependency inversion fixture",
+      "kind": "first-time",
+      "entries": ["01_uses_later_concept.md", "02_defines_later_concept.md", "03_deep_dive_owner.md"],
+      "execution_payoff_by": 2,
+      "understanding_payoff_by": 2,
+      "stop_point": "Can explain ownership freshness"
+    }
+  ],
+  "notes": [
+    {
+      "path": "01_uses_later_concept.md",
+      "role": "tutorial",
+      "prerequisites": ["02_defines_later_concept.md"],
+      "entry_capability": "None",
+      "exit_capability": "Can repeat a fencing rule"
+    },
+    {
+      "path": "02_defines_later_concept.md",
+      "role": "foundation",
+      "prerequisites": [],
+      "entry_capability": "Knows an owner can become stale",
+      "exit_capability": "Can explain token ordering"
+    },
+    {
+      "path": "03_deep_dive_owner.md",
+      "role": "deep dive",
+      "prerequisites": ["02_defines_later_concept.md"],
+      "entry_capability": "Can explain token ordering",
+      "exit_capability": "Can explain renewal timing"
+    }
+  ],
+  "mechanisms": [
+    {
+      "name": "fencing token",
+      "owner": "02_defines_later_concept.md",
+      "required_level": "demonstrated",
+      "reader_must_explain": ["why storage rejects an old owner"],
+      "carrier": "tokens 7 and 8 arriving out of order"
+    },
+    {
+      "name": "lease renewal",
+      "owner": "03_deep_dive_owner.md",
+      "required_level": "demonstrated",
+      "reader_must_explain": ["who renews", "what expires"],
+      "carrier": "owner, deadline, renewal, expiry"
+    }
+  ]
+}

@@ -1,7 +1,6 @@
-# Site Index Template
+# Collection Index Template
 
-The canonical landing page for the notes collection. In an MkDocs collection this is
-`docs/index.md`; in a Markdown-only collection it is the root `README.md`. It tells readers what
+The root `README.md` is the canonical landing page for the notes collection. It tells readers what
 the collection covers, how it is organized, and where to start.
 
 For badge hex codes and logo names, see `../badges.md`.
@@ -31,27 +30,11 @@ For badge hex codes and logo names, see `../badges.md`.
 
 ## Contents
 
-<div class="grid cards" markdown>
-
--   **{Area name}**
-
-    {One sentence describing the questions this area helps the reader answer.}
-
-    [{Start or explore label} →]({area}/index.md)
-
--   **{Area name}**
-
-    {One sentence describing the concrete capabilities covered here.}
-
-    [{Start or explore label} →]({area}/index.md)
-
--   **{Area name}**
-
-    {One sentence describing the systems, trade-offs, or workflows covered here.}
-
-    [{Start or explore label} →]({area}/index.md)
-
-</div>
+| Area | Covers | Start here |
+|---|---|---|
+| **{Area name}** | {Questions this area helps answer} | [{Start or explore label}]({area}/README.md) |
+| **{Area name}** | {Concrete capabilities covered here} | [{Start or explore label}]({area}/README.md) |
+| **{Area name}** | {Systems, trade-offs, or workflows covered here} | [{Start or explore label}]({area}/README.md) |
 
 The landing page stops at section-level navigation. Each linked section index owns its detailed
 list of guides; learning paths below may link directly to selected guides.
@@ -60,8 +43,7 @@ list of guides; learning paths below may link directly to selected guides.
 
 ## Learning paths
 
-> [!TIP]
-> Not sure where to start? Pick the path that matches your goal.
+> **Not sure where to start?** Pick the path that matches your goal.
 
 ### Path Name
 
@@ -86,17 +68,13 @@ list of guides; learning paths below may link directly to selected guides.
 - Use two navigation levels: landing page → section index → individual notes
 - The landing page lists areas and sections; section indexes own exhaustive guide listings
 - Learning paths may link directly to the few leaf notes that form the route
-- In MkDocs Material, Contents may use a card grid linking to section `index.md` pages
-- In Markdown-only collections, replace the cards with compact grouped Area / Covers / Start here tables
+- Use compact grouped Area / Covers / Start here tables that render in ordinary Markdown viewers
 - Keep card titles and descriptions parallel, concise, and free of decorative emoji
 - Add a small `Repository layout` tree only when contributors genuinely need it; it is secondary,
   never the primary navigation
-- The Contents section groups files by category with a markdown table per group
 - Learning paths has 2–4 named paths for different experience levels or goals
 - Every path reaches a runnable result or concrete worked outcome within its first two entries
 - Paths follow **do → understand → harden**; explicitly label any revisit to an earlier note for greater depth
 - One named path is for a first-time reader and reaches a complete useful outcome before production deep dives or references
 - Each path states its audience, working result, and stop point
 - Omit the `*Last updated*` line unless the user requests it — it goes stale immediately
-- In MkDocs mode, write this template to `docs/index.md`; do not duplicate it in the repository
-  `README.md`
