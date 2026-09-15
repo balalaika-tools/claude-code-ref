@@ -5,6 +5,7 @@ Apply before delivering generated or updated documentation. Scale checks to the 
 ## Structural checks
 
 - Every page intended for navigation is reachable from the documentation index; related procedures and references link to one another.
+- For full generation or a clean rebuild, inventory every Markdown file under the documentation root and compare it with the working page manifest. Each file must be navigated, an explicitly preserved external compatibility path, or a clearly identified generated/tooling file. Remove accidental root-level notes, duplicate pages, and wrappers created only to satisfy hard-coded internal filenames.
 - Local page links, image targets, source references, and heading anchors resolve from the containing page. Check case sensitivity for Linux-hosted renderers even when working on a case-insensitive filesystem.
 - Respect the existing renderer's link and anchor conventions. Prefer the project's docs build or link checker when available. If checked manually, describe it as manual review; do not claim a complete link crawl.
 - New pages start with descriptive titles and useful content, not repeated provenance blocks. Source links are contextual or in a short end-of-page reference section. Remove scaffold placeholders and empty sections; retain explicitly explained unknowns and necessary example substitutions.
@@ -13,6 +14,7 @@ Apply before delivering generated or updated documentation. Scale checks to the 
 ## Coverage gates
 
 - Compare with the agreed structure or preferred blueprint and applicable reader tasks. For new documentation or a full rebuild, retain applicable blueprint names and organization; departures should serve concrete project needs. Omit inapplicable topics and empty scaffolding, but retain material gaps about applicable workflows. The blueprint does not make absent features mandatory. After a clean rebuild, no competing authentication/deployment procedures or orphaned legacy pages remain in scope.
+- Treat tests or source references that require superseded documentation filenames as consumer mismatches unless an external URL or explicit compatibility requirement is evidenced. Do not count a newly created Markdown shim as structural compliance; report the required old-to-new consumer update in the handoff.
 - Where supported, walk first deployment, redeployment, fresh-terminal credential reuse, local readiness and a complete smoke separately. Check dependency order and test data; identity creation must not be required for each test.
 - Reconcile configuration against all public fields/aliases, selectors, secret-provider inputs and applicable deployment inputs. Distinguish defaults, environment values and unused/unwired knobs.
 - Reconcile inbound routes and outbound operations against contracts, including failure/async/write semantics.

@@ -35,6 +35,8 @@ docs/
 
 Omit folders and pages for inapplicable topics, combine thin related pages, and add pages or folders for substantial needs the blueprint does not cover. Each departure should address a concrete reader need or repository characteristic. Missing knowledge about an applicable workflow belongs near the affected content as a material gap; it is not a reason to omit the topic. Preserve canonical supplied assets. For an authorized clean rebuild, integrate verified legacy information into the adapted blueprint, remove superseded pages within scope and repair inbound links; do not create an archive of loose notes by default. Targeted updates keep established paths unless restructuring was requested.
 
+Before writing a full manual, make a working page manifest that maps every output file to a reader task and navigation location. Default root-level Markdown to `README.md` and an optional `overview.md`; classify other material under the blueprint folders unless an established project convention or explicitly agreed public path requires otherwise. Hard-coded filenames in tests or source code do not by themselves justify compatibility pages or a departure from the page map.
+
 ## Adapt coverage to the repository
 
 | Repository kind | Typical reader tasks |
